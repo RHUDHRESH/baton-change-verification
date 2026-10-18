@@ -39,13 +39,15 @@ def repair_fixture(monkeypatch, tmp_path):
     output = {"old": OLD, "new": NEW, "explanation": "Express the same upper and lower clamp explicitly."}
     calls = []
     headers = []
+    response = {"finish_reason": "stop", "content": None}
 
     def provider(request, timeout):
         calls.append(json.loads(request.data))
         headers.append(dict(request.header_items()))
         raw = {"id": "chatcmpl-measured-repair", "model": "openai/gpt-oss-20b",
                "usage": {"prompt_tokens": 200, "completion_tokens": 100, "total_tokens": 300},
-               "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(output)}}]}
+               "choices": [{"finish_reason": response["finish_reason"], "message": {
+                   "content": json.dumps(output) if response["content"] is None else response["content"]}}]}
         return io.BytesIO(json.dumps(raw).encode())
 
     monkeypatch.setattr(workflow.urllib.request, "urlopen", provider)
@@ -55,7 +57,7 @@ def repair_fixture(monkeypatch, tmp_path):
             "test_region_sha256": workflow.sha("#[cfg(test)]" + tail),
             "failed_check": {"name": "graph_library_initial", "argv": worker.LIBRARY_ARGV, "exit_code": 101,
                              "log_sha256": "d" * 64, "log_tail": "cap_at_or_above_batch_size_is_ignored left:1025 right:1024"}}
-    return SimpleNamespace(record=record, output=output, calls=calls, headers=headers, body=body, data=tmp_path)
+    return SimpleNamespace(record=record, output=output, response=response, calls=calls, headers=headers, body=body, data=tmp_path)
 
 
 def repair(fixture):
@@ -90,14 +92,53 @@ def test_repair_uses_the_same_identifying_transport_header_as_working_graph_agen
     assert repair_fixture.headers[0]["Content-type"] == "application/json"
 
 
-def test_provider_403_is_recordable_without_relaying_its_body_or_credentials(repair_fixture, monkeypatch):
+def test_repair_requests_groq_supported_strict_edit_schema(repair_fixture):
+    repair(repair_fixture)
+    payload = repair_fixture.calls[0]
+    assert payload["model"] == "openai/gpt-oss-20b"
+    response_format = payload["response_format"]
+    assert response_format["type"] == "json_schema"
+    contract = response_format["json_schema"]
+    assert contract["strict"] is True
+    schema = contract["schema"]
+    assert schema["type"] == "object"
+    assert schema["additionalProperties"] is False
+    assert set(schema["properties"]) == set(schema["required"]) == {"old", "new", "explanation"}
+    assert all(value == {"type": "string"} for value in schema["properties"].values())
+    assert not payload.get("stream") and not payload.get("tools")
+    assert payload["max_completion_tokens"] == 3500
+    assert payload["reasoning_effort"] == "low"
+
+
+@pytest.mark.parametrize("status", [400, 403])
+def test_provider_rejection_is_recordable_without_relaying_its_body_or_credentials(repair_fixture, monkeypatch, status):
     def denied(request, timeout):
-        raise urllib.error.HTTPError(request.full_url, 403, "private error reason", {}, io.BytesIO(b"private-test-model-key"))
+        raise urllib.error.HTTPError(request.full_url, status, "private error reason", {}, io.BytesIO(b"private-test-model-key"))
     monkeypatch.setattr(workflow.urllib.request, "urlopen", denied)
-    with pytest.raises(workflow.WorkflowError, match="Groq repair returned HTTP 403") as caught:
+    with pytest.raises(workflow.WorkflowError, match="Groq repair returned HTTP " + str(status)) as caught:
         repair(repair_fixture)
     assert "private" not in str(caught.value)
     assert repair_fixture.record["repair_responses"] == {}
+    assert repair_fixture.record["repairs"] == []
+    assert repair_fixture.record.get("repair_generations", []) == []
+
+
+@pytest.mark.parametrize("content,finish_reason,diagnostic", [
+    ('{"old":', "stop", "invalid JSON"),
+    (json.dumps({"old": OLD, "new": NEW, "explanation": "Unverified edit"}), "length", "incomplete"),
+])
+def test_invalid_or_truncated_output_retains_generation_but_cannot_supply_patch(
+        repair_fixture, content, finish_reason, diagnostic):
+    repair_fixture.response.update(content=content, finish_reason=finish_reason)
+    with pytest.raises(workflow.WorkflowError, match=diagnostic):
+        repair(repair_fixture)
+    generation, = repair_fixture.record["repair_generations"]
+    assert generation["raw_model_output"] == content
+    assert generation["finish_reason"] == finish_reason
+    assert generation["validation"] != "accepted"
+    assert worker.measured_receipt(generation["provider_receipt"])
+    assert repair_fixture.record["repair_responses"] == {}
+    assert repair_fixture.record["repairs"] == []
 
 
 @pytest.mark.parametrize("old", ["does not exist", "", " "])
