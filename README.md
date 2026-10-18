@@ -1,12 +1,12 @@
 # Baton
 
-**Who owes what, and what loses coverage when they leave?**
+**Understand connected company work, investigate its evidence, and leave an actionable next step.**
 
-Baton connects ownership, rotas, escalation paths and informal commitments in FalkorDB. It rehearses departures on temporary graph copies, checks the next 30 days of scheduled events and shows the source evidence. Preview successors, check capacity, ask sourced questions and write accepted ownership to a real local git repository with read-back verification.
+[Open the deployed company app](https://baton-workspace-2f1no78bu-risehackathonsupport-3406.vercel.app). The Vercel frontend calls AWS Lambda in Mumbai, FalkorDB Cloud Free, and Groq Free. It uses actual FalkorDB public repositories: 28 sampled work items, 21 accounts (including bots), and 18 captured API responses. Public contributors are credited without inferred employment or internal ownership.
 
-**Live workspace:** [baton-workspace.vercel.app](https://baton-workspace.vercel.app) runs the frontend on Vercel and the API on AWS Lambda in Mumbai, backed by FalkorDB Cloud Free and Groq Free. The real public workspace imported 28 work items, 21 contributor accounts and 18 source responses from FalkorDB repositories. Live Groq inference, cited graph writes, task completion/reload, authenticated Jira CSV export and hostile-origin rejection passed cloud API verification. Direct Jira/Slack connections are still being configured; CSV export does not create Jira issues.
+The graph agent uses four actual Groq tool calls to inspect work, traverse connected work/files/contributors, open primary evidence, and save a verification task. The final browser run passed with exact source and graph-file checks, persisted provider receipts, and independent task read-back. Semantic entailment is not automatically verified.
 
-**Graph agent:** a bounded Groq tool-calling loop investigates a work item, traverses connected work and file contributors, inspects source evidence, then creates one verification task with graph read-back. It exposes an MCP graph-tool catalog and records provider receipts, tool arguments/results and action evidence. Local safety contracts pass; live agent verification is in progress. This is an evidence-gated application workflow, not a claim to a new graph algorithm. [Deployment evidence and limits](docs/CLOUD_SETUP.md).
+Direct integrations also passed: [Jira KAN-1](https://rhudhresh3697.atlassian.net/browse/KAN-1) and a task in Raptorflow's dedicated `#baton-demo` channel. Both were separately read back and graph-linked; repeated publish calls reused the same artifacts. These are the user's integration workspaces, not FalkorDB's internal Jira or Slack. Jira's scoped token expires October 25, 2026. [Deployment evidence and limits](docs/CLOUD_SETUP.md).
 
 The older departure and Acme benchmark companies are synthetic fixtures. Their extraction caches and scripted parser are explicitly labeled and are not evidence of live Groq inference. Acme from Liz Zhang's agent-memory-bench remains at `/benchmark.html`; the Halden fixture is isolated at `/sandbox.html`.
 
@@ -37,7 +37,9 @@ docker compose --profile checks build checks
 docker compose --profile checks run --rm checks
 ```
 
-Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **172 tests pass:** the 88 unchanged ZIP checks through the original integrity-verifying harness, 22 foundation checks, 39 integration/security tests, and 23 red-team regressions. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Results: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml`, `artifacts/transport-tests.xml` and `artifacts/redteam-tests.xml`.
+Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **Historical verification: 172 tests passed:** the 88 unchanged ZIP checks through the original integrity-verifying harness, 22 foundation checks, 39 integration/security tests, and 23 red-team regressions. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Results: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml`, `artifacts/transport-tests.xml` and `artifacts/redteam-tests.xml`.
+
+Current cloud/agent/company adapter contracts: **139 passed**, plus **22 foundation checks**. The legacy graph/red-team suites could not be rerun on this Windows host because the isolated Redis/FalkorDB engine is unavailable and Docker Desktop is not responding; they are not counted as current passes. The original integrity check passed under WSL (the Windows path-separator check reports false unapproved paths).
 
 The original `checks/locked/**` and `loop/bin/**` are untouched. `loop/config.json` replaces the old author's absolute Python path with a portable command. See [verification](docs/BUILD_REPORT.md).
 

@@ -6,6 +6,7 @@ Credentials stay in memory; output contains public artifact receipts only.
 import argparse
 import http.cookiejar
 import json
+import re
 import urllib.request
 
 import boto3
@@ -17,8 +18,8 @@ def main():
     parser.add_argument("task_id")
     parser.add_argument("--base", default="https://baton-workspace.vercel.app")
     args = parser.parse_args()
-    if not args.base.startswith("https://") or "/" in args.base[8:]:
-        parser.error("Use the exact HTTPS frontend origin without a trailing slash")
+    if not re.fullmatch(r"https://baton-workspace(?:-[a-z0-9]+-risehackathonsupport-3406)?\.vercel\.app", args.base):
+        parser.error("Verification credentials may only be sent to the Baton frontend")
     client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
     def call(path, body=None):

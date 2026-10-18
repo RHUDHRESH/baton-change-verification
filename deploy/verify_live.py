@@ -1,11 +1,15 @@
 """Run in authenticated AWS CloudShell; keep credentials/cookies in memory only."""
 import http.cookiejar
 import json
+import os
+import re
 import urllib.error
 import urllib.request
 import boto3
 
-BASE = "https://baton-workspace.vercel.app"
+BASE = os.environ.get("BATON_VERIFY_BASE", "https://baton-workspace.vercel.app")
+if not re.fullmatch(r"https://baton-workspace(?:-[a-z0-9]+-risehackathonsupport-3406)?\.vercel\.app", BASE):
+    raise ValueError("Verification credentials may only be sent to the Baton frontend")
 
 
 def main():
