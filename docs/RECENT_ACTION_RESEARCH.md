@@ -52,12 +52,26 @@ company history or confidential work.
 | `verification_pending` | Identity is known but a separate read-back failed, differed or was unavailable. | Repeats read-back only. |
 | `verified` | Separate provider read-back matches the submitted artifact and public evidence. | Returns the receipt; can repair pending graph linkage. Verification time remains visible. |
 | `error` | The task/configuration changed before dispatch; no provider write was attempted. | Remains terminal unless an operator reconciles the existing intent. |
+| `rejected` | A recognized provider response explicitly refused the write, such as invalid authentication, missing scope, inaccessible channel or an HTTP request rejection. | Returns actionable diagnostic guidance; never reposts this action automatically. Reconcile the receipt after fixing configuration. |
 
 A crash after provider creation but before identity persistence leaves a pending
 receipt. The adapter intentionally cannot infer non-execution from missing data
 and cannot promise exactly-once delivery. No automatic retry deletes receipts
 or changes the action identity. A graph failure preserves provider verification
 and returns `graph_linked=false` with an honest message.
+
+Provider failures include a sanitized `diagnostic` with a stable `code`,
+`stage` (`publish` or `verification`) and actionable `message`. Recognized Slack
+permission/authentication/channel errors and HTTP 400/401/403/404/405/413/422/429
+responses produce `rejected` only during publication. HTTP 5xx, timeouts,
+malformed acknowledgements, unknown Slack errors and Slack
+`internal_error`/`fatal_error` remain `pending`; an error response can occur
+after part of an operation succeeds. Neither state grants write-retry permission.
+An HTTP 429 may include a validated integer `retry_after_seconds`, solely as
+guidance. No error body, arbitrary provider code, URL, reason or header text is
+copied into the diagnostic. A recognized error during read-back leaves the known
+artifact in `verification_pending`; after permissions are corrected, the next
+explicit call checks that artifact and clears the stale diagnostic on success.
 
 ## Configuration and provider permissions
 
@@ -119,9 +133,13 @@ file-write policy when tests run on Windows.
 Scoped-token tests additionally check both HTTP methods against the fixed
 gateway, Basic authentication, unchanged human links, rejection of URL/path/query
 injection and noncanonical UUIDs, and replay rejection when the cloud ID changes.
+Failure tests distinguish explicit rejection from partial/unknown execution,
+check actionable permission guidance and validated rate-limit metadata, reject
+raw provider-secret echoes, and verify that fixing read-back permission never
+causes a second POST.
 
-No live Jira or Slack artifact has been created or verified by these adapter
-changes. Server credentials and an existing Jira site/project are required for live
-verification. This adapter creates tasks/messages outbound from public GitHub
+This test suite creates no live provider artifacts. Live verification requires
+server credentials and an existing Jira site/project or Slack app/channel.
+This adapter creates tasks/messages outbound from public GitHub
 evidence; it does not yet ingest real private company activity, infer employee
 relationships or synchronize subsequent provider edits.

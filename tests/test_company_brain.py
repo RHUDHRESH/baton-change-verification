@@ -193,3 +193,46 @@ def test_projection_payload_benchmark(captured):
                       "bulk_read_calls": graph.ro_query.call_count,
                       "source_deletion_cases_suppressed": len(
                           result["shared_file_paths"][0]["evidence_robustness"]["single_source_cuts"])}))
+
+
+def test_triage_preview_covers_different_kinds_and_repositories_before_repeats():
+    """Regression for the live preview's five identical unassigned actions."""
+    first_repo, other_repo = company.public.REPOS
+    observed, gaps = {}, []
+    for index in range(10):
+        identity = first_repo + "#" + str(index)
+        observed[identity] = {"repo": first_repo, "url": "https://github.com/" + first_repo + "/issues/" + str(index),
+                              "author": "public-contributor", "source_ids": ["listing"]}
+        gaps.append({"item_id": identity, "kind": "unassigned_open_work", "source_ids": ["listing"]})
+    reviewed = other_repo + "#20"
+    observed[reviewed] = {"repo": other_repo, "url": "https://github.com/" + other_repo + "/pull/20",
+                          "author": "other-contributor", "source_ids": ["pulls", "reviews"]}
+    gaps.extend([{"item_id": reviewed, "kind": "unassigned_open_work", "source_ids": ["pulls"]},
+                 {"item_id": reviewed, "kind": "no_reviews_in_capture", "source_ids": ["reviews"]},
+                 {"item_id": first_repo + "#9", "kind": "review_evidence_missing", "source_ids": ["listing"]}])
+    ranked = company._prioritize_gaps(gaps, observed)
+    preview = ranked[:5]
+    assert len(ranked) == len(gaps)
+    assert preview[0]["kind"] == "no_reviews_in_capture"
+    assert {gap["kind"] for gap in preview} == {"unassigned_open_work", "no_reviews_in_capture", "review_evidence_missing"}
+    assert {gap["repo"] for gap in preview} == set(company.public.REPOS)
+    assert len({gap["item_id"] for gap in preview}) == 5
+    assert [gap["triage_rank"] for gap in ranked] == list(range(1, len(gaps) + 1))
+    assert [(g["item_id"], g["kind"]) for g in ranked] == [
+        (g["item_id"], g["kind"]) for g in company._prioritize_gaps(list(reversed(gaps)), observed)]
+    assert ranked[0]["source_ids"] == ["reviews"]
+    assert ranked[0]["context_path"]["nodes"] == ["other-contributor", reviewed, other_repo]
+    assert ranked[0]["context_path"]["source_ids"] == ["pulls", "reviews"]
+    assert all("does not establish urgency" in gap["ranking_basis"] for gap in ranked)
+
+
+def test_company_gaps_keep_source_connected_context_and_do_not_repeat_work_first(captured):
+    path, snap, rows, graph = captured
+    result = company.overview(path, 6379)
+    gaps = result["gaps"]
+    assert len({gap["item_id"] for gap in gaps[:2]}) == 2
+    path_by_item = {entry["nodes"][1]: entry for entry in result["paths"]}
+    source_ids = {source["id"] for source in result["sources"]}
+    assert all(gap["context_path"] == path_by_item[gap["item_id"]] for gap in gaps)
+    assert all(set(gap["source_ids"]) <= source_ids for gap in gaps)
+    assert graph.ro_query.call_count == 2

@@ -3,6 +3,7 @@ import copy
 import base64
 import json
 import threading
+import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from unittest.mock import MagicMock
@@ -342,3 +343,81 @@ def test_scoped_gateway_cannot_expand_approved_operations(configured, monkeypatc
     with pytest.raises(connections.ConnectionError, match="Invalid Jira API operation"):
         connections._request("jira", "POST", path, connections._config("jira"), {})
     opener.assert_not_called()
+
+
+@pytest.mark.parametrize("code", ["missing_scope", "not_in_channel", "channel_not_found", "invalid_auth", "token_revoked", "rate_limited"])
+def test_explicit_slack_rejection_has_actionable_sanitized_receipt_and_never_reposts(configured, monkeypatch, code):
+    data, task, _, _, graph = configured
+    opener = MagicMock()
+    opener.open.return_value.__enter__.return_value.read.return_value = json.dumps({
+        "ok": False, "error": code, "needed": "test-secret-slack", "response_metadata": {"messages": ["private body"]}}).encode()
+    monkeypatch.setattr(connections.urllib.request, "build_opener", lambda *a: opener)
+    result = connections.publish_task(data, 6379, task["id"], "slack")
+    assert result["status"] == "rejected"
+    assert result["diagnostic"]["code"] == "slack_" + code
+    assert result["diagnostic"]["stage"] == "publish"
+    assert len(result["diagnostic"]["message"]) > 35
+    assert result["write_retry_allowed"] is False and result["readback_retry_allowed"] is False
+    assert "test-secret" not in json.dumps(result) and "private body" not in json.dumps(result)
+    assert connections.publish_task(data, 6379, task["id"], "slack") == result
+    opener.open.assert_called_once()
+    graph.assert_not_called()
+
+
+@pytest.mark.parametrize("error", ["internal_error", "fatal_error", "request_timeout", "unknown-test-secret-slack", {"secret": "test-secret-slack"}])
+def test_unknown_or_partial_slack_failure_stays_ambiguous(configured, monkeypatch, error):
+    data, task, _, _, _ = configured
+    opener = MagicMock()
+    opener.open.return_value.__enter__.return_value.read.return_value = json.dumps({"ok": False, "error": error}).encode()
+    monkeypatch.setattr(connections.urllib.request, "build_opener", lambda *a: opener)
+    result = connections.publish_task(data, 6379, task["id"], "slack")
+    assert result["status"] == "pending" and result["diagnostic"]["code"] == "slack_outcome_unknown"
+    assert "test-secret" not in json.dumps(result)
+    connections.publish_task(data, 6379, task["id"], "slack")
+    opener.open.assert_called_once()
+
+
+@pytest.mark.parametrize("status,rejected", [(400, True), (401, True), (403, True), (404, True), (429, True), (500, False), (503, False)])
+def test_http_provider_diagnostics_exclude_body_reason_and_url(configured, monkeypatch, status, rejected):
+    data, task, _, _, _ = configured
+    body = MagicMock()
+    error = urllib.error.HTTPError("https://private.example/test-secret-jira", status,
+        "private reason test-secret-jira", {"Retry-After": "60", "Secret-Header": "test-secret-jira"}, body)
+    opener = MagicMock()
+    opener.open.side_effect = error
+    monkeypatch.setattr(connections.urllib.request, "build_opener", lambda *a: opener)
+    result = connections.publish_task(data, 6379, task["id"], "jira")
+    assert result["status"] == ("rejected" if rejected else "pending")
+    assert result["diagnostic"]["http_status"] == status
+    assert result["diagnostic"]["code"] == "jira_http_" + str(status)
+    assert result["diagnostic"].get("retry_after_seconds") == (60 if status == 429 else None)
+    assert "test-secret" not in json.dumps(result) and "private.example" not in json.dumps(result)
+    body.read.assert_not_called()
+    connections.publish_task(data, 6379, task["id"], "jira")
+    opener.open.assert_called_once()
+
+
+def test_verification_permission_failure_preserves_identity_and_later_reads_only(configured, monkeypatch):
+    data, task, _, _, _ = configured
+    provider = Provider()
+    def fail_verification(*args, **kwargs):
+        if args[1] == "GET":
+            raise connections._slack_failure("missing_scope")
+        return provider(*args, **kwargs)
+    monkeypatch.setattr(connections, "_request", fail_verification)
+    first = connections.publish_task(data, 6379, task["id"], "slack")
+    assert first["status"] == "verification_pending" and first["remote_id"] == "1780000000.000123"
+    assert first["diagnostic"]["stage"] == "verification" and first["diagnostic"]["code"] == "slack_missing_scope"
+    assert first["readback_retry_allowed"] is True and first["write_retry_allowed"] is False
+    monkeypatch.setattr(connections, "_request", provider)
+    second = connections.publish_task(data, 6379, task["id"], "slack")
+    assert second["status"] == "verified" and "diagnostic" not in second
+    assert len([c for c in provider.calls if c[1] == "POST"]) == 1
+
+
+@pytest.mark.parametrize("header", ["test-secret-jira", "-1", "99999999999", "0", "http://private.example"])
+def test_retry_after_diagnostic_never_echoes_arbitrary_headers(configured, header):
+    error = urllib.error.HTTPError("https://private.example", 429, "private reason", {"Retry-After": header}, None)
+    diagnostic = connections._http_failure("jira", error).diagnostic
+    assert "retry_after_seconds" not in diagnostic
+    assert header not in json.dumps(diagnostic)

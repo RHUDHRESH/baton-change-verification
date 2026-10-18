@@ -127,6 +127,31 @@ def validate(tool, arguments):
             raise ValueError("Invalid evidence list")
 
 
+def source_view(source,item):
+    """Project captured API content before truncation; classify provenance only."""
+    payload=source["payload"]
+    if isinstance(payload,list):
+        selected=next((row for row in payload if isinstance(row,dict) and row.get("number")==item["number"]),None)
+        if selected is not None:
+            payload=selected
+    if isinstance(payload,dict) and payload.get("number")==item["number"]:
+        projected={key:payload[key] for key in ("number","title","body","state","html_url","updated_at") if key in payload}
+        projected["user"]=(payload.get("user") or {}).get("login")
+        projected["labels"]=[label.get("name") if isinstance(label,dict) else label for label in payload.get("labels",[])][:10]
+        return "work_item",projected
+    repository=item["id"].rsplit("#",1)[0]
+    files_url="https://api.github.com/repos/"+repository+"/pulls/"+str(item["number"])+"/files"
+    if isinstance(payload,list) and source.get("url","").split("?",1)[0]==files_url and payload and all(isinstance(row,dict) and isinstance(row.get("filename"),str) for row in payload):
+        return "changed_files",[{key:(row[key][:500] if key=="patch" and isinstance(row[key],str) else row[key])
+                                 for key in ("filename","status","additions","deletions","patch") if key in row} for row in payload[:5]]
+    if isinstance(payload,list):
+        # Reviews otherwise spend the excerpt on avatars/profile endpoints before
+        # reaching their actual text. They remain context, not primary evidence.
+        return "other",[{key:row[key] for key in ("body","state","html_url","submitted_at") if key in row}
+                        for row in payload[:2] if isinstance(row,dict)]
+    return "other",payload
+
+
 class Investigation:
     def __init__(self,data,port,item_id,identity=None):
         self.data,self.port,self.item_id,self.identity=data,port,item_id,identity
@@ -139,6 +164,26 @@ class Investigation:
         self.inspected=set()
         self.action=None
         self.observations={}
+
+    def actionable_sources(self):
+        sources=self.snapshot.get("sources")
+        if sources is None:
+            return list(self.item["source_ids"])
+        return [source["id"] for source in sources if source["id"] in self.item["source_ids"] and
+                source_view(source,self.item)[0] in {"work_item","changed_files"}]
+
+    def graph_grounding(self,arguments):
+        observation=self.observations.get("follow_connections",{})
+        files=[row["file"] for row in observation.get("file_coverage",[]) if row.get("file")]
+        if not files:
+            return {"criterion":"task names an observed touched file","verdict":"not evaluated","files":[],
+                    "scope":"No sampled touched files; source-scoped task only. Repository co-membership establishes no dependency."}
+        text=arguments["title"]+"\n"+arguments["reason"]
+        matched=[path for path in files if re.search(r"(?<![\w./\\-])"+re.escape(path)+r"(?![\w./\\-])",text)]
+        if not matched:
+            raise ValueError("Action denied: task must name an actually observed touched file in its title or reason")
+        return {"criterion":"task names an observed touched file","verdict":"supported","files":matched,
+                "scope":"Exact path membership only; task usefulness and reason entailment are not evaluated."}
 
     def verify_sources(self, refs):
         """Mechanical evidence-first checks, independent of the model's action claim.
@@ -172,12 +217,17 @@ class Investigation:
             record={k:v for k,v in rows[0][0].items() if k in {"id","title","state","url","number","updated_at"}}
             result={"record":record,"repository":rows[0][1],"description":self.item["body"][:1000],
                     "query":ITEM_QUERY,"source_ids":self.item["source_ids"]}
+            eligible=set(self.actionable_sources())
+            result["actionable_sources"]=[{"id":source["id"],"source_kind":source_view(source,self.item)[0]}
+                                          for source in self.snapshot.get("sources",[]) if source["id"] in eligible]
         elif name=="follow_connections":
             rows=self.graph.ro_query(PATH_QUERY,{"id":self.item_id}).result_set
             files=self.graph.ro_query(FILE_QUERY,{"id":self.item_id}).result_set
             result={"paths":[{"via":"same repository; not proof of dependency","work_item":r[0],"title":r[1],"author":r[2]} for r in rows],
                     "file_coverage":[{"file":r[0],"sampled_authors":r[1],"sampled_work_items":r[2],"single_contributor_in_sample":len(r[1])==1} for r in files],
                     "queries":[PATH_QUERY,FILE_QUERY],"limits":"Bounded public sample. Contribution does not establish employment, ownership or system dependencies."}
+            result["action_scope"]={"files":[row[0] for row in files],
+                "requirement":"Name at least one returned file path in the verification task title or reason; if no files were sampled, keep the task source-scoped and infer no dependency."}
         elif name=="read_source":
             ref=arguments["source_id"]
             if ref not in self.item["source_ids"]:
@@ -185,21 +235,20 @@ class Investigation:
             source=public.evidence(self.data,ref)
             if not source:
                 raise ValueError("Evidence record is missing")
-            payload=source["payload"]
-            if isinstance(payload,list):
-                payload=next((r for r in payload if isinstance(r,dict) and r.get("number")==self.item["number"]),payload[:2])
-            # Preserve useful issue fields before truncating; arbitrary API key ordering is not evidence selection.
-            if isinstance(payload,dict):
-                payload={k:payload[k] for k in ("number","title","body","state","html_url","updated_at","user","labels") if k in payload}
+            source_kind,payload=source_view(source,self.item)
             serialized=json.dumps(payload,ensure_ascii=False)
             excerpt=serialized[:1400]
-            result={"id":ref,"url":source["url"],"sha256":source["sha256"],"fetched_at":source["fetched_at"],"excerpt":excerpt,"excerpt_truncated":len(serialized)>1400}
+            result={"id":ref,"url":source["url"],"sha256":source["sha256"],"fetched_at":source["fetched_at"],"source_kind":source_kind,
+                    "excerpt":excerpt,"excerpt_truncated":len(serialized)>1400}
             self.inspected.add(ref)
         else:
             if not self.identity or not {"read_work_item","follow_connections","read_source"}.issubset(self.visited):
                 raise ValueError("Action denied: inspect the work item, graph connections and source first")
             if not set(arguments["source_ids"]).issubset(self.inspected):
                 raise ValueError("Action denied: every citation must have been inspected in this run")
+            if not any(self.observations.get("source:"+ref,{}).get("source_kind") in {"work_item","changed_files"} for ref in arguments["source_ids"]):
+                raise ValueError("Action denied: cite an inspected primary work-item or changed-file source; review metadata alone cannot ground the task")
+            grounding=self.graph_grounding(arguments)
             control=connect(self.port)
             with control.lock("baton:public:tasks",timeout=60,blocking_timeout=5):
                 if public.snapshot(self.data)["graph"]!=self.snapshot["graph"]:
@@ -214,12 +263,13 @@ class Investigation:
                          "evidence_receipts":receipts,
                          "verification":{"method":"evidence-first mechanical checks; Sauron adaptation",
                                          "task_state":{"criterion":"task title, status and target match requested write","verdict":"supported","record":saved[0]},
+                                         "graph_scope":grounding,
                                          "reason_entailment":"not evaluated; human review required"}}
             result=self.action
         if name=="follow_connections":
             self.observations[name]=result
         if name=="read_source":
-            self.observations["source:"+arguments["source_id"]]={k:result[k] for k in ("id","sha256","fetched_at","url","excerpt_truncated")}
+            self.observations["source:"+arguments["source_id"]]={k:result[k] for k in ("id","sha256","fetched_at","url","source_kind","excerpt_truncated")}
             self.observations["source:"+arguments["source_id"]]["payload_sha256"]=public.sha(json.dumps(source["payload"],sort_keys=True,ensure_ascii=False))
         self.visited.add(name)
         return {"content":[{"type":"text","text":json.dumps(result,ensure_ascii=False)}],"isError":False}
@@ -302,11 +352,13 @@ def run(data,port,item_id):
         if "item_id" in properties:
             properties["item_id"]["enum"]=[item_id]
         if "source_id" in properties:
-            properties["source_id"]["enum"]=investigation.item["source_ids"]
+            properties["source_id"]["enum"]=investigation.actionable_sources()
     phase="policy_validation"
     try:
         policy=compile_policy(TOOLS+[ACTION])
         record["policy"]=policy
+        if not investigation.actionable_sources():
+            raise ValueError("No captured primary work-item or changed-file source is available for this task")
         for step in range(4):
             phase="preflight"
             remaining=MAX_AGENT_SECONDS-(time.monotonic()-started)
@@ -324,7 +376,7 @@ def run(data,port,item_id):
                     citations=tool["function"]["parameters"]["properties"]["source_ids"]
                     citations["items"]["enum"]=inspected
                     citations["maxItems"]=min(5,len(inspected))
-                    tool["function"]["description"]+= " Cite only IDs actually returned by read_source; source IDs listed by read_work_item alone have not been inspected."
+                    tool["function"]["description"]+= " Cite only IDs actually returned by read_source; source IDs listed by read_work_item alone have not been inspected. When follow_connections returned files, name at least one exact returned file path in the title or reason."
             # This byte/character estimate is deliberately conservative for typical English public issues.
             # Provider-reported tokens remain the measured source; this is a preflight guard, not a tokenizer.
             active_messages=context_view(messages,record["trace"])

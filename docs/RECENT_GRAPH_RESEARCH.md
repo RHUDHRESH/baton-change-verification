@@ -21,6 +21,7 @@ The company view uses captured public records from **FalkorDB/FalkorDB** and **F
 - Public contributor accounts, their authored issues/PRs, and source-cited `AUTHORED → IN_REPOSITORY` paths. Account activity does not establish employment, team membership, or internal ownership.
 - Open work with no assignees in its captured GitHub record, with an action to confirm triage responsibility. This is a captured public status, not an inferred internal assignment.
 - Separate review states for an uncaptured endpoint and a captured endpoint with no review records. Missing capture does not mean a PR has no reviewers.
+- A varied triage queue with a rank, a stated ranking basis, and a contributor-to-work-to-repository evidence path for each suggestion. It retains every supported gap, presents different work/kinds/repositories before repeats, and starts with captured review gaps when available. The ordering is a display policy; it does not infer business urgency or severity.
 - Shared-file paths only when both work items belong to the same captured repository, contributor IDs agree with the captured items, and each file edge has its own exact GitHub PR files endpoint. The suggested action is to compare overlapping changes and ask contributors for context. Shared files do not prove a dependency.
 - Single-source deletion sensitivity for each shared-file path. Capturing the same endpoint repeatedly is not independent corroboration.
 
@@ -36,7 +37,7 @@ Command, from the repository root:
 .venv/Scripts/python.exe -m pytest tests/test_company_brain.py -q -s --override-ini addopts=
 ```
 
-Observed result: **13 passed in 0.30s**. Graph I/O is mocked; the test records are explicitly synthetic. No paid provider, Docker service, live graph query, or live GitHub import is used by these tests.
+Observed result after the queue improvement: **15 passed in 0.92s**. Graph I/O is mocked; the test records are explicitly synthetic. No paid provider, Docker service, live graph query, or live GitHub import is used by these tests.
 
 | Measure | Baseline | Adaptation | Interpretation |
 | --- | ---: | ---: | --- |
@@ -50,7 +51,13 @@ Additional tests cover duplicate rows, bot account types, wrong contributors, ch
 
 ### Live compatibility correction
 
-The first deployed company query failed on FalkorDB Cloud **v4.22.0** with `ORDER BY cannot reference variables not projected or grouped in this scope`. It aggregated source IDs while returning the work ID inside a map, then tried to sort by `w.id`. The corrected query groups the author/work/repository scalar IDs in `WITH`, sorts by the grouped `work_id`, applies the row limit, and only then constructs the output maps. The response row shape and two-query contract are preserved. Unit checks cover the corrected scope; a successful deployment probe must establish live compatibility.
+The first deployed company query failed on FalkorDB Cloud **v4.22.0** with `ORDER BY cannot reference variables not projected or grouped in this scope`. It aggregated source IDs while returning the work ID inside a map, then tried to sort by `w.id`. The corrected query groups the author/work/repository scalar IDs in `WITH`, sorts by the grouped `work_id`, applies the row limit, and only then constructs the output maps. The response row shape and two-query contract are preserved. A read-only live request on 2026-10-18 succeeded after that correction, as recorded below.
+
+### Live company queue audit and improvement
+
+The [live company endpoint](https://kdeokfokg2d4jygx4ul3xwso5a0injxf.lambda-url.ap-south-1.on.aws/api/public/company) returned snapshot `a497740dd9c5359440cd4a7f`, captured **2026-10-18 13:08:20 UTC**: 16 public contributor accounts, 28 work items, 28 source-backed contribution paths, 18 sources, and 33 gaps. The gaps comprise 23 unassigned items, nine PRs whose review endpoint was not captured, and one captured endpoint with no review records. There are no captured shared-file paths; no overlaps or internal dependencies were invented to fill that absence.
+
+The existing five-card preview contained five generic unassigned-work suggestions from one repository. Applying the new queue policy to that actual endpoint response locally retained all 33 gaps and produced a five-card preview covering **three gap kinds, two repositories, and five distinct work items**. Its first suggestion is to inspect the captured review status of `FalkorDB/falkordb-py#297`; its evidence remains the captured reviews endpoint, not an inference that nobody reviewed the PR. This comparison measures presentation coverage, not improved correctness or business impact. It tests the local queue helper against a real response; the updated queue still needs the parent task's deployment/UI verification.
 
 ## Requirement status
 

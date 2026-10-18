@@ -20,6 +20,61 @@ class ConnectionError(ValueError):
     """Sanitized configuration or provider failure."""
 
 
+class ProviderFailure(ConnectionError):
+    """Only static, allowlisted diagnostics may cross the provider boundary."""
+
+    def __init__(self, code, message, rejected=False, http_status=None, retry_after=None):
+        super().__init__(message)
+        self.rejected = rejected
+        self.diagnostic = {"code": code, "message": message}
+        if http_status is not None:
+            self.diagnostic["http_status"] = http_status
+        if retry_after is not None:
+            self.diagnostic["retry_after_seconds"] = retry_after
+
+
+def _slack_failure(error):
+    known = {
+        "missing_scope": "Slack token lacks a required scope. Grant chat:write for posting and the channel's history scope for verification; reinstall the app after scope changes.",
+        "not_in_channel": "Invite the Slack bot to the configured channel before publishing.",
+        "channel_not_found": "Slack cannot access the configured channel. Check its ID and invite the bot.",
+        "invalid_auth": "Slack rejected authentication. Replace the server's bot token with a valid installed-app token.",
+        "not_authed": "Slack did not receive valid authentication. Check the server's bot-token configuration.",
+        "token_revoked": "The Slack bot token was revoked. Reinstall the app and update its server token.",
+        "token_expired": "The Slack bot token expired. Update the server token.",
+        "account_inactive": "The Slack app or workspace account is inactive. Check its installation.",
+        "no_permission": "Slack denied this operation. Check the bot's channel membership and granted scopes.",
+        "is_archived": "The configured Slack channel is archived. Reconcile this action before choosing another destination.",
+        "restricted_action": "A Slack workspace policy blocks this action. Ask the workspace administrator to review the app's access.",
+        "rate_limited": "Slack rate-limited the request. Wait before another explicit check; this action will not be reposted automatically.",
+        "ratelimited": "Slack rate-limited the request. Wait before another explicit check; this action will not be reposted automatically.",
+    }
+    if isinstance(error, str) and error in known:
+        return ProviderFailure("slack_" + error, known[error], rejected=True)
+    # fatal_error/internal_error may occur after part of an operation succeeds.
+    # Unknown codes and all provider-supplied text stay out of receipts.
+    return ProviderFailure("slack_outcome_unknown", "Slack returned an unrecognized failure. Inspect the destination before reconciling the action.")
+
+
+def _http_failure(target, error):
+    known = {
+        400: "Provider rejected the request. Check the project, issue type and required fields for Jira, or the configured Slack destination.",
+        401: "Provider rejected authentication. Check the server token and account; scoped Jira tokens also require the matching Cloud ID.",
+        403: "Provider denied access. Check token scopes and account permissions for the configured destination.",
+        404: "Provider could not find the resource. Check the site, Cloud ID, project and artifact identity as applicable.",
+        405: "Provider rejected this API method. Check that the configured service supports the approved operation.",
+        413: "Provider rejected the request size. Reconcile this action before changing its content.",
+        422: "Provider rejected the task fields. Check the issue type and required project fields.",
+        429: "Provider rate-limited the request. Wait before another explicit check; this action will not be reposted automatically.",
+    }
+    retry_after = (error.headers or {}).get("Retry-After", "")
+    retry_after = int(retry_after) if isinstance(retry_after, str) and re.fullmatch(r"[0-9]{1,5}", retry_after) and 1 <= int(retry_after) <= 86400 else None
+    status = error.code if isinstance(error.code, int) and 100 <= error.code <= 599 else None
+    return ProviderFailure(target + "_http_" + (str(status) if status else "error"),
+        known.get(status, "Provider returned an HTTP failure. The write outcome is uncertain; inspect the destination before reconciliation."),
+        rejected=status in known, http_status=status, retry_after=retry_after if status == 429 else None)
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         raise ConnectionError("Provider redirect refused")
@@ -110,8 +165,16 @@ def _request(target, method, path, config, payload=None):
             if not isinstance(result, dict):
                 raise ConnectionError("Invalid provider response")
             if target == "slack" and result.get("ok") is not True:
-                raise ConnectionError("Slack rejected the operation; check bot permissions and destination")
+                raise _slack_failure(result.get("error") if result.get("ok") is False else None)
             return result
+    except urllib.error.HTTPError as error:
+        # Never read or return HTTP error bodies, URLs, reason strings or headers.
+        failure = _http_failure(target, error)
+        try:
+            error.close()
+        except Exception:
+            pass
+        raise failure from None
     except ConnectionError:
         raise
     except Exception:
@@ -210,7 +273,8 @@ def publish_task(data, port, task_id, target):
     """Explicit action. Return persisted sanitized receipt; repeat calls never repeat POST.
 
     States: pending (write uncertain), remote_created (read-back needed), verified,
-    verification_pending (artifact known but verification failed). A repeat only
+    verification_pending (artifact known but verification failed), rejected
+    (provider explicitly refused the write). A repeat only
     retries read-back/graph linkage when the remote identity is already known.
     """
     _config(target)
@@ -274,16 +338,36 @@ def publish_task(data, port, task_id, target):
                 receipt["status"] = "remote_created"
                 receipt["readback_retry_allowed"] = bool(receipt.get("remote_id"))
                 workspace.write(data, path, receipt)
-            except Exception:
-                return intent  # Persisted pending intent prevents duplicate writes after timeout/crash.
+            except Exception as error:
+                failure = dict(intent)
+                if isinstance(error, ProviderFailure):
+                    failure["diagnostic"] = {"stage": "publish", **error.diagnostic}
+                    failure["message"] = str(error) + " This action will not be sent again automatically."
+                    if error.rejected:
+                        failure["status"] = "rejected"
+                else:
+                    failure["diagnostic"] = {"stage": "publish", "code": "write_outcome_unknown",
+                        "message": "No trustworthy creation acknowledgement was persisted. Inspect the destination before reconciliation."}
+                try:
+                    workspace.write(data, path, failure)
+                except Exception:
+                    return intent
+                return failure  # A failure receipt never authorizes another POST.
         try:
             receipt["url"] = _verify(target, config, receipt, task)
             receipt["status"] = "verified"
             receipt["verified_at"] = workspace.now()
             receipt["message"] = "Created artifact verified by a separate provider read-back."
-        except Exception:
+            receipt.pop("diagnostic", None)
+        except Exception as error:
             receipt["status"] = "verification_pending"
             receipt["message"] = "Artifact identity received, but read-back is unverified. Repeat checks without creating again."
+            if isinstance(error, ProviderFailure):
+                receipt["diagnostic"] = {"stage": "verification", **error.diagnostic}
+                receipt["message"] = "Artifact identity received. " + str(error) + " Repeat checks without creating again."
+            else:
+                receipt["diagnostic"] = {"stage": "verification", "code": "readback_unconfirmed",
+                    "message": "Provider read-back was unavailable or did not match the submitted task and evidence."}
         workspace.write(data, path, receipt)
         if receipt["status"] == "verified":
             return _finish_graph(data, path, port, task, receipt)

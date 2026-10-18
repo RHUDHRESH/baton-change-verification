@@ -30,6 +30,43 @@ def _file_evidence(item, evidence_ids, path, sources):
     endpoint = "https://api.github.com/repos/" + item["repo"] + "/pulls/" + str(item["number"]) + "/files"
     return sorted({identity for identity in evidence_ids
                    if sources[identity]["url"].split("?")[0] == endpoint})
+
+
+def _prioritize_gaps(gaps, observed):
+    """Present varied, source-supported next steps before repeating work.
+
+    This is a transparent display policy, not an estimate of business impact or
+    urgency. Keep the complete queue; diversity only affects its presentation.
+    """
+    order = {"no_reviews_in_capture": 0, "unassigned_open_work": 1,
+             "review_evidence_missing": 2}
+    reasons = {"no_reviews_in_capture": "The captured review endpoint contains no review records.",
+               "unassigned_open_work": "The captured open item lists no GitHub assignee.",
+               "review_evidence_missing": "Review status is unknown because its endpoint was not captured."}
+    pending = [gap for gap in gaps if gap["kind"] != "review_recorded"]
+    ranked, seen_items, seen_kinds, seen_repositories = [], set(), set(), set()
+    while pending:
+        # All IDs/kinds come from validated graph rows and pinned source data.
+        chosen = min(pending, key=lambda gap: (
+            gap["item_id"] in seen_items,
+            gap["kind"] in seen_kinds,
+            observed[gap["item_id"]]["repo"] in seen_repositories,
+            order.get(gap["kind"], 3), gap["item_id"], gap["kind"]))
+        pending.remove(chosen)
+        work = observed[chosen["item_id"]]
+        ranked.append({**chosen, "triage_rank": len(ranked) + 1, "repo": work["repo"],
+                       "work_url": work["url"],
+                       "ranking_basis": reasons.get(chosen["kind"], "Captured evidence supports this next step.")
+                           + " Display order covers different work, gap kinds, and repositories; it does not establish urgency.",
+                       "context_path": {"nodes": [work["author"], chosen["item_id"], work["repo"]],
+                                        "relations": ["AUTHORED", "IN_REPOSITORY"],
+                                        "source_ids": work["source_ids"]}})
+        seen_items.add(chosen["item_id"])
+        seen_kinds.add(chosen["kind"])
+        seen_repositories.add(work["repo"])
+    return ranked
+
+
 SHARED_FILE_QUERY = (
     "MATCH (a:Account)-[:AUTHORED]->(w:WorkItem)-[:TOUCHES]->(f:File)"
     "<-[:TOUCHES]-(other:WorkItem)<-[:AUTHORED]-(b:Account) "
@@ -151,12 +188,15 @@ def overview(data, port):
             "people": sorted(accounts.values(), key=lambda p: (-len(p["authored_items"]), p["login"])),
             "work": sorted(observed.values(), key=lambda work: work["item_id"]),
             "paths": paths, "shared_file_paths": shared_paths,
-            "gaps": [gap for gap in gaps if gap["kind"] != "review_recorded"],
+            "gaps": _prioritize_gaps(gaps, observed),
             "sources": refs(cited), "queries": [CONTRIBUTION_QUERY, SHARED_FILE_QUERY],
             "query_count": 2, "bounds": {"contribution_rows": 100, "shared_file_paths": 50},
             "diagnostics": {"rejected_rows": rejected,
                             "contribution_limit_reached": len(rows) >= CONTRIBUTION_LIMIT,
                             "shared_path_limit_reached": len(shared) >= SHARED_PATH_LIMIT,
+                            "gap_ordering": "Distinct work first; then cover gap kinds and repositories; "
+                                            "captured review gaps precede generic unassigned-work ties. "
+                                            "Presentation order is not business urgency.",
                             "limit_semantics": "Bounds cap returned rows, not database scan work."},
             "scope": snap["scope"],
             "limits": ["Contributor accounts do not establish employment, team membership, or internal ownership.",
