@@ -21,7 +21,8 @@ def main():
     git("archive", "--format=zip", f"--output={source}", "HEAD")
     git("bundle", "create", bundle, "--all")
     version = re.search(r'^version = "([^"]+)"$', (ROOT / "pyproject.toml").read_text(), re.M).group(1)
-    files = [source, bundle, *ARTIFACTS.glob(f"dist/baton_departure-{version}-*.whl"), *ARTIFACTS.glob("*tests.xml"), ARTIFACTS / "check-run.json",
+    reports = [ARTIFACTS / name for name in ("foundation-tests.xml", "transport-tests.xml", "redteam-tests.xml", "security-tests.xml")]
+    files = [source, bundle, *ARTIFACTS.glob(f"dist/baton_departure-{version}-*.whl"), *reports, ARTIFACTS / "check-run.json",
              ROOT / "loop/last_score.json", ROOT / "loop/junit.xml", ARTIFACTS / "clean-clone-verification.json", ROOT / "docs/BUILD_REPORT.md",
              ROOT / "output/playwright/baton-demo.webm", ROOT / "output/playwright/desktop.png",
              ROOT / "output/playwright/mobile.png", ROOT / "output/playwright/mobile-dark.png",
