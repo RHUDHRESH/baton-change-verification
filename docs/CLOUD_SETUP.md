@@ -6,7 +6,7 @@ Updated 2026-10-18. This document distinguishes completed cloud checks from pend
 
 Vercel static frontend → same-origin `/api` rewrite → AWS Lambda in Mumbai → FalkorDB Cloud Free. Groq Free supplies actual GPT-OSS inference. DynamoDB holds sessions, counters and leases; no provider credentials are written to the graph.
 
-The initial public frontend is https://baton-workspace.vercel.app. The complete company/agent frontend is the public preview https://baton-workspace-2f1no78bu-risehackathonsupport-3406.vercel.app. The stable alias retains the initial frontend; the final preview has not been promoted. Both Vercel and Lambda provide HTTPS hostnames; no purchased domain is needed.
+The production frontend is https://baton-workspace.vercel.app. The previously tested company/agent preview was promoted through Vercel CLI on October 18, 2026, after explicit user authorization. Production deployment `dpl_AzAU5DNjQLxWWntjoP6GynQtQdMx` carries the tested frontend source from `86afb98`; its production alias and latest evidence UI were verified. Both Vercel and Lambda provide HTTPS hostnames; no purchased domain is needed.
 
 AWS resources: `baton-workspace` Lambda (Python3.12, x86_64, 256MB, 180 seconds); `baton-workspace-control` DynamoDB STANDARD (10 provisioned RCU / 10 WCU, TTL `expires`, no autoscaling); and `baton-workspace-lambda-exec` with an inline policy restricted to this table. Function URL invocation permissions were explicitly approved. No CloudWatch logging permissions, EC2, Lightsail, NAT, API Gateway, ECR, paid model plan or domain were added.
 
@@ -24,9 +24,13 @@ Initial live agent attempts exposed ID and uninspected-citation failures; no sub
 
 The company overview passed on managed FalkorDB after correcting an aggregate ordering incompatibility caught live. It uses two bounded graph business queries. Its first five suggestions cover three gap kinds and both repositories; the display order is not claimed to establish urgency.
 
-Current local verification: 139 cloud/provider/agent/company contracts and 22 foundation checks passed. The original locked-check integrity passed under WSL; native Windows reports false unapproved paths because of path separators. Legacy isolated-engine graph/red-team tests could not be rerun: `BATON_TEST_REDIS`/`BATON_TEST_MODULE` are unavailable and Docker's Linux engine is not running. Historical 172-test results are not presented as a current rerun.
+Current full verification: **311 passed, zero failures, zero skipped**, using `docker compose --profile checks build checks` followed by `docker compose --profile checks run --rm checks`. Breakdown: original locked ZIP checks 88 (integrity `ok`), foundation 22, integration/security 39, red-team 23, cloud/provider/agent/company contracts 139. All five commands in `artifacts/check-run.json` exited zero. JUnit reports were independently counted after the run. The locked harness took 188.6 seconds; integration 51.86 seconds; red-team 4.70 seconds; cloud contracts 2.70 seconds. One Mangum event-loop deprecation warning remains. No locked checks or manifests were changed.
 
-The final public preview also passed the complete CloudShell frontend/API harness: health, authentication, source inspection, actual Groq generation, cited graph writes, task creation/completion/reload, Jira CSV export, logout, anonymous-write rejection and hostile-Origin rejection. Final brief run `eb421c9244b19f0cb2ac5252e3cd9ad9` used 1,040 input / 322 output tokens; provider receipt `chatcmpl-8fa59bdd-950d-4dee-8dd0-d67636436868`. Browser checks independently passed source payload inspection, operator sign-in, agent execution, task completion/reload/reopen, and displayed external artifact links.
+The final public preview and then the main production URL passed the complete CloudShell frontend/API harness: health, authentication, source inspection, actual Groq generation, cited graph writes, task creation/completion/reload, Jira CSV export, logout, anonymous-write rejection and hostile-Origin rejection. Final brief run `eb421c9244b19f0cb2ac5252e3cd9ad9` used 1,040 input / 322 output tokens; provider receipt `chatcmpl-8fa59bdd-950d-4dee-8dd0-d67636436868`. Browser checks independently passed source payload inspection, operator sign-in, agent execution, task completion/reload/reopen, and displayed external artifact links.
+
+Production-host repeat verification: Groq run `1ee742ea00d122ea4262b2f4dce8b586` succeeded with 1,040 input / 291 output tokens, receipt `chatcmpl-3afacc71-7790-4889-8930-bd289034d09c`. Auth, graph/source reads, task create/complete/reload, CSV export, logout, anonymous rejection and hostile-Origin rejection all passed.
+
+Production graph-agent run `6c09aba93fc18a7682015cdff88bbace` also passed in 13,705 ms: four actual Groq tool calls, changed-file evidence, exact graph-file grounding and task read-back. Repeated Slack/Jira publish checks on the production origin retained their existing message/issue identities and graph links.
 
 ## Setup and reproducibility
 
@@ -55,6 +59,14 @@ Live CloudShell harnesses `deploy/verify_live.py` and `deploy/verify_agent.py` r
 Required environment variables (plus `JIRA_CLOUD_ID` for scoped tokens): `JIRA_SITE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_PROJECT_KEY`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`. Status reports configuration presence separately from connectivity. The approved Slack setup targets a dedicated public `baton-demo` channel in the user's Raptorflow workspace, using `chat:write` and `channels:history`. Jira Free activation on the user's existing site was approved. Actual Jira and Slack creation/read-back now pass. Jira issue [KAN-1](https://rhudhresh3697.atlassian.net/browse/KAN-1) and [Slack task message](https://raptorflow.slack.com/archives/C0CA7B1BYTT/p1792332383930779) link to the same agent task. The CloudShell integration harness verified persisted graph links and identical artifact identities on repeated publish calls, without duplicate writes. The scoped Jira work token expires October 25, 2026; no Jira admin scopes were added.
 
 Only public-source demo tasks are sent; no unrelated private Slack/Jira history is ingested. Raptorflow is the user's integration workspace, not an assertion that it is FalkorDB's internal workspace.
+
+## Docker recovery on October 18, 2026
+
+Docker Desktop 4.90.0 could not start its Linux engine because stale AF_UNIX socket objects returned Windows error 1920. A force stop followed by reversible isolation of socket-only runtime folders restored Engine 29.7.2. Containers, images, volumes, WSL distributions and the Docker data disk were retained. Existing application containers resumed; the isolated checks container was built successfully.
+
+Preserved folders under `%LOCALAPPDATA%`: `Docker/run.baton-recovery-20261018`, `Docker/run.baton-recovery-20261018-2`, and `docker-secrets-engine.baton-recovery-20261018`. These retain the inaccessible runtime objects; no factory reset or disk deletion was used. Automatic review blocked a direct socket-deletion attempt, so recovery used preserved directory renames instead.
+
+This restores the current engine, not a proven permanent upstream fix. [Docker's issue tracker documents the same startup failure](https://github.com/docker/desktop-feedback/issues/676). A future restart may require vendor remediation.
 
 ## Scope and limits
 

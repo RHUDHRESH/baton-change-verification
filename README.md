@@ -2,7 +2,7 @@
 
 **Understand connected company work, investigate its evidence, and leave an actionable next step.**
 
-[Open the deployed company app](https://baton-workspace-2f1no78bu-risehackathonsupport-3406.vercel.app). The Vercel frontend calls AWS Lambda in Mumbai, FalkorDB Cloud Free, and Groq Free. It uses actual FalkorDB public repositories: 28 sampled work items, 21 accounts (including bots), and 18 captured API responses. Public contributors are credited without inferred employment or internal ownership.
+[Open the deployed company app](https://baton-workspace.vercel.app). The Vercel frontend calls AWS Lambda in Mumbai, FalkorDB Cloud Free, and Groq Free. It uses actual FalkorDB public repositories: 28 sampled work items, 21 accounts (including bots), and 18 captured API responses. Public contributors are credited without inferred employment or internal ownership.
 
 The graph agent uses four actual Groq tool calls to inspect work, traverse connected work/files/contributors, open primary evidence, and save a verification task. The final browser run passed with exact source and graph-file checks, persisted provider receipts, and independent task read-back. Semantic entailment is not automatically verified.
 
@@ -37,10 +37,9 @@ docker compose --profile checks build checks
 docker compose --profile checks run --rm checks
 ```
 
-Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **Historical verification: 172 tests passed:** the 88 unchanged ZIP checks through the original integrity-verifying harness, 22 foundation checks, 39 integration/security tests, and 23 red-team regressions. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Results: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml`, `artifacts/transport-tests.xml` and `artifacts/redteam-tests.xml`.
+Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **311 tests passed in a fresh Docker checks run on October 18, 2026, with zero failures or skips:** 88 unchanged ZIP checks, 22 foundation checks, 39 integration/security checks, 23 red-team regressions, and 139 cloud/provider/agent/company contracts. The original scoring harness verified locked-check integrity. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Reports: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml`, `artifacts/transport-tests.xml`, `artifacts/redteam-tests.xml`, `artifacts/cloud-contract-tests.xml`, and `artifacts/check-run.json`.
 
-Current cloud/agent/company adapter contracts: **139 passed**, plus **22 foundation checks**. The legacy graph/red-team suites could not be rerun on this Windows host because the isolated Redis/FalkorDB engine is unavailable and Docker Desktop is not responding; they are not counted as current passes. The original integrity check passed under WSL (the Windows path-separator check reports false unapproved paths).
-
+Docker's Linux engine was recovered without resetting volumes or data disks. All five harness commands exited zero. One Mangum event-loop deprecation warning remains; it did not fail a test. Real production Groq, graph/task, agent, Jira and Slack checks passed separately from mocked provider contract tests.
 The original `checks/locked/**` and `loop/bin/**` are untouched. `loop/config.json` replaces the old author's absolute Python path with a portable command. See [verification](docs/BUILD_REPORT.md).
 
 ## CLI
