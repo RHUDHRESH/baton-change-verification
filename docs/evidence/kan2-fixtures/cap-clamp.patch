@@ -1,0 +1,17 @@
+diff --git a/graph/src/runtime/ops/batched_result_emitter.rs b/graph/src/runtime/ops/batched_result_emitter.rs
+--- a/graph/src/runtime/ops/batched_result_emitter.rs
++++ b/graph/src/runtime/ops/batched_result_emitter.rs
+@@ -554,10 +554,9 @@
+         binding: I::Binding,
+         record_cap: Option<usize>,
+     ) -> Self {
+-        let pack_ceiling = match record_cap {
+-            Some(cap) if cap < BATCH_SIZE => cap.max(1),
+-            _ => BATCH_SIZE,
+-        };
++        // Explicit bounds also avoid a guarded-match aggregate-return
++        // miscompile observed in optimized builds with rustc 1.99.
++        let pack_ceiling = record_cap.unwrap_or(BATCH_SIZE).clamp(1, BATCH_SIZE);
+         Self {
+             binding,
+             batch: None,

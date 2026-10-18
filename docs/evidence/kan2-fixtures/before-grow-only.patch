@@ -1,0 +1,88 @@
+diff --git a/graph/src/graph/graph.rs b/graph/src/graph/graph.rs
+--- a/graph/src/graph/graph.rs
++++ b/graph/src/graph/graph.rs
+@@ -974,23 +974,9 @@
+     /// - `relationship_type_matrix`: `(edge_id, type_index) = true` for all edges
+     /// - Tensor backward (`mt`): transpose of forward (`m`)
+     pub fn rebuild_derived_matrices(&mut self) {
+-        // Decoded matrices keep the saving server's node_cap, which `grow_cap`
+-        // leaves up to 25% past the highest node id, while `restore` sets
+-        // node_cap from that id. Take the larger, so the resize below only
+-        // grows: a load never shrinks a matrix, and `Tensor::resize` never has
+-        // to drop entries (#3246).
+-        let saved = std::iter::once(self.adjacancy_matrix.nrows())
+-            .chain(std::iter::once(self.adjacancy_matrix.ncols()))
+-            .chain(std::iter::once(self.node_labels_matrix.nrows()))
+-            .chain(self.labels_matices.iter().map(VersionedMatrix::nrows))
+-            .chain(
+-                self.relationship_matrices
+-                    .iter()
+-                    .flat_map(|t| [t.nrows(), t.ncols()]),
+-            )
+-            .max()
+-            .unwrap_or(0);
+-        self.node_cap = self.node_cap.max(saved);
++        // Resize all node-dimension matrices to match the restored graph capacity.
++        // Decoded matrices may have dimensions from the original graph's node_cap,
++        // which can differ from the restored node_cap.
+         self.resize_node_matrices();
+         let rc = self.relationship_cap;
+         self.relationship_type_matrix
+diff --git a/graph/src/graph/graphblas/tensor.rs b/graph/src/graph/graphblas/tensor.rs
+--- a/graph/src/graph/graphblas/tensor.rs
++++ b/graph/src/graph/graphblas/tensor.rs
+@@ -816,24 +816,41 @@
+         self.m.ncols()
+     }
+ 
+-    /// Grow to at least `nrows x ncols`. Never shrinks: a smaller target keeps
+-    /// the current dimension, so no entry is ever dropped. That keeps `me`,
+-    /// which is keyed by pair rather than sized by node count, consistent with
+-    /// the layers without having to be pruned (#3246).
+     pub fn resize(
+         &mut self,
+         nrows: u64,
+         ncols: u64,
+     ) {
+-        debug_assert!(
+-            nrows >= self.m.nrows() && ncols >= self.m.ncols(),
+-            "Tensor::resize never shrinks ({}x{} -> {nrows}x{ncols})",
+-            self.m.nrows(),
+-            self.m.ncols(),
+-        );
+-        let nrows = nrows.max(self.m.nrows());
+-        let ncols = ncols.max(self.m.ncols());
+-        if nrows == self.m.nrows() && ncols == self.m.ncols() {
++        if nrows < self.m.nrows() || ncols < self.m.ncols() {
++            // Shrinking can drop entries; keep the straightforward path.
++            self.flush();
++            // GrB_Matrix_resize waits internally, so `m` holds no real pending
++            // work afterwards — waiting here would rebuild the freed hyper hash
++            // on every capacity grow (measured 1.4-5.7x write regressions).
++            self.m.resize(nrows, ncols);
++            // A resize moves no entries between layers, so the delta counters
++            // stand (a shrink that drops entries only adds to the drift
++            // `resync` bounds).
++            self.dp.resize(nrows, ncols);
++            self.dm.resize(nrows, ncols);
++            self.mt.resize(ncols, nrows);
++            // `me` is keyed by pair, not sized by node count, so the resizes
++            // above never reach it: drop the ids of every pair they cut off, or
++            // those ids outlive the pair's sentinel as edges no forward entry
++            // leads to.
++            let orphans: Vec<(MeBlock, u64, u64)> = self
++                .me
++                .iter()
++                .flat_map(|(block, me)| {
++                    me.iter(0, GrB_INDEX_MAX).filter_map(move |(key, id)| {
++                        let (src, dst) = compound_key_inverse(*block, key);
++                        (src >= nrows || dst >= ncols).then_some((*block, key, id))
++                    })
++                })
++                .collect();
++            for (block, key, id) in orphans {
++                self.me_block_mut(block).remove(key, id);
++            }
+             return;
+         }
+         // Growing: the base is always COW-shared with the committed snapshot,
