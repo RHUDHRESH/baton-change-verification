@@ -1,0 +1,27 @@
+warning: unused import: `orx_tree::NodeMut`
+   --> graph/src/runtime/vectorized.rs:308:9
+    |
+308 |     use orx_tree::NodeMut;
+    |         ^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `graph` (lib test) generated 1 warning (run `cargo fix --lib -p graph --tests` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 0.07s
+     Running unittests src/lib.rs (target/release/deps/graph-95ac7fcd80abfb74)
+
+running 1 test
+test graph::graph::restore_tests::restore_never_shrinks_the_saved_matrices ... 
+thread 'graph::graph::restore_tests::restore_never_shrinks_the_saved_matrices' (9740) panicked at graph/src/graph/graph.rs:5864:9:
+node_cap 16384 below the saved size
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    graph::graph::restore_tests::restore_never_shrinks_the_saved_matrices
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 546 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p graph --lib`

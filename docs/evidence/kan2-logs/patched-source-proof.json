@@ -1,0 +1,11 @@
+{
+  "observed_at": "2026-10-18T15:24:05.142092+00:00",
+  "container": "baton-kan2-executor",
+  "source_commit": "d8190da5a99b4207e847e2fa2547911d96bd9e61",
+  "path": "graph/src/runtime/ops/batched_result_emitter.rs",
+  "sha256": "a408cc657cfb8dd66bf84447f9ac593d0a0e6c2f8d46cfaa812e386b9c3fbca9",
+  "patch_path": "docs/evidence/kan2-fixtures/cap-clamp.patch",
+  "patch_sha256": "68e10c01f60c06a5b5105c41ba954c6624720c187b70a4dc68edeb8365ed2000",
+  "pinned_source_sha256": "6e01f729c447ceba7dd19c152e06dd6af456facfe5c5562883ebd5cc08f6f2d6",
+  "scope": "Read-only snapshot of the actual patched source during the RDB module-build stage; not an assertion that this hash was measured during earlier unit tests."
+}

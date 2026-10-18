@@ -1,0 +1,353 @@
+{
+  "server_command": [
+    "redis-server",
+    "--bind",
+    "127.0.0.1",
+    "--protected-mode",
+    "yes",
+    "--port",
+    "6387",
+    "--dir",
+    "/work/kan2-rdb-7459f5a8b3124737affdb23b7990170f",
+    "--dbfilename",
+    "kan2.rdb",
+    "--appendonly",
+    "no",
+    "--save",
+    "",
+    "--loadmodule",
+    "/work/target/debug/libfalkordb.so",
+    "--enable-debug-command",
+    "yes",
+    "--logfile",
+    "/work/kan2-rdb-7459f5a8b3124737affdb23b7990170f/redis.log",
+    "--daemonize",
+    "yes"
+  ],
+  "queries": [
+    {
+      "query": "UNWIND range(0,90000) AS i CREATE (:KAN2 {i:i})",
+      "result": [
+        [
+          "Labels added: 1",
+          "Nodes created: 90001",
+          "Properties set: 90001",
+          "Cached execution: 0",
+          "Query internal execution time: 62.560608 milliseconds",
+          "Graph version: 1"
+        ]
+      ]
+    },
+    {
+      "query": "MATCH (a:KAN2),(b:KAN2) WHERE id(a)=0 AND id(b)=1 CREATE (a)-[:R {tag:'first'}]->(b),(a)-[:R {tag:'second'}]->(b)",
+      "result": [
+        [
+          "Properties set: 2",
+          "Relationships created: 2",
+          "Cached execution: 0",
+          "Query internal execution time: 0.168441 milliseconds",
+          "Graph version: 2"
+        ]
+      ]
+    },
+    {
+      "query": "MATCH (n:KAN2) WHERE id(n)>=2 DELETE n",
+      "result": [
+        [
+          "Nodes deleted: 89999",
+          "Cached execution: 0",
+          "Query internal execution time: 67.941995 milliseconds",
+          "Graph version: 3"
+        ]
+      ]
+    },
+    {
+      "query": "MATCH (n:KAN2) RETURN id(n),n.i ORDER BY id(n)",
+      "result": [
+        [
+          "id(n)",
+          "n.i"
+        ],
+        [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        [
+          "Cached execution: 0",
+          "Query internal execution time: 0.064256 milliseconds",
+          "Graph version: 3"
+        ]
+      ]
+    },
+    {
+      "query": "MATCH (a)-[r:R]->(b) RETURN id(a),id(b),id(r),r.tag ORDER BY id(r)",
+      "result": [
+        [
+          "id(a)",
+          "id(b)",
+          "id(r)",
+          "r.tag"
+        ],
+        [
+          [
+            0,
+            1,
+            0,
+            "first"
+          ],
+          [
+            0,
+            1,
+            1,
+            "second"
+          ]
+        ],
+        [
+          "Cached execution: 0",
+          "Query internal execution time: 0.480977 milliseconds",
+          "Graph version: 3"
+        ]
+      ]
+    },
+    {
+      "query": "MATCH ()-[r:R]->() RETURN count(r)",
+      "result": [
+        [
+          "count(r)"
+        ],
+        [
+          [
+            2
+          ]
+        ],
+        [
+          "Cached execution: 0",
+          "Query internal execution time: 0.007494 milliseconds",
+          "Graph version: 3"
+        ]
+      ]
+    },
+    {
+      "query": "MATCH (n:KAN2) RETURN id(n),n.i ORDER BY id(n)",
+      "result": [
+        [
+          "id(n)",
+          "n.i"
+        ],
+        [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        [
+          "Cached execution: 0",
+          "Query internal execution time: 0.041731 milliseconds",
+          "Graph version: 0"
+        ]
+      ]
+    },
+    {
+      "query": "MATCH (a)-[r:R]->(b) RETURN id(a),id(b),id(r),r.tag ORDER BY id(r)",
+      "result": [
+        [
+          "id(a)",
+          "id(b)",
+          "id(r)",
+          "r.tag"
+        ],
+        [
+          [
+            0,
+            1,
+            0,
+            "first"
+          ],
+          [
+            0,
+            1,
+            1,
+            "second"
+          ]
+        ],
+        [
+          "Cached execution: 0",
+          "Query internal execution time: 0.554673 milliseconds",
+          "Graph version: 0"
+        ]
+      ]
+    },
+    {
+      "query": "MATCH ()-[r:R]->() RETURN count(r)",
+      "result": [
+        [
+          "count(r)"
+        ],
+        [
+          [
+            2
+          ]
+        ],
+        [
+          "Cached execution: 0",
+          "Query internal execution time: 0.008485 milliseconds",
+          "Graph version: 0"
+        ]
+      ]
+    },
+    {
+      "query": "MATCH (n:KAN2) RETURN id(n),n.i ORDER BY id(n)",
+      "result": [
+        [
+          "id(n)",
+          "n.i"
+        ],
+        [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        [
+          "Cached execution: 0",
+          "Query internal execution time: 0.032373 milliseconds",
+          "Graph version: 0"
+        ]
+      ]
+    },
+    {
+      "query": "MATCH (a)-[r:R]->(b) RETURN id(a),id(b),id(r),r.tag ORDER BY id(r)",
+      "result": [
+        [
+          "id(a)",
+          "id(b)",
+          "id(r)",
+          "r.tag"
+        ],
+        [
+          [
+            0,
+            1,
+            0,
+            "first"
+          ],
+          [
+            0,
+            1,
+            1,
+            "second"
+          ]
+        ],
+        [
+          "Cached execution: 0",
+          "Query internal execution time: 0.540630 milliseconds",
+          "Graph version: 0"
+        ]
+      ]
+    },
+    {
+      "query": "MATCH ()-[r:R]->() RETURN count(r)",
+      "result": [
+        [
+          "count(r)"
+        ],
+        [
+          [
+            2
+          ]
+        ],
+        [
+          "Cached execution: 0",
+          "Query internal execution time: 0.010672 milliseconds",
+          "Graph version: 0"
+        ]
+      ]
+    }
+  ],
+  "round_trips": [
+    {
+      "iteration": 1,
+      "equal": true,
+      "snapshot": {
+        "nodes": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "edges": [
+          [
+            0,
+            1,
+            0,
+            "first"
+          ],
+          [
+            0,
+            1,
+            1,
+            "second"
+          ]
+        ],
+        "edge_count": [
+          [
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "iteration": 2,
+      "equal": true,
+      "snapshot": {
+        "nodes": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "edges": [
+          [
+            0,
+            1,
+            0,
+            "first"
+          ],
+          [
+            0,
+            1,
+            1,
+            "second"
+          ]
+        ],
+        "edge_count": [
+          [
+            2
+          ]
+        ]
+      }
+    }
+  ]
+}

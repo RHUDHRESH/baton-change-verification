@@ -1,0 +1,55 @@
+ Downloading crates ...
+  Downloaded linkme-impl v0.3.36
+  Downloaded heck v0.5.0
+  Downloaded adler2 v2.0.1
+  Downloaded lazy_static v1.5.0
+  Downloaded cfg_aliases v0.2.1
+  Downloaded strum_macros v0.28.0
+  Downloaded linkme v0.3.36
+  Downloaded rustc-demangle v0.1.28
+  Downloaded addr2line v0.25.1
+  Downloaded miniz_oxide v0.8.9
+  Downloaded serde_derive v1.0.228
+  Downloaded backtrace v0.3.76
+  Downloaded gimli v0.32.3
+  Downloaded nix v0.31.3
+  Downloaded object v0.37.3
+   Compiling libc v0.2.189
+   Compiling linkme-impl v0.3.36
+   Compiling cfg_aliases v0.2.1
+   Compiling object v0.37.3
+   Compiling lock_api v0.4.14
+   Compiling nix v0.31.3
+   Compiling serde v1.0.228
+   Compiling adler2 v2.0.1
+   Compiling linkme v0.3.36
+   Compiling gimli v0.32.3
+   Compiling getrandom v0.2.17
+   Compiling ring v0.17.14
+   Compiling rustls-webpki v0.103.15
+   Compiling parking_lot_core v0.9.12
+   Compiling common v0.1.0 (https://github.com/AviAvni/redismodule-rs?branch=master#91a39b5d)
+   Compiling redis-module-macros v99.99.99 (https://github.com/AviAvni/redismodule-rs?branch=master#91a39b5d)
+   Compiling parking_lot v0.12.5
+   Compiling rustls v0.23.45
+   Compiling addr2line v0.25.1
+   Compiling getrandom v0.4.3
+   Compiling getrandom v0.3.4
+   Compiling miniz_oxide v0.8.9
+   Compiling redis-module v99.99.99 (https://github.com/AviAvni/redismodule-rs?branch=master#91a39b5d)
+   Compiling serde_derive v1.0.228
+   Compiling heck v0.5.0
+   Compiling rustc-demangle v0.1.28
+   Compiling bitflags v2.13.0
+   Compiling lazy_static v1.5.0
+   Compiling redis-module-macros-internals v99.99.99 (https://github.com/AviAvni/redismodule-rs?branch=master#91a39b5d)
+   Compiling ureq v3.4.2
+   Compiling crossfire v3.1.20
+   Compiling backtrace v0.3.76
+   Compiling strum_macros v0.28.0
+   Compiling ahash v0.8.12
+   Compiling stacker v0.1.25
+   Compiling rand v0.10.3
+   Compiling falkordb-rs v99.99.99 (/work)
+   Compiling graph v0.1.0 (/work/graph)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 3m 01s

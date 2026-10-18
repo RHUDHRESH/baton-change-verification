@@ -1,0 +1,79 @@
+Observed only in the official executor image and stated toolchain; not asserted for other Rust versions or platforms.
+Source: cap_clamp_repro.rs
+Commands: rustc --edition=2024 -Awarnings -C opt-level=LEVEL /tmp/kan2-cap-struct.rs -o /tmp/kan2-cap-struct; /tmp/kan2-cap-struct (LEVEL=0,1,2,3). Assembly: rustc --edition=2024 -Awarnings -C opt-level=2 --emit=asm /tmp/kan2-cap-struct.rs -o /tmp/kan2-cap-struct.s
+rustc 1.99.0 (b940084d7 2026-09-28)
+binary: rustc
+commit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4
+commit-date: 2026-09-28
+host: x86_64-unknown-linux-gnu
+release: 1.99.0
+LLVM version: 23.1.1
+OPT=0
+None: guarded=1024 clamped=1024
+Some(0): guarded=1 clamped=1
+Some(1): guarded=1 clamped=1
+Some(10): guarded=10 clamped=10
+Some(1023): guarded=1023 clamped=1023
+Some(1024): guarded=1024 clamped=1024
+Some(1025): guarded=1024 clamped=1024
+Some(18446744073709551615): guarded=1024 clamped=1024
+OPT=1
+None: guarded=1024 clamped=1024
+Some(0): guarded=1 clamped=1
+Some(1): guarded=1 clamped=1
+Some(10): guarded=10 clamped=10
+Some(1023): guarded=1023 clamped=1023
+Some(1024): guarded=1024 clamped=1024
+Some(1025): guarded=1025 clamped=1024
+Some(18446744073709551615): guarded=18446744073709551615 clamped=1024
+OPT=2
+None: guarded=1024 clamped=1024
+Some(0): guarded=1 clamped=1
+Some(1): guarded=1 clamped=1
+Some(10): guarded=10 clamped=10
+Some(1023): guarded=1023 clamped=1023
+Some(1024): guarded=1024 clamped=1024
+Some(1025): guarded=1025 clamped=1024
+Some(18446744073709551615): guarded=18446744073709551615 clamped=1024
+OPT=3
+None: guarded=1024 clamped=1024
+Some(0): guarded=1 clamped=1
+Some(1): guarded=1 clamped=1
+Some(10): guarded=10 clamped=10
+Some(1023): guarded=1023 clamped=1023
+Some(1024): guarded=1024 clamped=1024
+Some(1025): guarded=1025 clamped=1024
+Some(18446744073709551615): guarded=18446744073709551615 clamped=1024
+_RNvMCshutdF5kzSpK_15kan2_cap_structNtB2_1E7guarded:
+	.cfi_startproc
+	movq	%rdi, %rax
+	cmpq	$1, %rdx
+	adcq	$0, %rdx
+	testb	$1, %sil
+	movl	$1024, %ecx
+	cmovneq	%rdx, %rcx
+	movq	$1, 56(%rdi)
+	movq	$-1, (%rdi)
+	movq	$-1, 32(%rdi)
+	movq	$0, 64(%rdi)
+	movq	%rcx, 72(%rdi)
+	retq
+.Lfunc_end7:
+_RNvMCshutdF5kzSpK_15kan2_cap_structNtB2_1E7clamped:
+	.cfi_startproc
+	movq	%rdi, %rax
+	testb	$1, %sil
+	movl	$1024, %ecx
+	cmoveq	%rcx, %rdx
+	cmpq	$1024, %rdx
+	cmovbq	%rdx, %rcx
+	testq	%rdx, %rdx
+	movl	$1, %edx
+	cmovneq	%rcx, %rdx
+	movq	$1, 56(%rdi)
+	movq	$-1, (%rdi)
+	movq	$-1, 32(%rdi)
+	movq	$0, 64(%rdi)
+	movq	%rdx, 72(%rdi)
+	retq
+.Lfunc_end6:

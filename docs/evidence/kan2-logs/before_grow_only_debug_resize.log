@@ -1,0 +1,27 @@
+   Compiling graph v0.1.0 (/work/graph)
+warning: unused import: `orx_tree::NodeMut`
+   --> graph/src/runtime/vectorized.rs:308:9
+    |
+308 |     use orx_tree::NodeMut;
+    |         ^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `graph` (lib test) generated 1 warning (run `cargo fix --lib -p graph --tests` to apply 1 suggestion)
+    Finished `test` profile [optimized + debuginfo] target(s) in 1m 20s
+     Running unittests src/lib.rs (target/debug/deps/graph-63cf049144fdbd37)
+
+running 1 test
+test graph::graphblas::tensor::tests::resize_asserts_it_never_shrinks - should panic ... FAILED
+
+failures:
+
+---- graph::graphblas::tensor::tests::resize_asserts_it_never_shrinks stdout ----
+note: test did not panic as expected at graph/src/graph/graphblas/tensor.rs:2072:8
+
+failures:
+    graph::graphblas::tensor::tests::resize_asserts_it_never_shrinks
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 546 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p graph --lib`

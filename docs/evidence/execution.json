@@ -1,0 +1,833 @@
+{
+  "task": "KAN-2",
+  "executor": "Codex isolated Docker runner",
+  "source_repository": "https://github.com/FalkorDB/FalkorDB",
+  "source_commit": "d8190da5a99b4207e847e2fa2547911d96bd9e61",
+  "source_verification": {
+    "tracked_blobs": 957,
+    "mismatches": []
+  },
+  "image": "ghcr.io/falkordb/falkordb-build@sha256:b5d954ebaf523da2171bb6306c9348a767963f32e0e1f0a3b1115a66f1e397a7",
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+  "environment": {
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_PROFILE_RELEASE_LTO": "false"
+  },
+  "baseline": "Parent 660bf015 resize/restore behavior with HEAD regression tests and read-only dimension accessors retained",
+  "baseline_patch_sha256": "314551bf6019eaf4fea6587af296fedfb8a0b4b5e7c79477272174160ef37f6e",
+  "checks": [
+    {
+      "name": "cap_clamp_apply",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "git",
+        "apply",
+        "/cap-clamp.patch"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.19,
+      "expectation": "success",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0,
+      "test_summaries": [],
+      "matched_expectation": true
+    },
+    {
+      "name": "head_debug_resize",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graphblas::tensor::tests::resize_asserts_it_never_shrinks",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 7.05,
+      "expectation": "success",
+      "log_sha256": "3b77eff1e66055487beb62eb450a79458c377e46129470520a4c109a1724d04d",
+      "log_bytes": 1009,
+      "test_summaries": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true
+    },
+    {
+      "name": "head_debug_restore",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graph::restore_tests::restore_never_shrinks_the_saved_matrices",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.34,
+      "expectation": "success",
+      "log_sha256": "c817ef43a1799b1b5279d864559795e6d5b80825cd4eb6d72a9006b540935d94",
+      "log_bytes": 702,
+      "test_summaries": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true
+    },
+    {
+      "name": "head_release_resize",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graphblas::tensor::tests::resize_never_shrinks",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 94.47,
+      "expectation": "success",
+      "log_sha256": "d26112574176cc8a2a443f77d30237c0d518897eca96bd171e0aae4a535772d6",
+      "log_bytes": 720,
+      "test_summaries": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true
+    },
+    {
+      "name": "head_release_restore",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graph::restore_tests::restore_never_shrinks_the_saved_matrices",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.36,
+      "expectation": "success",
+      "log_sha256": "4382cd73608b4772d6432161998bc32adc9fbcefd6a4e41856109ec13d2eea04",
+      "log_bytes": 695,
+      "test_summaries": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true
+    },
+    {
+      "name": "head_graph_library",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "graph",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 9.75,
+      "expectation": "success",
+      "log_sha256": "0b33b2514e56924233f87d48de8b37c1fd1c5d0a5cfc68013bd85e8833d0e26c",
+      "log_bytes": 47013,
+      "test_summaries": [
+        {
+          "status": "ok",
+          "passed": 530,
+          "failed": 0,
+          "ignored": 17
+        }
+      ],
+      "matched_expectation": true
+    },
+    {
+      "name": "head_format",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 1.39,
+      "expectation": "success",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0,
+      "test_summaries": [],
+      "matched_expectation": true
+    },
+    {
+      "name": "baseline_apply",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "git",
+        "apply",
+        "/before-grow-only.patch"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.33,
+      "expectation": "success",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0,
+      "test_summaries": [],
+      "matched_expectation": true
+    },
+    {
+      "name": "before_grow_only_debug_resize",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graphblas::tensor::tests::resize_asserts_it_never_shrinks",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "duration_seconds": 81.08,
+      "expectation": "regression_failure",
+      "log_sha256": "1db8a01a177db8889d385bcd053f3fc739f9e9ca362536fdd56c9a51225d7d3d",
+      "log_bytes": 1069,
+      "test_summaries": [
+        {
+          "status": "FAILED",
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true,
+      "expected_failure_reason": "The parent implementation did not produce the required debug panic on a shrink request."
+    },
+    {
+      "name": "before_grow_only_debug_restore",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graph::restore_tests::restore_never_shrinks_the_saved_matrices",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "duration_seconds": 0.31,
+      "expectation": "regression_failure",
+      "log_sha256": "8d0aee03930acb26ec3e1c3876a0e62eaa4d5e9b1b25d4d53204b0b74357e5a4",
+      "log_bytes": 1103,
+      "test_summaries": [
+        {
+          "status": "FAILED",
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true,
+      "expected_failure_reason": "The parent restore retained node_cap 16384 instead of the saved matrix dimension 40960."
+    },
+    {
+      "name": "before_grow_only_release_resize",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graphblas::tensor::tests::resize_never_shrinks",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "duration_seconds": 92.56,
+      "expectation": "regression_failure",
+      "log_sha256": "305f98c0edaba98ba305735a352577cbb7ed375e3eed1fdc3dd5dfefa465095e",
+      "log_bytes": 1153,
+      "test_summaries": [
+        {
+          "status": "FAILED",
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true,
+      "expected_failure_reason": "The parent implementation shrank tensor dimensions to (4, 4), violating the expected (8, 8) dimensions."
+    },
+    {
+      "name": "before_grow_only_release_restore",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graph::restore_tests::restore_never_shrinks_the_saved_matrices",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "duration_seconds": 0.31,
+      "expectation": "regression_failure",
+      "log_sha256": "debe34b4c9fb39520f3cd876c306a507220c20741886a28aac10e7be6a69e102",
+      "log_bytes": 1096,
+      "test_summaries": [
+        {
+          "status": "FAILED",
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true,
+      "expected_failure_reason": "The parent restore retained node_cap 16384 instead of the saved matrix dimension 40960."
+    },
+    {
+      "name": "baseline_restore",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "git",
+        "apply",
+        "-R",
+        "/before-grow-only.patch"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.22,
+      "expectation": "success",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0,
+      "test_summaries": [],
+      "matched_expectation": true
+    },
+    {
+      "name": "restored_head_debug_resize",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graphblas::tensor::tests::resize_asserts_it_never_shrinks",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 77.59,
+      "expectation": "success",
+      "log_sha256": "0bf7f14f68955127bcbe14d31c2ac5e77b990f9f916ab8daf7d38ab5f0b882d6",
+      "log_bytes": 1011,
+      "test_summaries": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true
+    },
+    {
+      "name": "restored_head_debug_restore",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graph::restore_tests::restore_never_shrinks_the_saved_matrices",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.33,
+      "expectation": "success",
+      "log_sha256": "ebb6314b4ad4f9424cdc2cf863d2b145a8d666d8894a7e9ea44c7324c9fa9c12",
+      "log_bytes": 702,
+      "test_summaries": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true
+    },
+    {
+      "name": "restored_head_release_resize",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graphblas::tensor::tests::resize_never_shrinks",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 86.3,
+      "expectation": "success",
+      "log_sha256": "c824f80f5e141441766ac08ebb88a00bcc01fa052d57c8d9d60d0bd5356c833d",
+      "log_bytes": 720,
+      "test_summaries": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true
+    },
+    {
+      "name": "restored_head_release_restore",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "graph",
+        "--lib",
+        "graph::graph::restore_tests::restore_never_shrinks_the_saved_matrices",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.38,
+      "expectation": "success",
+      "log_sha256": "a093e6c12eb3ca9f797cd982a07244bce0a4ad23b3652377753c9590bd486f1a",
+      "log_bytes": 695,
+      "test_summaries": [
+        {
+          "status": "ok",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "matched_expectation": true
+    },
+    {
+      "name": "cap_clamp_restore",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "git",
+        "apply",
+        "-R",
+        "/cap-clamp.patch"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.2,
+      "expectation": "success",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0,
+      "test_summaries": [],
+      "matched_expectation": true
+    },
+    {
+      "name": "head_module_build",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "build",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 182.67,
+      "expectation": "success",
+      "matched_expectation": true,
+      "log_sha256": "905b8f2b49d906fcfafe5287318e896a1d3fc0cde67002220bd9ccf7ea515ac7",
+      "log_bytes": 2025,
+      "test_summaries": []
+    },
+    {
+      "name": "head_real_rdb_roundtrip",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "redis-server",
+        "--bind",
+        "127.0.0.1",
+        "--protected-mode",
+        "yes",
+        "--port",
+        "6387",
+        "--dir",
+        "/work/kan2-rdb-7459f5a8b3124737affdb23b7990170f",
+        "--dbfilename",
+        "kan2.rdb",
+        "--appendonly",
+        "no",
+        "--save",
+        "",
+        "--loadmodule",
+        "/work/target/debug/libfalkordb.so",
+        "--enable-debug-command",
+        "yes",
+        "--logfile",
+        "/work/kan2-rdb-7459f5a8b3124737affdb23b7990170f/redis.log",
+        "--daemonize",
+        "yes"
+      ],
+      "exit_code": 0,
+      "expectation": "success",
+      "matched_expectation": true,
+      "log_sha256": "ac70b763289cf7eec428bf7839848e054c282b0f7e7484330e9732fb283b5bbb",
+      "log_bytes": 6616,
+      "round_trips": 2,
+      "nodes_preserved": 2,
+      "parallel_edges_preserved": 2,
+      "test_summaries": [],
+      "scope": "Real RDB persistence and decoding; internal dimensions are independently checked by unit tests"
+    }
+  ],
+  "status": "passed",
+  "initial_failures": [
+    {
+      "name": "head_graph_library",
+      "command": [
+        "docker",
+        "exec",
+        "--workdir",
+        "/work",
+        "baton-kan2-executor",
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "graph",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "duration_seconds": 11.09,
+      "expectation": "success",
+      "log_sha256": "0adf37ed9987200c9a5edce07c60f73db0ec70842cfe96479285a482552f36b9",
+      "log_bytes": 47511,
+      "test_summaries": [
+        {
+          "status": "FAILED",
+          "passed": 529,
+          "failed": 1,
+          "ignored": 17
+        }
+      ],
+      "matched_expectation": false,
+      "retained_log": "initial_graph_library.log"
+    }
+  ],
+  "applied_patch": {
+    "path": "docs/evidence/kan2-fixtures/cap-clamp.patch",
+    "sha256": "68e10c01f60c06a5b5105c41ba954c6624720c187b70a4dc68edeb8365ed2000",
+    "reason": "Equivalent explicit clamp avoids the observed rustc 1.99 optimized aggregate-return failure; existing regression tests are unchanged"
+  },
+  "patched_source_verification": {
+    "tracked_blobs": 957,
+    "mismatches": [
+      "graph/src/runtime/ops/batched_result_emitter.rs"
+    ]
+  },
+  "restored_source_verification": {
+    "tracked_blobs": 957,
+    "mismatches": []
+  },
+  "container_patch_sha256": {
+    "/before-grow-only.patch": "314551bf6019eaf4fea6587af296fedfb8a0b4b5e7c79477272174160ef37f6e",
+    "/cap-clamp.patch": "68e10c01f60c06a5b5105c41ba954c6624720c187b70a4dc68edeb8365ed2000"
+  },
+  "post_run_audit": {
+    "status": "verified",
+    "at": "2026-10-18T15:26:47.429869+00:00",
+    "method": "Verified raw logs, exact commands, known baseline failure reasons, actual runner image/environment, patch artifacts and restored source bytes after execution.",
+    "log_inventory": [
+      {
+        "name": "cap_clamp_apply",
+        "file": "cap_clamp_apply.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "head_debug_resize",
+        "file": "head_debug_resize.log",
+        "sha256": "3b77eff1e66055487beb62eb450a79458c377e46129470520a4c109a1724d04d"
+      },
+      {
+        "name": "head_debug_restore",
+        "file": "head_debug_restore.log",
+        "sha256": "c817ef43a1799b1b5279d864559795e6d5b80825cd4eb6d72a9006b540935d94"
+      },
+      {
+        "name": "head_release_resize",
+        "file": "head_release_resize.log",
+        "sha256": "d26112574176cc8a2a443f77d30237c0d518897eca96bd171e0aae4a535772d6"
+      },
+      {
+        "name": "head_release_restore",
+        "file": "head_release_restore.log",
+        "sha256": "4382cd73608b4772d6432161998bc32adc9fbcefd6a4e41856109ec13d2eea04"
+      },
+      {
+        "name": "head_graph_library",
+        "file": "head_graph_library.log",
+        "sha256": "0b33b2514e56924233f87d48de8b37c1fd1c5d0a5cfc68013bd85e8833d0e26c"
+      },
+      {
+        "name": "head_format",
+        "file": "head_format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "baseline_apply",
+        "file": "baseline_apply.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "before_grow_only_debug_resize",
+        "file": "before_grow_only_debug_resize.log",
+        "sha256": "1db8a01a177db8889d385bcd053f3fc739f9e9ca362536fdd56c9a51225d7d3d"
+      },
+      {
+        "name": "before_grow_only_debug_restore",
+        "file": "before_grow_only_debug_restore.log",
+        "sha256": "8d0aee03930acb26ec3e1c3876a0e62eaa4d5e9b1b25d4d53204b0b74357e5a4"
+      },
+      {
+        "name": "before_grow_only_release_resize",
+        "file": "before_grow_only_release_resize.log",
+        "sha256": "305f98c0edaba98ba305735a352577cbb7ed375e3eed1fdc3dd5dfefa465095e"
+      },
+      {
+        "name": "before_grow_only_release_restore",
+        "file": "before_grow_only_release_restore.log",
+        "sha256": "debe34b4c9fb39520f3cd876c306a507220c20741886a28aac10e7be6a69e102"
+      },
+      {
+        "name": "baseline_restore",
+        "file": "baseline_restore.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "restored_head_debug_resize",
+        "file": "restored_head_debug_resize.log",
+        "sha256": "0bf7f14f68955127bcbe14d31c2ac5e77b990f9f916ab8daf7d38ab5f0b882d6"
+      },
+      {
+        "name": "restored_head_debug_restore",
+        "file": "restored_head_debug_restore.log",
+        "sha256": "ebb6314b4ad4f9424cdc2cf863d2b145a8d666d8894a7e9ea44c7324c9fa9c12"
+      },
+      {
+        "name": "restored_head_release_resize",
+        "file": "restored_head_release_resize.log",
+        "sha256": "c824f80f5e141441766ac08ebb88a00bcc01fa052d57c8d9d60d0bd5356c833d"
+      },
+      {
+        "name": "restored_head_release_restore",
+        "file": "restored_head_release_restore.log",
+        "sha256": "a093e6c12eb3ca9f797cd982a07244bce0a4ad23b3652377753c9590bd486f1a"
+      },
+      {
+        "name": "cap_clamp_restore",
+        "file": "cap_clamp_restore.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "head_module_build",
+        "file": "head_module_build.log",
+        "sha256": "905b8f2b49d906fcfafe5287318e896a1d3fc0cde67002220bd9ccf7ea515ac7"
+      },
+      {
+        "name": "head_real_rdb_roundtrip",
+        "file": "rdb_roundtrip.json",
+        "sha256": "ac70b763289cf7eec428bf7839848e054c282b0f7e7484330e9732fb283b5bbb"
+      }
+    ],
+    "initial_failure_log_sha256": "0adf37ed9987200c9a5edce07c60f73db0ec70842cfe96479285a482552f36b9",
+    "runner_image_id": "sha256:b5d954ebaf523da2171bb6306c9348a767963f32e0e1f0a3b1115a66f1e397a7",
+    "restored_source_verification": {
+      "tracked_blobs": 957,
+      "mismatches": []
+    },
+    "expected_patched_source_sha256": "a408cc657cfb8dd66bf84447f9ac593d0a0e6c2f8d46cfaa812e386b9c3fbca9",
+    "observed_patched_source": {
+      "observed_at": "2026-10-18T15:24:05.142092+00:00",
+      "container": "baton-kan2-executor",
+      "source_commit": "d8190da5a99b4207e847e2fa2547911d96bd9e61",
+      "path": "graph/src/runtime/ops/batched_result_emitter.rs",
+      "sha256": "a408cc657cfb8dd66bf84447f9ac593d0a0e6c2f8d46cfaa812e386b9c3fbca9",
+      "patch_path": "docs/evidence/kan2-fixtures/cap-clamp.patch",
+      "patch_sha256": "68e10c01f60c06a5b5105c41ba954c6624720c187b70a4dc68edeb8365ed2000",
+      "pinned_source_sha256": "6e01f729c447ceba7dd19c152e06dd6af456facfe5c5562883ebd5cc08f6f2d6",
+      "scope": "Read-only snapshot of the actual patched source during the RDB module-build stage; not an assertion that this hash was measured during earlier unit tests."
+    },
+    "patched_source_proof_sha256": "4265a20159b5212da1d0fe17a0e9cb5095dc7bbc184de7bbc6217855309e7620",
+    "patched_source_hash_scope": "Actual patched file observed during the RDB module-build stage and independently matched to pinned source plus reviewed patch. No earlier unit-test file-hash measurement is claimed.",
+    "timing_scope": "Post-run verification; does not claim these additional checks ran before patch application.",
+    "rdb_server_log_sha256": "5bfe97197ee58b7468534e79d9d9b12fdfa2dec47389fa0e44b2a004b0fa4dbe"
+  }
+}

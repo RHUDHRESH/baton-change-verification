@@ -1,0 +1,35 @@
+12003:C 18 Oct 2026 15:26:29.027 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+12003:C 18 Oct 2026 15:26:29.029 * Redis version=8.10.2, bits=64, commit=498ecd0d, modified=1, pid=12003, just started
+12003:C 18 Oct 2026 15:26:29.029 * Configuration loaded
+12003:M 18 Oct 2026 15:26:29.033 * monotonic clock: POSIX clock_gettime
+12003:M 18 Oct 2026 15:26:29.055 * Running mode=standalone, port=6387.
+12003:M 18 Oct 2026 15:26:29.068 * <graph> Created new data type 'graphdata'
+12003:M 18 Oct 2026 15:26:29.068 * <graph> Created new data type 'graphmeta'
+12003:M 18 Oct 2026 15:26:29.073 * <graph> Disabled workers threadpool of size 0
+12003:M 18 Oct 2026 15:26:29.073 * <graph> Subscribe to config changes
+12003:M 18 Oct 2026 15:26:29.073 * <graph> Subscribe to cluster slot migration events
+12003:M 18 Oct 2026 15:26:29.073 * <graph> Enabled role change notification
+12003:M 18 Oct 2026 15:26:29.073 * <graph> RediSearch initialized successfully.
+12003:M 18 Oct 2026 15:26:29.097 * Module 'graph' loaded from /work/target/debug/libfalkordb.so
+12003:M 18 Oct 2026 15:26:29.099 * Server initialized
+12003:M 18 Oct 2026 15:26:29.100 * Ready to accept connections tcp
+12003:M 18 Oct 2026 15:26:29.100 # WARNING: Redis does not require authentication. Redis will accept connections from any local client.
+12003:M 18 Oct 2026 15:26:31.214 * BGSAVE done, 2 keys saved, 0 keys skipped, 363443 bytes written.
+12003:M 18 Oct 2026 15:26:31.217 * DB saved on disk
+12003:M 18 Oct 2026 15:26:31.410 * BGSAVE done, 2 keys saved, 0 keys skipped, 363431 bytes written.
+12003:M 18 Oct 2026 15:26:31.414 * DB saved on disk
+12003:M 18 Oct 2026 15:26:31.415 * Loading RDB produced by version 8.10.2
+12003:M 18 Oct 2026 15:26:31.415 * RDB age 0 seconds
+12003:M 18 Oct 2026 15:26:31.415 * RDB memory usage when created 4.82 Mb
+12003:M 18 Oct 2026 15:26:31.418 * Done loading RDB, keys loaded: 2, keys expired: 0.
+12003:M 18 Oct 2026 15:26:31.418 * DB reloaded by DEBUG RELOAD
+12003:M 18 Oct 2026 15:26:32.223 * BGSAVE done, 2 keys saved, 0 keys skipped, 363483 bytes written.
+12003:M 18 Oct 2026 15:26:32.225 * DB saved on disk
+12003:M 18 Oct 2026 15:26:32.226 * Loading RDB produced by version 8.10.2
+12003:M 18 Oct 2026 15:26:32.226 * RDB age 0 seconds
+12003:M 18 Oct 2026 15:26:32.226 * RDB memory usage when created 2.93 Mb
+12003:M 18 Oct 2026 15:26:32.228 * Done loading RDB, keys loaded: 2, keys expired: 0.
+12003:M 18 Oct 2026 15:26:32.228 * DB reloaded by DEBUG RELOAD
+12003:M 18 Oct 2026 15:26:33.044 * User requested shutdown...
+12003:M 18 Oct 2026 15:26:33.044 * Removing the pid file.
+12003:M 18 Oct 2026 15:26:33.045 # Redis is now ready to exit, bye bye...

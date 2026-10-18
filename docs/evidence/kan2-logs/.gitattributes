@@ -1,0 +1,2 @@
+# Raw execution evidence must retain its recorded byte hashes on every host.
+* -text -whitespace
