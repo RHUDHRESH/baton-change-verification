@@ -359,3 +359,43 @@ def test_public_instruction_text_cannot_authorize_arbitrary_tool(investigation,m
     assert result["failure"]["phase"]=="selection_validation"
     assert result["trace"][-1]["request"]["params"]["name"]=="execute_cypher"
     write.assert_not_called()
+
+
+def test_long_issue_body_retains_terminal_fix_in_both_read_tools(investigation,monkeypatch):
+    run,graph=investigation
+    ending="### Fix (PR #3250)\nNever shrink a tensor; Tensor::resize must be grow-only."
+    body="Tensor::resize shrinking leaves stale multi-edge IDs.\n"+("Historical reproduction details.\n"*150)+ending
+    run.item["body"]=body
+    graph.ro_query.return_value.result_set=[[{"id":"repo#1","title":"Tensor resize bug"},"repo"]]
+    work=json.loads(run.call("read_work_item",{"item_id":"repo#1"})["content"][0]["text"])
+    assert work["description"].endswith(ending) and len(work["description"])<=1000
+    assert agent.OMISSION_MARKER in work["description"] and work["description_truncated"]
+    source={"payload":{"number":1,"title":"Tensor resize bug","body":body,"state":"open"},
+            "url":"https://api.github.com/repos/repo/issues/1","sha256":"captured-sha","fetched_at":"2026-10-18"}
+    monkeypatch.setattr(agent.public,"evidence",lambda *_:source)
+    evidence=json.loads(run.call("read_source",{"source_id":"s1"})["content"][0]["text"])
+    excerpt=json.loads(evidence["excerpt"])
+    assert excerpt["body"].endswith(ending) and excerpt["body"].startswith("Tensor::resize shrinking")
+    assert agent.OMISSION_MARKER in excerpt["body"] and evidence["excerpt_truncated"]
+    assert len(evidence["excerpt"])<=1400 and excerpt["number"]==1 and excerpt["state"]=="open"
+
+
+def test_bounded_changed_file_excerpt_keeps_valid_json_and_patch_fields():
+    payload=[{"filename":"graph/tensor.rs","status":"modified","patch":'@@ fix @@\n'+('"quoted"\\line\n'*300)+"grow_only();"}]
+    excerpt,truncated=agent.bounded_excerpt(payload)
+    result=json.loads(excerpt)
+    assert len(excerpt)<=1400 and truncated
+    assert result[0]["filename"]=="graph/tensor.rs" and result[0]["status"]=="modified"
+    assert result[0]["patch"].startswith("@@ fix @@") and result[0]["patch"].endswith("grow_only();")
+    assert agent.OMISSION_MARKER in result[0]["patch"]
+
+
+def test_middle_fix_outranks_expected_section_and_long_measurement_tail():
+    fix="### Fix (PR #3250)\nNever shrink a tensor: Tensor::resize is grow-only.\n"
+    body=("### Expected behavior\nClear orphaned IDs after shrinking.\n"+"Historical details.\n"*100+
+          fix+"Fixed behavior details.\n"*30+"### Measurements and tradeoffs\n"+"Reload measurements.\n"*150)
+    description=agent.head_tail(body,1000)
+    excerpt,truncated=agent.bounded_excerpt({"number":3246,"title":"Tensor resize issue","body":body,"state":"open"})
+    assert fix in description and len(description)<=1000
+    assert fix in json.loads(excerpt)["body"] and len(excerpt)<=1400 and truncated
+    assert json.loads(excerpt)["body"].endswith("Reload measurements.\n")
