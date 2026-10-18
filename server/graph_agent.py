@@ -440,8 +440,8 @@ def run(data,port,item_id):
                 raise RuntimeError("Agent token budget reached before another provider call")
             budget="quotas/"+public.now()[:10]+".json"
             used=public.read(data,budget,{"used":0})["used"]+1
-            if used>50:
-                raise RuntimeError("Daily free-quota guard reached")
+            if used>public.DAILY_INFERENCE_LIMIT:
+                raise RuntimeError(f"Daily free-quota guard reached: {public.DAILY_INFERENCE_LIMIT} provider calls per UTC day")
             public.write(data,budget,{"used":used})
             phase="provider"
             record["budget"]["provider_calls"]+=1

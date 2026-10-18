@@ -178,6 +178,22 @@ def test_four_call_run_gates_action_and_keeps_auditable_receipts(investigation,m
     assert result["context_curation"][-1]["active_characters"]<result["context_curation"][-1]["original_characters"]
 
 
+@pytest.mark.parametrize("used,expected_calls,expected_status", [(56,4,"succeeded"),(59,1,"failed"),(60,0,"failed")])
+def test_shared_daily_quota_preserves_existing_counter_and_never_calls_after_sixty(
+        investigation,monkeypatch,used,expected_calls,expected_status):
+    run,_,observed=run_harness(investigation,monkeypatch)
+    key="quotas/"+agent.public.now()[:10]+".json"
+    agent.public.write(run.data,key,{"used":used})
+    assert agent.public.DAILY_INFERENCE_LIMIT==60
+    result=agent.run(run.data,run.port,run.item_id)
+    assert result["status"]==expected_status
+    assert len(observed)==result["budget"]["provider_calls"]==expected_calls
+    assert agent.public.read(run.data,key)=={"used":60}
+    if expected_status=="failed":
+        assert "60 provider calls per UTC day" in result["error"]
+        assert result["action"] is None
+
+
 def test_final_schema_only_offers_inspected_sources_from_multi_source_item(investigation,monkeypatch):
     run,_,observed=run_harness(investigation,monkeypatch)
     run.item["source_ids"]=["s1","s2","s3"]

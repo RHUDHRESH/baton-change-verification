@@ -182,6 +182,7 @@ def start(data, port, item_id, allow_repair, targets):
         except Exception as error:
             record["status"] = "failed"
             record["error"] = str(error) if isinstance(error, (WorkflowError, ValueError, RuntimeError)) else "Cloud dispatch was not confirmed; no automatic dispatch retry"
+            _stage(record, "execute" if record.get("investigation_task_id") else "investigate", "failed", record["error"])
         _save(data, port, record)
         return _public(record)
 

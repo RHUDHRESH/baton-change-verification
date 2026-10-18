@@ -16,6 +16,7 @@ from baton.commit import _safe_read, _safe_write
 from .control import connect as control_connect
 
 REPOS = ("FalkorDB/FalkorDB", "FalkorDB/falkordb-py")
+DAILY_INFERENCE_LIMIT = 60
 
 
 def now():
@@ -171,8 +172,8 @@ def queue_inference(data, port, item_id, question):
         raise RuntimeError("Wait 15 seconds between inference requests to conserve the free quota")
     budget_key = "quotas/" + now()[:10] + ".json"
     used = read(data,budget_key,{"used":0})["used"] + 1
-    if used > 50:
-        raise RuntimeError("Workspace free-quota guard reached: 50 runs per UTC day")
+    if used > DAILY_INFERENCE_LIMIT:
+        raise RuntimeError(f"Workspace free-quota guard reached: {DAILY_INFERENCE_LIMIT} provider calls per UTC day")
     write(data,budget_key,{"used":used})
     identity = sha(str(time.time_ns())+item_id)[:32]
     evidence_input = {k:item[k] for k in ("id","title","body","state","kind","url","author","assignees","reviewers","files","source_ids")}

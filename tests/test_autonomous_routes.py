@@ -344,6 +344,9 @@ def test_failed_investigation_charges_attempt_but_never_dispatches(launch):
     launch.investigation.return_value = {"id": "mock-failed-agent", "status": "failed"}
     result = workflow.start("unused", 1, workflow.ITEM, True, ["jira", "slack"])
     assert result["status"] == "failed" and result["checks"]["verified"] is False
+    stages = {stage["id"]: stage for stage in result["stages"]}
+    assert stages["investigate"]["status"] == "failed"
+    assert stages["execute"]["status"] == "pending"
     assert launch.github.call_count == 1  # Reads workflow commit; no POST.
     assert launch.records[launch.budget] == 1
 
