@@ -1,0 +1,73 @@
+name: Baton bounded engineering execution
+run-name: Baton execution ${{ inputs.execution_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      execution_id:
+        description: App execution identity
+        required: true
+        type: string
+      callback_token:
+        description: Single-run callback capability
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: baton-code-execution
+  cancel-in-progress: false
+jobs:
+  execute:
+    name: execute
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Mask the per-run callback capability
+        env:
+          CALLBACK_TOKEN: ${{ inputs.callback_token }}
+        run: |
+          echo "::add-mask::$CALLBACK_TOKEN"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Restore public Cargo dependency downloads only
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ runner.temp }}/baton-cargo
+          key: baton-cargo-linux-d8190da5-v1
+      - name: Execute original checks and bounded app-generated repairs
+        env:
+          BATON_API_BASE: https://kdeokfokg2d4jygx4ul3xwso5a0injxf.lambda-url.ap-south-1.on.aws
+          BATON_CALLBACK_TOKEN: ${{ inputs.callback_token }}
+          BATON_EXECUTION_ID: ${{ inputs.execution_id }}
+          BATON_DEPENDENCY_CACHE: ${{ runner.temp }}/baton-cargo
+        run: python3 scripts/autonomous_worker.py --run-id "$BATON_EXECUTION_ID" --out autonomous-artifact
+      - name: Upload immutable report, raw logs and generated patches
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: baton-run-${{ inputs.execution_id }}
+          path: autonomous-artifact/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6
+  finalization:
+    name: finalization
+    needs: execute
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Mask the per-run callback capability
+        env:
+          CALLBACK_TOKEN: ${{ inputs.callback_token }}
+        run: |
+          echo "::add-mask::$CALLBACK_TOKEN"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Request independent completed-job and artifact validation
+        env:
+          BATON_CALLBACK_TOKEN: ${{ inputs.callback_token }}
+          BATON_EXECUTION_ID: ${{ inputs.execution_id }}
+        run: python3 scripts/autonomous_worker.py --run-id "$BATON_EXECUTION_ID" --finalize

@@ -603,6 +603,76 @@ class AgentInvestigation(BaseModel):
     item_id: str = Field(min_length=1,max_length=200)
 
 
+class WorkflowStart(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    item_id: str = Field(min_length=1, max_length=200)
+    allow_repair: bool
+    publish_targets: list[Literal["jira", "slack"]] = Field(min_length=2, max_length=2)
+
+
+@app.post("/api/public/workflows", status_code=202)
+def start_cloud_workflow(body: WorkflowStart, request: Request):
+    from . import autonomous_workflow as workflows
+    security.session(request, auth_db(), DATA)
+    try:
+        return workflows.start(DATA, PORT, body.item_id, body.allow_repair, body.publish_targets)
+    except workflows.WorkflowError as error:
+        raise HTTPException(422, str(error))
+    except Exception:
+        raise HTTPException(503, "Cloud workflow start was not confirmed; inspect the latest run before retrying") from None
+
+
+@app.get("/api/public/workflows")
+def latest_cloud_workflow():
+    from . import autonomous_workflow as workflows
+    try:
+        return workflows.read(DATA, PORT)
+    except Exception:
+        raise HTTPException(503, "Cloud workflow status is unavailable") from None
+
+
+@app.get("/api/public/workflows/{run_id}")
+def cloud_workflow_status(run_id: str):
+    from . import autonomous_workflow as workflows
+    try:
+        return workflows.read(DATA, PORT, run_id)
+    except workflows.WorkflowError as error:
+        raise HTTPException(404, str(error))
+
+
+@app.get("/api/public/workflows/{run_id}/evidence")
+def cloud_workflow_evidence(run_id: str):
+    from . import autonomous_workflow as workflows
+    try:
+        return Response(workflows.evidence(DATA, PORT, run_id), media_type="application/json")
+    except workflows.WorkflowError as error:
+        raise HTTPException(409, str(error))
+
+
+@app.get("/api/public/workflows/{run_id}/logs/{name}")
+def cloud_workflow_log(run_id: str, name: str):
+    from . import autonomous_workflow as workflows
+    try:
+        return Response(workflows.log(DATA, PORT, run_id, name), media_type="text/plain")
+    except workflows.WorkflowError as error:
+        raise HTTPException(404, str(error))
+
+
+@app.post("/api/public/workflows/{run_id}/{operation}")
+def cloud_runner_callback(run_id: str, operation: Literal["events", "repair", "complete"], body: dict, request: Request):
+    from . import autonomous_workflow as workflows
+    try:
+        workflows.authenticate(PORT, run_id, request.headers.get("authorization", ""))
+    except workflows.WorkflowError:
+        raise HTTPException(401, "Invalid or expired cloud runner callback") from None
+    try:
+        return {"events": workflows.event, "repair": workflows.repair, "complete": workflows.complete}[operation](DATA, PORT, run_id, body)
+    except workflows.WorkflowError as error:
+        raise HTTPException(409, str(error))
+    except Exception:
+        raise HTTPException(503, "Cloud callback was not verified; no success or provider update is implied") from None
+
+
 @app.post("/api/public/agent",status_code=201)
 def run_graph_agent(body: AgentInvestigation,request: Request):
     from . import graph_agent
