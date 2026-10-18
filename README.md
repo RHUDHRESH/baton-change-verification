@@ -20,6 +20,8 @@ Four cached companies are available: 7, 101, 202 and 303. Click a marked day or 
 
 **v0.2:** Explore the live relationship graph, inspect nodes/edges and their sources, use **suggested successors** from the capacity solver, then preview and commit the plan. Saved receipts remain available after reload. See [the end-to-end upgrade](docs/END_TO_END_UPGRADE.md).
 
+**Acme company memory:** [Open Liz Zhang's benchmark company](http://127.0.0.1:8000/amb.html). Replay the original 50-item inbox, inspect changing services/teams/on-call relationships, and run all 25 original checkpoint questions against FalkorDB. Uses a labelled deterministic text parser; no model key required. See [demo details](docs/ACME_DEMO.md) and the [red-team findings](docs/REDTEAM_REPORT.md).
+
 ## Run the ZIP's tests
 
 ```powershell
@@ -27,7 +29,7 @@ docker compose --profile checks build checks
 docker compose --profile checks run --rm checks
 ```
 
-Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **131 tests pass:** the 88 unchanged ZIP checks through the original integrity-verifying harness, 22 foundation checks, and 21 HTTP/MCP/planning/graph/history/concurrency/recovery tests. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Results: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml` and `artifacts/transport-tests.xml`.
+Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **134 tests pass:** the 88 unchanged ZIP checks through the original integrity-verifying harness, 22 foundation checks, and 24 HTTP/MCP/planning/graph/history/concurrency/recovery/Acme tests. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Results: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml` and `artifacts/transport-tests.xml`.
 
 The original `checks/locked/**` and `loop/bin/**` are untouched. `loop/config.json` replaces the old author's absolute Python path with a portable command. See [verification](docs/BUILD_REPORT.md).
 

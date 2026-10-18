@@ -1,0 +1,33 @@
+async (page) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto('http://127.0.0.1:8000/amb.html');
+  await page.locator('#status').filter({hasText:'Live FalkorDB'}).waitFor();
+  await page.locator('#check-all').click();
+  await page.locator('#score').filter({hasText:'25 / 25'}).waitFor();
+  await page.locator('#query-form button').click();
+  await page.locator('#answer strong').waitFor();
+  await page.screenshot({path:'output/playwright/acme-desktop.png',fullPage:true});
+  const score = await page.locator('#score').innerText();
+  await page.locator('#step').fill('0');
+  await page.locator('#step').dispatchEvent('change');
+  await page.locator('#counts').filter({hasText:'0 current connections'}).waitFor();
+  await page.locator('#play').click();
+  await page.locator('#step-label').filter({hasText:'step 1 of 50'}).waitFor();
+  await page.locator('#play').click();
+  await page.locator('#step').fill('50');
+  await page.locator('#step').dispatchEvent('change');
+  await page.locator('#step-label').filter({hasText:'50 of 50'}).waitFor();
+  await page.locator('#inbox-050 summary').click();
+  await page.locator('#inbox-050 pre').waitFor({state:'visible'});
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:'output/playwright/acme-mobile.png',fullPage:true});
+  const width = await page.evaluate(() => ({page:document.documentElement.scrollWidth,viewport:innerWidth}));
+  if (width.page > width.viewport) throw new Error(`Mobile overflow: ${JSON.stringify(width)}`);
+  if (errors.length) throw new Error(errors.join('; '));
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto('http://127.0.0.1:8000/amb.html');
+  await page.locator('#status').filter({hasText:'Live FalkorDB'}).waitFor();
+  return {score,mobile:width,errors};
+}

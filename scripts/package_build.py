@@ -23,7 +23,11 @@ def main():
              ROOT / "loop/last_score.json", ROOT / "loop/junit.xml", ARTIFACTS / "clean-clone-verification.json", ROOT / "docs/BUILD_REPORT.md",
              ROOT / "output/playwright/baton-demo.webm", ROOT / "output/playwright/desktop.png",
              ROOT / "output/playwright/mobile.png", ROOT / "output/playwright/mobile-dark.png",
-             ROOT / "output/playwright/graph-explorer.png"]
+             ROOT / "output/playwright/graph-explorer.png", ROOT / "output/playwright/acme-desktop.png",
+             ROOT / "output/playwright/acme-mobile.png", ROOT / "output/playwright/redteam-xss.png",
+             ROOT / "docs/ACME_DEMO.md", ROOT / "docs/REDTEAM_REPORT.md",
+             ARTIFACTS / "acme-browser-results.txt", ARTIFACTS / "redteam-observations.json",
+             ARTIFACTS / "redteam-browser-results.txt"]
     output = ARTIFACTS / "Baton_complete_build.zip"
     with ZipFile(output, "w", ZIP_DEFLATED) as archive:
         for path in files:

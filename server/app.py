@@ -199,6 +199,36 @@ def receipts(seed: int = 7):
         return {"seed": seed, "receipts": sorted(records, key=lambda item: (item["created_at"] or 0, item["operation_id"]), reverse=True)}
 
 
+@app.get("/api/amb")
+def acme(step: int = 50):
+    from baton import amb_demo
+    if not 0 <= step <= 50:
+        raise HTTPException(422, "step must be between 0 and 50")
+    return amb_demo.snapshot(PORT, step)
+
+
+class AcmeQuestion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tool: str = Field(pattern="^(owner|oncall|page|impact|incident)$")
+    subject: str = Field(min_length=1, max_length=100)
+    step: int = Field(default=50, ge=0, le=50)
+
+
+@app.post("/api/amb/ask")
+def acme_ask(question: AcmeQuestion):
+    from baton import amb_demo
+    return amb_demo.ask(PORT, question.tool, question.subject, question.step)
+
+
+@app.get("/api/amb/questions/{qid}")
+def acme_question(qid: str):
+    from baton import amb_demo
+    try:
+        return amb_demo.benchmark_question(PORT, qid)
+    except ValueError as error:
+        raise HTTPException(404, str(error))
+
+
 from fastapi.staticfiles import StaticFiles
 
 WEB = ROOT / "web"
