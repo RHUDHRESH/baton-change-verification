@@ -39,7 +39,7 @@ docker compose --profile checks run --rm checks
 
 Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **311 tests passed in a fresh Docker checks run on October 18, 2026, with zero failures or skips:** 88 unchanged ZIP checks, 22 foundation checks, 39 integration/security checks, 23 red-team regressions, and 139 cloud/provider/agent/company contracts. The original scoring harness verified locked-check integrity. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Reports: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml`, `artifacts/transport-tests.xml`, `artifacts/redteam-tests.xml`, `artifacts/cloud-contract-tests.xml`, and `artifacts/check-run.json`.
 
-Docker's Linux engine was recovered without resetting volumes or data disks. All five harness commands exited zero. One Mangum event-loop deprecation warning remains; it did not fail a test. Real production Groq, graph/task, agent, Jira and Slack checks passed separately from mocked provider contract tests.
+Docker's Linux engine was recovered without resetting volumes or data disks. All five harness commands exited zero. One Mangum event-loop deprecation warning remains; it did not fail a test. A subsequent live-demo source-context repair passed 142 affected contracts and an actual issue-payload regression; see [the live demo](docs/LIVE_DEMO.md). Real production Groq, graph/task, agent, Jira and Slack checks passed separately from mocked provider contract tests.
 The original `checks/locked/**` and `loop/bin/**` are untouched. `loop/config.json` replaces the old author's absolute Python path with a portable command. See [verification](docs/BUILD_REPORT.md).
 
 ## CLI
