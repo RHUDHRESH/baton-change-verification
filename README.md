@@ -1,12 +1,12 @@
 # Baton
 
-**Understand connected company work, investigate its evidence, and leave an actionable next step.**
+**Turn a public company issue into work you can verify.**
 
 [Open the deployed company app](https://baton-workspace.vercel.app). The Vercel frontend calls AWS Lambda in Mumbai, FalkorDB Cloud Free, and Groq Free. It uses actual FalkorDB public repositories: 28 sampled work items, 21 accounts (including bots), and 18 captured API responses. Public contributors are credited without inferred employment or internal ownership.
 
 The graph agent uses four actual Groq tool calls to inspect work, traverse connected work/files/contributors, open primary evidence, and save a verification task. The final browser run passed with exact source and graph-file checks, persisted provider receipts, and independent task read-back. Semantic entailment is not automatically verified.
 
-Direct integrations also passed: [Jira KAN-1](https://rhudhresh3697.atlassian.net/browse/KAN-1) and a task in Raptorflow's dedicated `#baton-demo` channel. Both were separately read back and graph-linked; repeated publish calls reused the same artifacts. These are the user's integration workspaces, not FalkorDB's internal Jira or Slack. Jira's scoped token expires October 25, 2026. [Deployment evidence and limits](docs/CLOUD_SETUP.md).
+The completed workflow investigates [FalkorDB issue #3246](https://github.com/FalkorDB/FalkorDB/issues/3246), links its task to actual code-check evidence, and updates [Jira KAN-2 to Done](https://rhudhresh3697.atlassian.net/browse/KAN-2) and its original Raptorflow Slack message. [Open the execution workbench](https://baton-workspace.vercel.app/#executions). Codex ran upstream Rust checks in Docker; Groq performed graph investigation and inference. These are the user's integration workspaces, not FalkorDB's internal Jira or Slack. Jira's scoped token expires October 25, 2026. [Verified release and limits](docs/VERIFIED_RELEASE.md).
 
 The older departure and Acme benchmark companies are synthetic fixtures. Their extraction caches and scripted parser are explicitly labeled and are not evidence of live Groq inference. Acme from Liz Zhang's agent-memory-bench remains at `/benchmark.html`; the Halden fixture is isolated at `/sandbox.html`.
 
@@ -37,9 +37,9 @@ docker compose --profile checks build checks
 docker compose --profile checks run --rm checks
 ```
 
-Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **311 tests passed in a fresh Docker checks run on October 18, 2026, with zero failures or skips:** 88 unchanged ZIP checks, 22 foundation checks, 39 integration/security checks, 23 red-team regressions, and 139 cloud/provider/agent/company contracts. The original scoring harness verified locked-check integrity. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Reports: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml`, `artifacts/transport-tests.xml`, `artifacts/redteam-tests.xml`, `artifacts/cloud-contract-tests.xml`, and `artifacts/check-run.json`.
+Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **437 application checks passed across the recorded run and corrected reruns on October 18, 2026:** 88 unchanged ZIP checks, 22 foundation, 39 integration/security, 23 red-team, 142 cloud/provider/agent/company contracts, and 123 execution/publisher/runner/verification contracts. The first full invocation retained one obsolete homepage-copy assertion failure; after correcting that assertion, the entire integration suite passed. The original scoring harness verified locked-check integrity. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. [Exact reports and retained failure history](docs/VERIFIED_RELEASE.md).
 
-Docker's Linux engine was recovered without resetting volumes or data disks. All five harness commands exited zero. One Mangum event-loop deprecation warning remains; it did not fail a test. A subsequent live-demo source-context repair passed 142 affected contracts and an actual issue-payload regression; see [the live demo](docs/LIVE_DEMO.md). Real production Groq, graph/task, agent, Jira and Slack checks passed separately from mocked provider contract tests.
+Docker's Linux engine was recovered without resetting volumes or data disks. One Mangum event-loop deprecation warning remains. Real production Groq, graph/task, agent, Jira and Slack checks passed separately from mocked provider contracts. Upstream Rust verification separately recorded **530 passed, zero failed, 17 ignored**, after the disclosed local clamp workaround, plus **two actual RDB reload cycles**. Ignored benchmarks/probes are not counted as passed. [Logs, reproduction details and limits](docs/evidence/KAN-2.md).
 The original `checks/locked/**` and `loop/bin/**` are untouched. `loop/config.json` replaces the old author's absolute Python path with a portable command. See [verification](docs/BUILD_REPORT.md).
 
 ## CLI
