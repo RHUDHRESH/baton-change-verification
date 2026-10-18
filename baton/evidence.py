@@ -23,12 +23,13 @@ def relevant(source, belief, person, duty):
         return False
     # A known duty's graph name is authoritative, not a model-supplied alias.
     topics = [words(belief.get("duty")), words(duty.get("name") if duty else belief.get("duty_name"))]
-    return any(len(topic & tokens) >= max(2, (len(topic) + 1) // 2) for topic in topics)
+    grounded = [len(topic & tokens) >= max(2, (len(topic) + 1) // 2) for topic in topics]
+    return any(grounded) if duty else all(grounded)
 
 
 def relevant_refs(fork, beliefs):
     sources = {row[0]["id"]: row[0] for row in fork.ro_query("MATCH (s:Source) RETURN properties(s)").result_set}
     people = {row[0]["id"]: row[0] for row in fork.ro_query("MATCH (p:Person) RETURN properties(p)").result_set}
     duties = {row[0]["id"]: row[0] for row in fork.ro_query("MATCH (d:Duty) RETURN properties(d)").result_set}
-    return {b["id"]: [ref for ref in b.get("sources", []) if ref in sources and b.get("person") in people
-                      and relevant(sources[ref], b, people[b["person"]], duties.get(b.get("duty")))] for b in beliefs}
+    return [[ref for ref in b.get("sources", []) if ref in sources and b.get("person") in people
+             and relevant(sources[ref], b, people[b["person"]], duties.get(b.get("duty")))] for b in beliefs]

@@ -100,11 +100,11 @@ def _reason(n_refs, n_counted, kinds, missing, off):
 
 def gate(fork, beliefs):
     """Write beliefs onto the fork and let Cypher decide promotion. Returns the unpromoted rows."""
-    refs = evidence.relevant_refs(fork, beliefs) if beliefs else {}
+    refs = evidence.relevant_refs(fork, beliefs) if beliefs else []
     rows = [{"id": b["id"], "person": b.get("person"), "duty": b.get("duty"), "duty_name": b.get("duty_name"),
              "kind": b.get("kind"), "claim": b.get("claim"), "sources": list(b.get("sources", [])),
-             "relevant_refs": refs[b["id"]],
-             "events": [{"at": e["at"], "label": e.get("label")} for e in b.get("events", [])]} for b in beliefs]
+             "relevant_refs": refs[i],
+             "events": [{"at": e["at"], "label": e.get("label")} for e in b.get("events", [])]} for i, b in enumerate(beliefs)]
     if rows:
         fork.query(Q_BELIEFS, {"beliefs": rows})
     res = fork.query(Q_GATE).result_set
