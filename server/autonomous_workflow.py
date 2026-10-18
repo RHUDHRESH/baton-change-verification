@@ -112,6 +112,10 @@ def _public(record):
         result["evidence"] = [result["evidence"]]
     if result.get("status") == "succeeded":
         result["status"] = "publishing"
+    if record.get("artifact_verified") and isinstance(record.get("checks"), list):
+        # A failed execute job still has an authorized failure-publication step.
+        # Keep polling until that step has produced the final public receipt.
+        result["status"] = "publishing"
     return result
 
 
@@ -493,6 +497,7 @@ def complete(data, port, identity, body):
             repair_detail += "; no passing full-library verification was achieved"
         _stage(record, "repair", "failed" if repair_failed else "completed", repair_detail)
         _stage(record, "verify", "completed", "Job, artifact, log bytes, test totals and patch receipts independently verified")
+        _stage(record, "publish", "running", "Awaiting graph read-back and connected provider finalization")
         _save(data, port, record)
         try:
             _graph_receipt(data, port, record)

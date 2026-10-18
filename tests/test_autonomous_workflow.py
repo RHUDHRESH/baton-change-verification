@@ -349,3 +349,16 @@ def test_real_failed_library_and_callback_error_cannot_look_like_completed_repai
         assert result["error"] == message
     else:
         assert "private-provider-token" not in json.dumps(result)
+
+
+def test_failed_execute_job_remains_publicly_publishing_until_provider_receipts_finalize():
+    internal = {"id": "a" * 32, "status": "failed", "artifact_verified": True,
+        "checks": [{"name": "graph_library_initial", "exit_code": 101}],
+        "evidence": {"url": "https://baton-workspace.vercel.app/api/public/workflows/" + "a" * 32 + "/evidence"}}
+    public = workflow._public(internal)
+    assert public["status"] == "publishing"
+    assert public["checks"]["verified"] is False
+    assert internal["status"] == "failed"
+    internal["checks"] = {"verified": True, "passed": 529, "failed": 1, "ignored": 17}
+    internal["evidence"] = [internal["evidence"]]
+    assert workflow._public(internal)["status"] == "failed"
