@@ -153,7 +153,7 @@ def _text(run):
         "Executor: GitHub Actions; verified runner conclusion: " + run["runner"]["conclusion"],
         "Runner: " + run["runner"]["run_url"], "Source commit: " + run["runner"]["source_commit"],
         "Pinned image: " + run["runner"]["image_digest"], "Evidence: " + run["evidence"]["url"],
-        "Evidence SHA-256: " + run["evidence"]["sha256"], "Executed tests: " + str(sum(c["test_count"] for c in run["checks"])),
+        "Evidence SHA-256: " + run["evidence"]["sha256"], "Test executions (includes targeted reruns): " + str(sum(c["test_count"] for c in run["checks"])),
         "This reports the isolated workspace run; it does not claim an upstream issue resolution or merge."]
     for check in run["checks"]:
         lines.append(check["name"] + ": " + check["status"] + "; exit=" + str(check["exit_code"]) + "; tests=" + str(check["test_count"]))

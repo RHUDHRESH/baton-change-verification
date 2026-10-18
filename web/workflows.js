@@ -79,7 +79,7 @@
     const checks = record.checks || {};
     if (Object.keys(checks).length) {
       root.append(el('h4', 'Code-check evidence'), el('p', [
-        Number.isSafeInteger(checks.passed) ? checks.passed + ' tests passed' : 'Passed count unavailable',
+        Number.isSafeInteger(checks.passed) ? checks.passed + ' passing test executions (includes targeted reruns)' : 'Passed count unavailable',
         Number.isSafeInteger(checks.failed) ? checks.failed + ' failed' : 'Failure count unavailable',
         Number.isSafeInteger(checks.ignored) ? checks.ignored + ' ignored / not run' : 'Ignored count unavailable'
       ].join(' · ')));

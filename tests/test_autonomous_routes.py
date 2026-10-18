@@ -9,7 +9,6 @@ import urllib.error
 from fastapi.testclient import TestClient
 import pytest
 
-from server import app as service
 from server import autonomous_workflow as workflow
 from server import security
 
@@ -19,6 +18,10 @@ BODY = {"item_id": workflow.ITEM, "allow_repair": True, "publish_targets": ["jir
 
 @pytest.fixture
 def boundary(monkeypatch, tmp_path):
+    # Defer constructing middleware until this fixture supplies its test hosts.
+    # A collection-time import would freeze production hosts for other suites.
+    monkeypatch.setenv("BATON_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
+    from server import app as service
     token, cookie = "test-operator-credential-" + "x" * 32, "mock-session-cookie"
     monkeypatch.setenv("BATON_OPERATOR_TOKEN", token)
     monkeypatch.setattr(service, "DATA", tmp_path)
@@ -34,7 +37,7 @@ def boundary(monkeypatch, tmp_path):
     operations = {name: MagicMock(return_value={"status": "running"}) for name in ("event", "repair", "complete")}
     for name, mock in operations.items(): monkeypatch.setattr(workflow, name, mock)
     client = TestClient(service.app, base_url="http://localhost", raise_server_exceptions=False)
-    return SimpleNamespace(client=client, cookie=cookie, start=start, read=read, auth=auth, operations=operations)
+    return SimpleNamespace(service=service, client=client, cookie=cookie, start=start, read=read, auth=auth, operations=operations)
 
 
 def operator(boundary):
@@ -57,7 +60,7 @@ def test_authenticated_cloud_start_has_exact_payload_and_one_dispatch(boundary):
     response = operator(boundary).post("/api/public/workflows", json=BODY)
     assert response.status_code == 202
     assert response.json() == {"id": ID, "status": "queued"}
-    boundary.start.assert_called_once_with(service.DATA, service.PORT, workflow.ITEM, True, ["jira", "slack"])
+    boundary.start.assert_called_once_with(boundary.service.DATA, boundary.service.PORT, workflow.ITEM, True, ["jira", "slack"])
 
 
 @pytest.mark.parametrize("mutation", ["extra-command", "extra-repository", "unknown-target", "too-many-targets", "missing-repair"])
@@ -99,8 +102,8 @@ def test_valid_run_callback_does_not_need_operator_cookie(boundary, operation, f
     response = boundary.client.post(f"/api/public/workflows/{ID}/{operation}", json={"sequence": 1},
                                     headers={"Authorization": "Bearer mock-run-token"})
     assert response.status_code == 200
-    boundary.auth.assert_called_once_with(service.PORT, ID, "Bearer mock-run-token")
-    boundary.operations[function].assert_called_once_with(service.DATA, service.PORT, ID, {"sequence": 1})
+    boundary.auth.assert_called_once_with(boundary.service.PORT, ID, "Bearer mock-run-token")
+    boundary.operations[function].assert_called_once_with(boundary.service.DATA, boundary.service.PORT, ID, {"sequence": 1})
 
 
 def test_unknown_callback_operation_cannot_be_dispatched(boundary):
@@ -124,7 +127,7 @@ def test_latest_receipt_is_public_read_only_and_not_cached(boundary):
     response = boundary.client.get("/api/public/workflows")
     assert response.status_code == 200 and response.json()["latest"] is None
     assert response.headers["cache-control"] == "no-store"
-    boundary.read.assert_called_once_with(service.DATA, service.PORT)
+    boundary.read.assert_called_once_with(boundary.service.DATA, boundary.service.PORT)
     boundary.start.assert_not_called()
 
 

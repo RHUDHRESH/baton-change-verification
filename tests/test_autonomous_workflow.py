@@ -1,5 +1,6 @@
 """Independent command/log validation and durable application completion gates."""
 import copy
+import difflib
 from contextlib import nullcontext
 import io
 import json
@@ -31,7 +32,7 @@ def fixture(monkeypatch, tmp_path):
             "repository": workflow.REPOSITORY, "workflow_sha": head}, "source": {"repository": worker.REPOSITORY,
             "commit": workflow.SOURCE_COMMIT, "image": workflow.IMAGE, "tracked_blobs": 957,
             "test_region_sha256": region, "final_test_region_sha256": region, "final_changed_paths": [],
-            "initial_blob_hashes_sha256": "1" * 64, "final_blob_hashes_sha256": "1" * 64, "final_source_sha256": "2" * 64},
+            "initial_blob_hashes_sha256": "1" * 64, "final_blob_hashes_sha256": "1" * 64, "final_source_sha256": workflow.sha(source)},
         "checks": [], "repairs": []}
     files = {}
     def add(name, argv, passed, ignored=0, exit_code=0):
@@ -195,9 +196,12 @@ def test_artifact_path_traversal_and_duplicate_files_rejected():
 
 
 def with_repair(fixture, applied):
-    patch = "diff --git a/file b/file\n"
+    before, after = "production source\n", "corrected production source\n"
+    patch = "diff --git a/" + workflow.EDITABLE + " b/" + workflow.EDITABLE + "\n" + "".join(difflib.unified_diff(
+        before.splitlines(keepends=True), after.splitlines(keepends=True), fromfile="a/" + workflow.EDITABLE, tofile="b/" + workflow.EDITABLE))
     receipt = {"id": "chatcmpl-repair", "model": "actual-model", "usage": {"prompt_tokens": 20, "completion_tokens": 5, "total_tokens": 25}}
     fixture.record["repair_responses"]["1"] = {"response": {"patch": patch, "patch_sha256": workflow.sha(patch), "provider_receipt": receipt}}
+    fixture.record["repairs"] = [{"attempt": 1, "diff": patch, "model_edit": {"old": before, "new": after}}]
     fixture.files["patches/repair-1.patch"] = patch.encode()
     proof = {"tracked_blobs": 957, "changed_paths": [], "test_region_sha256": fixture.report["source"]["test_region_sha256"], "tests_unchanged": True}
     fixture.report["repairs"] = [{"attempt": 1, "patch_path": "patches/repair-1.patch", "patch_sha256": workflow.sha(patch),
@@ -273,6 +277,8 @@ def test_publication_receives_the_expected_normalized_durable_record(fixture, mo
 def test_successful_generated_repair_requires_measured_retest_and_preserves_initial_failure(fixture):
     with_repair(fixture, True)
     fixture.report["status"] = "passed"
+    fixture.report["source"].update(final_changed_paths=[workflow.EDITABLE],
+        final_source_sha256=workflow.sha("corrected production source\n#[cfg(test)]\nmod tests {}\n"))
     fresh = copy.deepcopy(fixture.report["checks"][0])
     fresh.update(name="graph_library_repair_1", log_path="checks/graph_library_repair_1.log", exit_code=0, passed=True)
     raw = b"running 547 tests\ntest result: ok. 530 passed; 0 failed; 17 ignored\n"
@@ -312,3 +318,17 @@ def test_failed_job_does_not_bypass_validation_of_a_claimed_passing_report(fixtu
     result = complete(fixture)
     assert result["status"] == "failed" and "artifact failed" in result["error"]
     fixture.publisher.assert_not_called()
+
+
+@pytest.mark.parametrize("mutation", ["unrelated-64hex", "wrong-changed-paths", "missing-model-edit", "nonunique-old", "wrong-model-patch"])
+def test_final_source_hash_is_bound_to_actual_unique_model_edits(fixture, mutation):
+    if mutation == "unrelated-64hex": fixture.report["source"]["final_source_sha256"] = "f" * 64
+    elif mutation == "wrong-changed-paths": fixture.report["source"]["final_changed_paths"] = [workflow.EDITABLE]
+    else:
+        fixture.report["repairs"] = [{"attempt": 1}]
+        repair = {"attempt": 1, "model_edit": {"old": "production source", "new": "corrected source"}, "diff": "invented diff"}
+        fixture.record["repairs"] = [repair]
+        if mutation == "missing-model-edit": repair.pop("model_edit")
+        elif mutation == "nonunique-old": repair["model_edit"]["old"] = "not in immutable source"
+    with pytest.raises(workflow.WorkflowError, match="reconstruct|Generated model edit"):
+        workflow._validate_success(fixture.record, fixture.report, workflow._final_checks(fixture.report["checks"]))

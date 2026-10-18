@@ -84,6 +84,7 @@ def test_success_is_application_owned_exact_artifact_updates_with_independent_re
     assert setup.remote["done"] is True and len(setup.remote["comments"]) == 1
     assert setup.remote["slack"].startswith(original + "\n\n")
     assert "Executor: GitHub Actions" in setup.remote["slack"] and "No upstream fix or merge" in setup.remote["slack"]
+    assert "Test executions (includes targeted reruns): 531" in setup.remote["slack"]
     assert len(writes(setup)) == 3
     assert any(call[1] == "GET" and "/comment/10000" in call[2] for call in setup.calls)
     assert len([call for call in setup.calls if call[0] == "slack" and call[1] == "GET"]) == 2

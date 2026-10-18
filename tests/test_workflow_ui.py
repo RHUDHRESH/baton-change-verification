@@ -230,3 +230,13 @@ def test_slow_latest_receipt_cannot_overwrite_operator_new_run(completed):
     assert "Workflow workflow-new" in result["text"]
     assert "Workflow workflow-old" not in result["text"]
     assert len([call for call in result["calls"] if "body" in call]) == 1
+
+
+@pytest.mark.parametrize("passed,failed,ignored", [(534, 0, 17), (12, 2, 3)])
+def test_counts_describe_executions_including_reruns_not_unique_tests(completed, passed, failed, ignored):
+    completed["checks"].update(passed=passed, failed=failed, ignored=ignored)
+    result = js(mode="render", record=completed)
+    assert f"{passed} passing test executions (includes targeted reruns)" in result["text"]
+    assert f"{failed} failed" in result["text"]
+    assert f"{ignored} ignored / not run" in result["text"]
+    assert f"{passed} tests passed" not in result["text"]

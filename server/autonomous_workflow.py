@@ -221,7 +221,9 @@ def event(data, port, identity, body):
         require(isinstance(details, dict) and len(encode(details)) <= 26000, "Runner progress exceeds its bound")
         record["last_sequence"] = sequence
         record["status"] = {"execute": "running", "repair": "repairing", "verify": "verifying"}[stage]
-        _stage(record, stage, "running", str(details.get("message") or details.get("name") or stage)[:350])
+        check = details.get("check")
+        label = check.get("name") if isinstance(check, dict) else check
+        _stage(record, stage, "running", str(details.get("message") or details.get("name") or label or stage)[:350])
         record["latest_event"] = {"stage": stage, "data": details, "at": public.now()}
         _save(data, port, record)
         return {"accepted": True}
@@ -530,6 +532,27 @@ def _validate_success(record, report, final):
             all(isinstance(source.get(key), str) and re.fullmatch(r"[a-f0-9]{64}", source[key]) for key in
                 ("initial_blob_hashes_sha256", "final_blob_hashes_sha256", "final_source_sha256")),
             "Tests, source inventory or unapproved source paths changed")
+    prefix, marker, suffix = original.partition("#[cfg(test)]")
+    generated = record.get("repairs", [])
+    require(isinstance(generated, list) and len(generated) == len(report.get("repairs", [])),
+            "Final source reconstruction lacks the actual generated repair inventory")
+    for attempt, repair in enumerate(generated, 1):
+        edit = repair.get("model_edit", {})
+        old, new = edit.get("old"), edit.get("new")
+        require(repair.get("attempt") == attempt and isinstance(old, str) and isinstance(new, str) and old and new and
+                old != new and prefix.count(old) == 1 and "\x00" not in old + new and "#[cfg" not in old + new,
+                "Generated model edit cannot reconstruct one unique production change")
+        updated = prefix.replace(old, new, 1)
+        patch = "diff --git a/" + EDITABLE + " b/" + EDITABLE + "\n" + "".join(difflib.unified_diff(
+            prefix.splitlines(keepends=True), updated.splitlines(keepends=True), fromfile="a/" + EDITABLE, tofile="b/" + EDITABLE))
+        patch = patch.rstrip("\n") + "\n"
+        stored = record.get("repair_responses", {}).get(str(attempt), {}).get("response", {})
+        require(repair.get("diff") == stored.get("patch") == patch and stored.get("patch_sha256") == sha(patch),
+                "Generated model edit differs from the provider-backed applied patch")
+        prefix = updated
+    reconstructed = prefix + marker + suffix
+    require(source["final_source_sha256"] == sha(reconstructed) and source["final_changed_paths"] == ([] if reconstructed == original else [EDITABLE]),
+            "Final source hash or changed paths differ from the reconstructed model edits")
 
 
 def _checks_view(record, final):
