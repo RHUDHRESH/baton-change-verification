@@ -6,7 +6,7 @@ async (page) => {
   await page.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective)); });
   await page.context().clearCookies();
   await page.setViewportSize({width:1440,height:1000});
-  await page.goto(base);
+  await page.goto(base + '/rehearsal.html');
   await page.locator('#connection').filter({hasText:'Live graph connected'}).waitFor();
   const anonymous = await page.request.post(base + '/api/commit', {data:{assign:{}}});
   if (anonymous.status() !== 401) throw new Error('Anonymous commit accepted');
@@ -50,7 +50,7 @@ async (page) => {
   await page.screenshot({path:'output/playwright/security-mobile.png',fullPage:true});
   const width=await page.evaluate(()=>({page:document.documentElement.scrollWidth,viewport:innerWidth}));
   if (width.page>width.viewport) throw new Error('Mobile layout overflows');
-  await page.goto(base + '/amb.html');
+  await page.goto(base + '/benchmark.html');
   await page.locator('#status').filter({hasText:'Live FalkorDB'}).waitFor();
   await page.locator('#check-all').click();
   await page.locator('#score').filter({hasText:'25 / 25'}).waitFor();

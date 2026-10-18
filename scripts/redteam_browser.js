@@ -14,7 +14,7 @@ async (page) => {
   await page.route('**/api/demo*', handler);
   let evidence;
   try {
-    await page.goto(origin);
+    await page.goto(origin + '/rehearsal.html');
     await page.getByRole('button', { name: 'View proof for ' + payload, exact: true }).click();
     const executed = await page.evaluate(() => window.__batonXSS);
     const markupNodes = await page.locator('#proof img, #proof svg, #leaver-name img, #leaver-name svg').count();

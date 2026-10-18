@@ -1,6 +1,8 @@
 """Baton HTTP API (thin wrapper over the `python -m baton` CLI contract). Every decision is made by the CLI in FalkorDB."""
 import json, os, subprocess, sys, threading, tempfile
 from typing import Annotated
+from typing import Literal
+from datetime import date
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -276,6 +278,76 @@ def commit(c: Commit, request: Request):
 @app.get("/api/catalogue")
 def catalogue():
     return cli("ask", "--catalogue")
+
+
+@app.get("/api/company")
+def company_context():
+    from .company import context
+    with LOCK:
+        return context(world_dir(7))
+
+
+class FollowUp(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str = Field(min_length=1, max_length=160)
+    work_id: Identifier
+    owner: Identifier
+    due: date
+    notes: str = Field(default="", max_length=2000)
+
+
+class TaskStatus(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["todo", "done"]
+
+
+@app.get("/api/company/tasks")
+def company_tasks(request: Request):
+    from . import company
+    security.session(request, auth_db(), DATA)
+    with LOCK:
+        return {"tasks": company.tasks(DATA)}
+
+
+@app.post("/api/company/tasks", status_code=201)
+def create_follow_up(body: FollowUp, request: Request):
+    from . import company
+    import time, uuid
+    db = auth_db()
+    security.session(request, db, DATA)
+    with LOCK, db.lock("baton:company:tasks", timeout=30, blocking_timeout=10):
+        world = json.loads((world_dir(7) / "world.json").read_text())
+        if not body.title.strip() or body.work_id not in {w["id"] for w in company.WORK}:
+            raise HTTPException(422, "Choose a company responsibility and enter a task title")
+        eligible = {p["id"] for p in world["people"] if p["left_at"] is None and p["id"] != world["leaver"]}
+        if body.owner not in eligible:
+            raise HTTPException(422, "Choose an active teammate who is staying")
+        rows = company.tasks(DATA)
+        if len(rows) >= 200:
+            raise HTTPException(409, "This local workspace has reached its 200-task limit")
+        task = {"id": uuid.uuid4().hex, "title": body.title.strip(), "work_id": body.work_id,
+                "owner": body.owner, "due": body.due.isoformat(), "notes": body.notes.strip(), "status":"todo",
+                "created_at": int(time.time()*1000), "created_by":"local_operator", "completed_at":None}
+        rows.append(task)
+        company.save_tasks(DATA, rows)
+        return task
+
+
+@app.patch("/api/company/tasks/{task_id}")
+def update_follow_up(task_id: str, body: TaskStatus, request: Request):
+    from . import company
+    import time
+    db = auth_db()
+    security.session(request, db, DATA)
+    with LOCK, db.lock("baton:company:tasks", timeout=30, blocking_timeout=10):
+        rows = company.tasks(DATA)
+        task = next((r for r in rows if r["id"] == task_id), None)
+        if task is None:
+            raise HTTPException(404, "Task not found")
+        task["status"] = body.status
+        task["completed_at"] = int(time.time()*1000) if body.status == "done" else None
+        company.save_tasks(DATA, rows)
+        return task
 
 
 @app.get("/api/graph")

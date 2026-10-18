@@ -16,11 +16,13 @@ docker compose up -d --build
 
 Open [Baton](http://127.0.0.1:8000), [API docs](http://127.0.0.1:8000/docs) or [FalkorDB Browser](http://127.0.0.1:3000). Ports bind to this computer only. Data persists in named volumes; `docker compose down` stops services without erasing it.
 
-Four cached companies are available: 7, 101, 202 and 303. Click a marked day or proof link. Choose successors and replay: the preview leaves live ownership unchanged. **Write accepted plan** changes the live fixture graph and commits `OWNERS.d/<graph>.yaml` in the application's operations repository. Refresh to see the saved state. Capacity checks whether a feasible allocation exists; preview checks coverage and active successors, not capacity eligibility of each manually selected assignment.
+The company workspace opens Halden’s seed-7 scenario. Review the customer promise and operational work, suggest or choose successors, then preview and save a reviewed handover. Follow-up tasks have owners, due dates and completion states; the handover brief downloads as a text file. The original four scenarios (7, 101, 202 and 303) remain in [Departure analysis](http://127.0.0.1:8000/rehearsal.html). Saving ownership changes the live fixture graph and commits `OWNERS.d/<graph>.yaml` in the operations repository. Capacity suggestions respect skills and capacity; manually selected assignments are checked for coverage and active successors.
 
 **v0.2:** Explore the live relationship graph, inspect nodes/edges and their sources, use **suggested successors** from the capacity solver, then preview and commit the plan. Saved receipts remain available after reload. See [the end-to-end upgrade](docs/END_TO_END_UPGRADE.md).
 
-**Acme company memory:** [Open Liz Zhang's benchmark company](http://127.0.0.1:8000/amb.html). Replay the original 50-item inbox, inspect changing services/teams/on-call relationships, and run all 25 original checkpoint questions against FalkorDB. Uses a labelled deterministic text parser; no model key required. See [demo details](docs/ACME_DEMO.md) and the [red-team findings](docs/REDTEAM_REPORT.md).
+**Company workspace:** [Open Halden](http://127.0.0.1:8000/). Meet the team, follow Oaktree's customer promise, inspect the work Hana carries, plan and save a handover, track follow-up tasks and download the brief. See [the company experience](docs/COMPANY_WORKSPACE.md). Halden is a clearly labelled fictional company with working API-backed actions.
+
+**Acme benchmark:** [Open Liz Zhang's benchmark company](http://127.0.0.1:8000/benchmark.html). Replay the original 50-item inbox and run all 25 checkpoint questions against FalkorDB. Uses a labelled deterministic text parser; no model key required. See [benchmark details](docs/ACME_DEMO.md).
 
 **Saving ownership now requires Operator sign in.** Retrieve the local token with `docker compose exec api cat /data/.operator-token`, sign in, preview the exact plan, and confirm successor agreement before saving. Read-only demos remain available. All five red-team findings and the header gap are fixed; see [security fixes and verification](docs/SECURITY_FIXES.md).
 
@@ -31,7 +33,7 @@ docker compose --profile checks build checks
 docker compose --profile checks run --rm checks
 ```
 
-Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **170 tests pass:** the 88 unchanged ZIP checks through the original integrity-verifying harness, 22 foundation checks, 37 integration/security tests, and 23 red-team regressions. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Results: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml`, `artifacts/transport-tests.xml` and `artifacts/redteam-tests.xml`.
+Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **172 tests pass:** the 88 unchanged ZIP checks through the original integrity-verifying harness, 22 foundation checks, 39 integration/security tests, and 23 red-team regressions. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Results: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml`, `artifacts/transport-tests.xml` and `artifacts/redteam-tests.xml`.
 
 The original `checks/locked/**` and `loop/bin/**` are untouched. `loop/config.json` replaces the old author's absolute Python path with a portable command. See [verification](docs/BUILD_REPORT.md).
 

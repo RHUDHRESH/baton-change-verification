@@ -32,7 +32,11 @@ def main():
              ARTIFACTS / "acme-browser-results.txt", ARTIFACTS / "redteam-observations.json",
              ARTIFACTS / "redteam-browser-results.txt", ROOT / "docs/SECURITY_FIXES.md",
              ARTIFACTS / "security-browser-results.txt", ROOT / "output/playwright/security-verified-write.png",
-             ROOT / "output/playwright/security-mobile.png"]
+             ROOT / "output/playwright/security-mobile.png", ROOT / "docs/COMPANY_WORKSPACE.md",
+             ARTIFACTS / "company-browser-results.txt", ARTIFACTS / "company-write-browser-results.txt",
+             ROOT / "output/playwright/company-desktop.png", ROOT / "output/playwright/company-mobile.png",
+             ROOT / "output/playwright/company-handover.png", ROOT / "output/playwright/company-saved-handover.png",
+             ROOT / "output/playwright/Halden-Hana-handover.txt"]
     output = ARTIFACTS / "Baton_complete_build.zip"
     with ZipFile(output, "w", ZIP_DEFLATED) as archive:
         for path in files:

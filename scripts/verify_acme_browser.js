@@ -2,7 +2,7 @@ async (page) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.setViewportSize({width:1440,height:1000});
-  await page.goto('http://127.0.0.1:8000/amb.html');
+  await page.goto('http://127.0.0.1:8000/benchmark.html');
   await page.locator('#status').filter({hasText:'Live FalkorDB'}).waitFor();
   await page.locator('#check-all').click();
   await page.locator('#score').filter({hasText:'25 / 25'}).waitFor();
@@ -27,7 +27,7 @@ async (page) => {
   if (width.page > width.viewport) throw new Error(`Mobile overflow: ${JSON.stringify(width)}`);
   if (errors.length) throw new Error(errors.join('; '));
   await page.setViewportSize({width:1440,height:1000});
-  await page.goto('http://127.0.0.1:8000/amb.html');
+  await page.goto('http://127.0.0.1:8000/benchmark.html');
   await page.locator('#status').filter({hasText:'Live FalkorDB'}).waitFor();
   return {score,mobile:width,errors};
 }

@@ -19,7 +19,7 @@ include = ["baton*", "server*", "third_party*"]
 third_party = ["amb/LICENSE"]
 
 [tool.setuptools.data-files]
-"share/baton/web" = ["web/index.html", "web/app.js", "web/extensions.js", "web/styles.css", "web/amb.html", "web/amb.js", "web/amb.css"]
+"share/baton/web" = ["web/index.html", "web/app.js", "web/extensions.js", "web/styles.css", "web/amb.html", "web/amb.js", "web/amb.css", "web/benchmark.html", "web/benchmark.js", "web/benchmark.css", "web/rehearsal.html"]
 "share/baton/web/samples" = ["web/samples/*.json"]
 "share/baton/web/vendor/cytoscape" = ["web/vendor/cytoscape/*.js", "web/vendor/cytoscape/LICENSE", "web/vendor/cytoscape/*.json"]
 "share/baton/fixtures/extract_cache" = ["fixtures/extract_cache/*.json"]

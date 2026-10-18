@@ -1,6 +1,6 @@
 # Acme company memory
 
-Open [Acme in Baton](http://127.0.0.1:8000/amb.html), or choose **Acme company memory** in the sidebar.
+Open [Acme in Baton](http://127.0.0.1:8000/benchmark.html), or choose **Original Acme benchmark** under Technical details. The default workspace and `/amb.html` now show the business-focused Halden experience.
 
 This recreates the synthetic company task from [Liz Zhang's agent-memory-bench](https://github.com/zhang-liz/agent-memory-bench), using the MIT-licensed, already-vendored `amb/world.py` at b8ccc40. The demo fixes seed 7 and inbox length 50, the upstream short pilot length. It does not claim to be the same random seed as an unspecified recording. The upstream repository has since changed; this integration deliberately keeps the build pack's pinned generator.
 
