@@ -16,6 +16,8 @@ The installable wheel was also rebuilt and installed into a separate environment
 
 The final local handoff includes a Git bundle, preserving the history needed by the supplied predictions-before-results test, as well as a source ZIP, wheel, test reports and recorded demo. Recreate it with `python scripts/package_build.py` from a clean committed checkout.
 
+**Clean-clone verification also passed:** cloned from the local Git bundle into an empty directory, then ran all 124 checks in the Linux test image: original suite 88/88 (60.7s), foundation 22/22 (1.42s), integration 14/14 (16.89s). The demo recording is 1 minute 37.92 seconds.
+
 Reproduce with `docker compose --profile checks run --build --rm checks`. Machine-readable results are in `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml`, `artifacts/transport-tests.xml` and `artifacts/check-run.json`.
 
 ## Fresh evaluation
