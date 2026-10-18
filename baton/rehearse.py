@@ -17,6 +17,7 @@ from pathlib import Path
 
 from . import graph as G
 from . import load
+from . import evidence
 
 # lane -> (relationship types a path may use, max hops, extra scope clause)
 LANES = {
@@ -28,7 +29,7 @@ LANES = {
 Q_BELIEFS = """
 UNWIND $beliefs AS b
 CREATE (x:Belief {id: b.id, person: b.person, duty: b.duty, duty_name: b.duty_name, kind: b.kind,
-                  claim: b.claim, refs: b.sources,
+                  claim: b.claim, refs: b.sources, relevant_refs: b.relevant_refs,
                   ev_at: [e IN b.events | e.at], ev_label: [e IN b.events | e.label]})
 WITH x, b
 UNWIND b.sources AS ref
@@ -38,7 +39,7 @@ CREATE (x)-[:CITES]->(s)"""
 Q_GATE = """
 MATCH (b:Belief)
 OPTIONAL MATCH (b)-[:CITES]->(s:Source)
-WITH b, s, coalesce(s IS NOT NULL AND (s.people IS NULL OR s.duty = b.duty OR b.person IN s.people), false) AS about
+WITH b, s, coalesce(s IS NOT NULL AND s.id IN b.relevant_refs, false) AS about
 WITH b, collect(DISTINCT s.id) AS hit,
      collect(DISTINCT CASE WHEN about THEN s.id END) AS counted,
      collect(DISTINCT CASE WHEN about THEN s.type END) AS kinds,
@@ -81,7 +82,8 @@ RETURN d.id AS duty, t AS at, e.id AS event, e.label AS label, size(paths) > 0 A
               src + CASE WHEN type(r) = 'HOLDS' THEN r.srcs ELSE [r.rec] END)) AS sources"""
 
 
-_OFF_TOPIC = {"record": "another duty and person", "joblog": "another job and actor"}
+_OFF_TOPIC = {"record": "another duty or person", "joblog": "another job or actor",
+              "message": "an uncorroborated duty or person", "ticket": "an uncorroborated duty or person"}
 
 
 def _reason(n_refs, n_counted, kinds, missing, off):
@@ -98,8 +100,10 @@ def _reason(n_refs, n_counted, kinds, missing, off):
 
 def gate(fork, beliefs):
     """Write beliefs onto the fork and let Cypher decide promotion. Returns the unpromoted rows."""
+    refs = evidence.relevant_refs(fork, beliefs) if beliefs else {}
     rows = [{"id": b["id"], "person": b.get("person"), "duty": b.get("duty"), "duty_name": b.get("duty_name"),
              "kind": b.get("kind"), "claim": b.get("claim"), "sources": list(b.get("sources", [])),
+             "relevant_refs": refs[b["id"]],
              "events": [{"at": e["at"], "label": e.get("label")} for e in b.get("events", [])]} for b in beliefs]
     if rows:
         fork.query(Q_BELIEFS, {"beliefs": rows})
