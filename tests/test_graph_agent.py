@@ -136,6 +136,8 @@ def run_harness(investigation,monkeypatch,mode="success"):
             name="save_verification_task"
         if mode=="wrong_item":
             args={"item_id":"3250"}
+        if mode=="uninspected_citation" and step==4:
+            args["source_ids"]=["s2"]
         message={"content":None,"tool_calls":[{"id":"call-"+str(step),"type":"function","function":{"name":name,"arguments":json.dumps(args)}}]}
         if mode=="malformed_arguments":
             message["tool_calls"][0]["function"]["arguments"]="{not json"
@@ -169,6 +171,31 @@ def test_four_call_run_gates_action_and_keeps_auditable_receipts(investigation,m
     assert final_tools[1]["observation"]["paths"][0]["work_item"]=="repo#2"
     assert "sampled" in final_tools[1]["observation"]["limits"].lower() or "sample" in final_tools[1]["observation"]["limits"].lower()
     assert result["context_curation"][-1]["active_characters"]<result["context_curation"][-1]["original_characters"]
+
+
+def test_final_schema_only_offers_inspected_sources_from_multi_source_item(investigation,monkeypatch):
+    run,_,observed=run_harness(investigation,monkeypatch)
+    run.item["source_ids"]=["s1","s2","s3"]
+    result=agent.run(run.data,run.port,run.item_id)
+    assert result["status"]=="succeeded" and len(observed)==4
+    source_tool=next(t["function"] for t in observed[2][1] if t["function"]["name"]=="read_source")
+    assert source_tool["parameters"]["properties"]["source_id"]["enum"]==["s1","s2","s3"]
+    final_tool=observed[3][1][0]["function"]
+    assert final_tool["name"]=="save_verification_task"
+    citations=final_tool["parameters"]["properties"]["source_ids"]
+    assert citations["items"]["enum"]==["s1"] and citations["maxItems"]==1
+    assert result["action"]["source_ids"]==["s1"]
+    assert "enum" not in agent.ACTION["inputSchema"]["properties"]["source_ids"]["items"]
+    assert agent.ACTION["inputSchema"]["properties"]["source_ids"]["maxItems"]==5
+
+
+def test_ignoring_dynamic_citation_enum_still_fails_closed(investigation,monkeypatch):
+    run,_,observed=run_harness(investigation,monkeypatch,"uninspected_citation")
+    run.item["source_ids"]=["s1","s2"]
+    result=agent.run(run.data,run.port,run.item_id)
+    assert result["status"]=="failed" and len(observed)==4 and result["action"] is None
+    assert "every citation must have been inspected" in result["error"]
+    assert result["trace"][-1]["request"]["params"]["arguments"]["source_ids"]==["s2"]
 
 
 @pytest.mark.parametrize("mode,phase",[("provider_failure","provider"),("wrong_stage","selection_validation"),("over_budget","provider"),("incomplete_generation","provider"),("wrong_item","tool_execution"),("malformed_arguments","selection_validation"),("multiple_calls","selection_validation")])

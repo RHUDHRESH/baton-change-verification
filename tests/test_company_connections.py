@@ -1,5 +1,6 @@
 """Real adapter contracts with mocked providers; never sends a company message."""
 import copy
+import base64
 import json
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -14,6 +15,7 @@ from server import company_connections as connections
 @pytest.fixture
 def configured(tmp_path, monkeypatch):
     monkeypatch.delenv("BATON_CLOUD_STATE_GRAPH", raising=False)
+    monkeypatch.delenv("JIRA_CLOUD_ID", raising=False)
     # This suite tests adapter state transitions on Windows too. Production
     # persistence stays untouched (Linux directory handles or cloud records).
     records = {}
@@ -278,3 +280,65 @@ def test_acknowledgement_persistence_failure_returns_original_durable_intent(con
     assert result["status"] == "pending" and "remote_id" not in result
     assert connections.publish_task(data, 6379, task["id"], "jira")["status"] == "pending"
     assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize("scoped", [False, True], ids=["site-token", "scoped-token"])
+def test_jira_transport_uses_fixed_scoped_gateway_or_existing_site(configured, monkeypatch, scoped):
+    cloud_id = "12345678-1234-4234-8234-123456789abc"
+    if scoped:
+        monkeypatch.setenv("JIRA_CLOUD_ID", cloud_id)
+    opener = MagicMock()
+    opener.open.return_value.__enter__.return_value.read.return_value = b'{"key":"WORK-12"}'
+    factory = MagicMock(return_value=opener)
+    monkeypatch.setattr(connections.urllib.request, "build_opener", factory)
+    config = connections._config("jira")
+    for method, path in [("POST", "/rest/api/3/issue"), ("GET", "/rest/api/3/issue/WORK-12?fields=summary,description,project")]:
+        connections._request("jira", method, path, config, {} if method == "POST" else None)
+        request = opener.open.call_args.args[0]
+        origin = "https://api.atlassian.com/ex/jira/" + cloud_id if scoped else "https://example.atlassian.net"
+        assert request.full_url == origin + path
+        basic = "Basic " + base64.b64encode(b"private@example.com:test-secret-jira").decode()
+        assert request.get_header("Authorization") == basic
+        assert "test-secret" not in request.full_url and "private@example.com" not in request.full_url
+    assert isinstance(factory.call_args.args[0], connections.NoRedirect)
+    assert connections.status()["jira"]["destination"] == "https://example.atlassian.net/projects/WORK"
+
+
+@pytest.mark.parametrize("cloud_id", ["https://evil.example", "../test-secret-jira", "12345678-1234-4234-8234-123456789abc/rest/api/3/issue",
+                                    "12345678-1234-4234-8234-123456789abc?url=https://evil.example", "12345678123442348234123456789abc",
+                                    "12345678-1234-4234-8234-123456789ABC", " 12345678-1234-4234-8234-123456789abc"])
+def test_cloud_id_rejects_noncanonical_uuid_without_echo_or_network(configured, monkeypatch, cloud_id):
+    monkeypatch.setenv("JIRA_CLOUD_ID", cloud_id)
+    opener = MagicMock()
+    monkeypatch.setattr(connections.urllib.request, "build_opener", opener)
+    result = connections.status()["jira"]
+    assert result["configured"] is False and cloud_id not in json.dumps(result)
+    with pytest.raises(connections.ConnectionError, match="canonical Jira Cloud UUID"):
+        connections._request("jira", "POST", "/rest/api/3/issue", {
+            "site": "https://example.atlassian.net", "email": "private@example.com", "token": "test-secret-jira", "cloud_id": cloud_id}, {})
+    opener.assert_not_called()
+
+
+def test_scoped_publish_keeps_human_site_links_and_binds_cloud_destination(configured, monkeypatch):
+    data, task, _, _, _ = configured
+    monkeypatch.setenv("JIRA_CLOUD_ID", "12345678-1234-4234-8234-123456789abc")
+    provider = Provider()
+    monkeypatch.setattr(connections, "_request", provider)
+    receipt = connections.publish_task(data, 6379, task["id"], "jira")
+    assert receipt["url"] == "https://example.atlassian.net/browse/WORK-12"
+    assert receipt["destination"] == "https://example.atlassian.net/WORK"
+    assert "test-secret" not in json.dumps(receipt)
+    monkeypatch.setenv("JIRA_CLOUD_ID", "87654321-1234-4234-8234-123456789abc")
+    with pytest.raises(connections.ConnectionError, match="changed"):
+        connections.publish_task(data, 6379, task["id"], "jira")
+    assert len([call for call in provider.calls if call[1] == "POST"]) == 1
+
+
+@pytest.mark.parametrize("path", ["https://evil.example/rest/api/3/issue", "/rest/api/3/issue/../issue", "/rest/api/3/issue?redirect=https://evil.example"])
+def test_scoped_gateway_cannot_expand_approved_operations(configured, monkeypatch, path):
+    monkeypatch.setenv("JIRA_CLOUD_ID", "12345678-1234-4234-8234-123456789abc")
+    opener = MagicMock()
+    monkeypatch.setattr(connections.urllib.request, "build_opener", opener)
+    with pytest.raises(connections.ConnectionError, match="Invalid Jira API operation"):
+        connections._request("jira", "POST", path, connections._config("jira"), {})
+    opener.assert_not_called()

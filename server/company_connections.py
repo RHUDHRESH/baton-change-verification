@@ -32,11 +32,26 @@ def _site(value=None):
     return value.rstrip("/")
 
 
+def _cloud_id(value):
+    if value and not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", value):
+        raise ConnectionError("Configure a canonical Jira Cloud UUID")
+    return value
+
+
+def _jira_api_base(config):
+    # Scoped API tokens use Atlassian's fixed gateway. The site is still
+    # validated independently because it supplies the user-visible destination.
+    site = _site(config["site"])
+    cloud_id = _cloud_id(config.get("cloud_id", ""))
+    return "https://api.atlassian.com/ex/jira/" + cloud_id if cloud_id else site
+
+
 def _config(target):
     if target == "jira":
         result = {"site": _site(), "email": os.environ.get("JIRA_EMAIL", ""),
                   "token": os.environ.get("JIRA_API_TOKEN", ""),
-                  "project": os.environ.get("JIRA_PROJECT_KEY", "")}
+                  "project": os.environ.get("JIRA_PROJECT_KEY", ""),
+                  "cloud_id": _cloud_id(os.environ.get("JIRA_CLOUD_ID", ""))}
         if not re.fullmatch(r"[A-Z][A-Z0-9_]{1,39}", result["project"]):
             raise ConnectionError("Configure a Jira project key")
         if not result["email"] or not result["token"]:
@@ -71,7 +86,7 @@ def _request(target, method, path, config, payload=None):
             raise ConnectionError("Invalid Jira API operation")
         if method != ("POST" if path == "/rest/api/3/issue" else "GET"):
             raise ConnectionError("Invalid Jira API operation")
-        url = _site(config["site"]) + path
+        url = _jira_api_base(config) + path
         auth = "Basic " + base64.b64encode((config["email"] + ":" + config["token"]).encode()).decode()
     elif target == "slack":
         if not any(path == name or path.startswith(name + "?") for name in
@@ -142,11 +157,14 @@ def _load_task(data, task_id):
     return task, item
 
 
-def _contract(task, item, target, destination):
+def _contract(task, item, target, destination, cloud_id=None):
     # Bind the material effect to the task and source version; free-form text
     # cannot change destination, provider operation, or authority.
-    return workspace.sha(json.dumps({"task_id": task["id"], "title": task["title"], "snapshot_id": task["snapshot_id"],
-        "graph": task["graph"], "item": item, "target": target, "destination": destination}, sort_keys=True))
+    material = {"task_id": task["id"], "title": task["title"], "snapshot_id": task["snapshot_id"],
+        "graph": task["graph"], "item": item, "target": target, "destination": destination}
+    if cloud_id:
+        material["jira_cloud_id"] = cloud_id
+    return workspace.sha(json.dumps(material, sort_keys=True))
 
 
 def _finish_graph(data, path, port, task, receipt):
@@ -204,7 +222,7 @@ def publish_task(data, port, task_id, target):
         config = _config(target)
         task, item = _load_task(data, task_id)
         destination = config["site"] + "/" + config["project"] if target == "jira" else config["channel"]
-        contract = _contract(task, item, target, destination)
+        contract = _contract(task, item, target, destination, config.get("cloud_id"))
         receipt = workspace.read(data, path)
         if receipt:
             if receipt.get("contract_sha256") != contract:
@@ -229,7 +247,7 @@ def publish_task(data, port, task_id, target):
             intent = dict(receipt)
             # Recheck the version-bound effect immediately before dispatch.
             current_task, current_item = _load_task(data, task_id)
-            if _contract(current_task, current_item, target, destination) != contract or _config(target) != config:
+            if _contract(current_task, current_item, target, destination, config.get("cloud_id")) != contract or _config(target) != config:
                 receipt["status"] = "error"
                 receipt["message"] = "Task, evidence or configuration changed before dispatch; no provider write was attempted."
                 workspace.write(data, path, receipt)

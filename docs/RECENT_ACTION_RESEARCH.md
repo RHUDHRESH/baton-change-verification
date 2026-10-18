@@ -65,7 +65,22 @@ Jira requires `JIRA_SITE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, and
 `JIRA_PROJECT_KEY`. `JIRA_ISSUE_TYPE` optionally overrides `Task`. Only an exact
 HTTPS `*.atlassian.net` site is accepted; userinfo, ports, nested paths and
 redirects are refused. Requests use Jira Cloud REST v3 issue creation and then a
-separate issue GET. The account needs Browse Projects and Create Issues for the
+separate issue GET.
+
+For a scoped API token, also set optional `JIRA_CLOUD_ID` to the site's canonical
+lowercase UUID (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`). This selects only the
+fixed API gateway `https://api.atlassian.com/ex/jira/{cloudId}`; the same approved
+REST v3 paths are appended. The cloud ID must belong to `JIRA_SITE_URL`, which
+continues to supply human links and the displayed destination. API requests use
+HTTP Basic authentication with `JIRA_EMAIL:JIRA_API_TOKEN` in both modes. Choose
+the Jira classic scopes `read:jira-work` and `write:jira-work` for this issue
+create/read-back flow. When `JIRA_CLOUD_ID` is unset or empty, existing unscoped
+tokens continue to use the configured site API. A cloud ID change invalidates
+an existing action's material contract rather than reusing its receipt across
+tenants. Invalid cloud IDs fail closed without being echoed. See [Atlassian's
+scoped-token instructions](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/).
+
+The account needs Browse Projects and Create Issues for the
 selected project, access to the configured issue type, and any mandatory project
 fields must be compatible with this minimal Task payload. API tokens do not
 create a Jira site or project. See the [official issue REST
@@ -101,8 +116,12 @@ limits, secret-safe errors and Slack mention escaping. It never sends a company
 message. The in-memory fixture avoids weakening the production Linux-only safe
 file-write policy when tests run on Windows.
 
-No live Jira or Slack artifact has been created or verified by this work. Server
-credentials and a provisioned Jira site/project are still required for live
+Scoped-token tests additionally check both HTTP methods against the fixed
+gateway, Basic authentication, unchanged human links, rejection of URL/path/query
+injection and noncanonical UUIDs, and replay rejection when the cloud ID changes.
+
+No live Jira or Slack artifact has been created or verified by these adapter
+changes. Server credentials and an existing Jira site/project are required for live
 verification. This adapter creates tasks/messages outbound from public GitHub
 evidence; it does not yet ingest real private company activity, infer employee
 relationships or synchronize subsequent provider edits.

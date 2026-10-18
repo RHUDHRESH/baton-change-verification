@@ -316,6 +316,15 @@ def run(data,port,item_id):
             # Completed reads are omitted so a repeated read cannot consume the four-call allowance.
             allowed=[t for t in tools if t["function"]["name"] not in investigation.visited and
                      set(policy["prerequisites"][t["function"]["name"]]).issubset(investigation.visited)]
+            for tool in allowed:
+                if tool["function"]["name"]==ACTION["name"]:
+                    inspected=sorted(investigation.inspected)
+                    if not inspected:
+                        raise RuntimeError("No inspected source can authorize the action")
+                    citations=tool["function"]["parameters"]["properties"]["source_ids"]
+                    citations["items"]["enum"]=inspected
+                    citations["maxItems"]=min(5,len(inspected))
+                    tool["function"]["description"]+= " Cite only IDs actually returned by read_source; source IDs listed by read_work_item alone have not been inspected."
             # This byte/character estimate is deliberately conservative for typical English public issues.
             # Provider-reported tokens remain the measured source; this is a preflight guard, not a tokenizer.
             active_messages=context_view(messages,record["trace"])
