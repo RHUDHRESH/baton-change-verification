@@ -169,6 +169,36 @@ def catalogue():
     return cli("ask", "--catalogue")
 
 
+@app.get("/api/graph")
+def graph_view(seed: int = 7):
+    from baton import explore
+    with LOCK:
+        directory = world_dir(seed)
+        world = json.loads((directory / "world.json").read_text())
+        try:
+            return explore.run(directory, directory / "beliefs.json", world["leaver"], PORT)
+        except Exception as err:
+            from baton.graph import Unreachable
+            if isinstance(err, Unreachable):
+                raise HTTPException(503, str(err))
+            raise
+
+
+@app.get("/api/receipts")
+def receipts(seed: int = 7):
+    from baton.graph import graph_name
+    world_dir(seed)
+    with LOCK:
+        directory = DATA / "ops-repo" / ".baton" / "receipts"
+        records = []
+        for path in directory.glob("*.json"):
+            record = json.loads(path.read_text(encoding="utf-8"))
+            if record.get("graph") == graph_name(seed):
+                records.append({key: record.get(key) for key in (
+                    "operation_id", "created_at", "state", "committed", "refused", "ready_to_leave", "external")})
+        return {"seed": seed, "receipts": sorted(records, key=lambda item: (item["created_at"] or 0, item["operation_id"]), reverse=True)}
+
+
 from fastapi.staticfiles import StaticFiles
 
 WEB = ROOT / "web"

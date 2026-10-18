@@ -1,5 +1,7 @@
 # GitHub reuse register
 
+**v0.2 addition:** [Cytoscape.js 3.34.4](https://github.com/cytoscape/cytoscape.js/tree/v3.34.4), MIT, is now actually vendored under `web/vendor/cytoscape/` for the interactive graph explorer. The full LICENSE and PROVENANCE.json contain the source ref and SHA-256 file hashes. It handles visualization only; graph reasoning stays in FalkorDB.
+
 **Full-build update:** the FalkorDB client (1.8.0) and official MCP SDK (2.3.0) are now installed, along with the supplied MIT-attributed benchmark world and adapted extraction/evaluation code. The table below records the original phase-one selection; current exact dependency pins are in `deploy/requirements.txt`. Source notices remain in adapted Python headers and `third_party/amb/LICENSE`, which is also included in the wheel. No competitor project was copied.
 
 Checked against upstream GitHub pages on 2026-10-18. Reuse means using licensed libraries or retaining notices with adapted code. Future-phase entries below are selections for the architecture, not installed dependencies or completed integrations.

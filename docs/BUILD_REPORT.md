@@ -1,5 +1,7 @@
 # Local build verification — 2026-10-18
 
+**Current v0.2 update:** 131 tests pass (88 original + 22 foundation + 21 integration). Graph exploration, graph-derived successor plans and persistent receipt history are added. See END_TO_END_UPGRADE.md. The 124-test and clean-clone measurements below document the earlier v0.1 baseline.
+
 This report supersedes the earlier phase-one-only status. Historical ZIP reports remain separate.
 
 ## Delivered

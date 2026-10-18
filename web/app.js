@@ -1,6 +1,7 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
-const state = { data: null, seed: 7, replay: false, catalogue: {}, preview: null, pending: false };
+const savedSeed = Number(localStorage.getItem("baton-seed"));
+const state = { data: null, seed: [7, 101, 202, 303].includes(savedSeed) ? savedSeed : 7, replay: false, catalogue: {}, preview: null, pending: false };
 const laneNames = { W: "Checklist", R: "Connected records", G: "Baton" };
 function element(tag, text, className) {
   const item = document.createElement(tag);
@@ -107,6 +108,7 @@ function render() {
   }
   state.preview = null; $("write").hidden = true; $("receipt").hidden = true; $("hand-status").textContent = ""; $("capacity-result").replaceChildren(); $("answer").replaceChildren();
   mode(); timeline(); dutyList();
+  document.dispatchEvent(new Event("baton:company-loaded"));
 }
 async function load() {
   if (state.pending) return;
@@ -154,6 +156,7 @@ $("write").addEventListener("click", async () => {
   try {
     const accepted = Object.fromEntries(state.preview.result.accepted.map((row) => [row.duty, row.person]));
     const result = await request("/api/commit", { seed: state.seed, assign: accepted });
+    document.dispatchEvent(new Event("baton:committed"));
     const external = result.external;
     receipt(`${result.committed.length} duties written · ${external?.verified ? "repository read-back verified" : "external write pending"}`, [`Still uncovered: ${result.still_uncovered.length} duties`, ...(external ? [`File: ${external.file}`, `Commit: ${external.commit}`] : []), ...result.refused.map((row) => `Refused ${row.duty}: ${row.reason}`)]);
     $("hand-status").textContent = result.ready_to_leave ? "All scheduled duties have coverage in this replay." : "Ownership saved. Some duties still need coverage.";
@@ -165,11 +168,23 @@ $("write").addEventListener("click", async () => {
 $("reset").addEventListener("click", () => { for (const select of $("assignments").querySelectorAll("select")) select.value = ""; state.preview = null; $("write").hidden = true; $("receipt").hidden = true; $("hand-status").textContent = "Plan cleared. Saved ownership is unaffected."; });
 $("capacity").addEventListener("click", async () => {
   if (state.replay || state.pending) return;
+  const planSeed = state.seed;
   $("capacity").disabled = true; $("capacity-result").textContent = "Checking skills and capacity…";
   try {
-    const result = await request(`/api/cut?seed=${state.seed}`); const body = $("capacity-result"); body.replaceChildren(element("strong", `${result.flow} / ${result.demand}`), element("p", result.verdict === "POSSIBLE" ? "The team has enough eligible capacity." : "The team cannot absorb every duty with current skills and capacity."));
+    const result = await request(`/api/cut?seed=${planSeed}`); if (planSeed !== state.seed) return; const body = $("capacity-result"); body.replaceChildren(element("strong", `${result.flow} / ${result.demand}`), element("p", result.verdict === "POSSIBLE" ? "The team has enough eligible capacity." : "The team cannot absorb every duty with current skills and capacity."));
     if (result.unplaceable.length) body.append(element("p", `Unfilled in this flow: ${result.unplaceable.join(", ")}`));
     const details = element("details"); details.append(element("summary", "View the capacity certificate"), element("pre", JSON.stringify({ min_cut: result.min_cut, certificate: result.certificate, n_minus_1: result.n_minus_1 }, null, 2))); body.append(details);
+    if (result.assignments?.length) {
+      const use = element("button", result.verdict === "POSSIBLE" ? "Use suggested successors →" : "Use partial plan →", "button lime"); use.type = "button";
+      use.addEventListener("click", () => {
+        if (state.replay || state.pending || planSeed !== state.seed) return;
+        const suggested = new Map(result.assignments.map((row) => [row.duty, row.person]));
+        for (const select of $("assignments").querySelectorAll("select")) select.value = suggested.get(select.dataset.duty) || "";
+        state.preview = null; $("write").hidden = true; $("receipt").hidden = true;
+        $("hand-status").textContent = "Graph-derived successors selected. Replay to verify coverage.";
+        $("handover-section").scrollIntoView({ behavior: "smooth", block: "start" });
+      }); body.append(use);
+    }
   } catch (error) { $("capacity-result").textContent = error.message; }
   finally { $("capacity").disabled = false; }
 });
@@ -184,7 +199,8 @@ $("ask-form").addEventListener("submit", async (event) => {
   } catch (error) { $("answer").textContent = error.message; }
   finally { submit.disabled = false; }
 });
-$("seed").addEventListener("change", () => { state.seed = Number($("seed").value); load(); });
+$("seed").value = String(state.seed);
+$("seed").addEventListener("change", () => { state.seed = Number($("seed").value); localStorage.setItem("baton-seed", String(state.seed)); load(); });
 $("refresh").addEventListener("click", load);
 $("close-proof").addEventListener("click", () => $("proof").close());
 $("proof").addEventListener("click", (event) => { if (event.target === $("proof")) { const box = $("proof").getBoundingClientRect(); if (event.clientX < box.left) $("proof").close(); } });

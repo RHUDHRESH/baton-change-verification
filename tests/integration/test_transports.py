@@ -185,3 +185,63 @@ def test_concurrent_rehearsals_have_isolated_forks(service):
         results = list(pool.map(run, range(4)))
     assert all(len(result["failures"]) == 37 for result in results)
     assert all(result["live_hash_before"] == result["live_hash_after"] for result in results)
+
+
+@pytest.mark.parametrize("seed", [7, 101, 202, 303])
+def test_flow_suggestion_respects_skills_capacity_and_partial_coverage(service, seed):
+    from collections import Counter
+    client = TestClient(service.app)
+    data = demo(client, seed)
+    result = client.get(f"/api/cut?seed={seed}").json()
+    assignments = result["assignments"]
+    assert len(assignments) == result["flow"]
+    assert len({row["duty"] for row in assignments}) == len(assignments)
+    world = json.loads((service.world_dir(seed) / "world.json").read_text())
+    people = {person["id"]: person for person in world["people"]}
+    duties = {duty["id"] for duty in world["duties"]}
+    eligible = {(record["duty"], record["person"]) for record in world["records"] if record["type"] == "CAN"}
+    for row in assignments:
+        assert row["person"] != world["leaver"] and people[row["person"]]["left_at"] is None
+        assert (row["duty"], row["person"]) in eligible or (
+            row["duty"] not in duties and people[row["person"]]["team"] == people[world["leaver"]]["team"])
+    assert all(count <= people[person]["capacity"] for person, count in Counter(row["person"] for row in assignments).items())
+    preview = client.post("/api/handover", json={"seed": seed, "assign": {row["duty"]: row["person"] for row in assignments}}).json()
+    assert not preview["refused"]
+    assert {row["duty"] for row in preview["failures_after"]} == set(result["duties"]) - {row["duty"] for row in assignments}
+
+
+@pytest.mark.parametrize("seed", [7, 202])
+def test_graph_explorer_is_time_valid_sourced_and_does_not_change_live_graph(service, seed):
+    client = TestClient(service.app)
+    response = client.get(f"/api/graph?seed={seed}")
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["nodes"] and data["edges"]
+    assert data["live_hash_before"] == data["live_hash_after"]
+    ids = {node["data"]["id"] for node in data["nodes"]}
+    assert len(ids) == len(data["nodes"])
+    assert any(node["data"]["kind"] == "Person" and node["data"]["departed"] for node in data["nodes"])
+    holds = [edge["data"] for edge in data["edges"] if edge["data"]["kind"] == "HOLDS"]
+    assert holds and all(edge["source_ids"] for edge in holds)
+    for edge in data["edges"]:
+        edge = edge["data"]
+        assert edge["source"] in ids and edge["target"] in ids
+        props = edge["properties"]
+        assert props["vf"] <= data["at"] < props["vt"]
+    assert client.get("/vendor/cytoscape/LICENSE").status_code == 200
+
+
+def test_suggested_plan_commits_and_receipt_remains_available_after_reload(service):
+    client = TestClient(service.app)
+    assert client.get("/api/receipts?seed=7").json()["receipts"] == []
+    plan = client.get("/api/cut?seed=7").json()
+    assign = {row["duty"]: row["person"] for row in plan["assignments"]}
+    preview = client.post("/api/handover", json={"seed": 7, "assign": assign}).json()
+    assert preview["failures_after"] == []
+    committed = client.post("/api/commit", json={"seed": 7, "assign": assign}).json()
+    assert committed["state"] == "verified" and committed["external"]["verified"]
+    refreshed = TestClient(service.app)
+    history = refreshed.get("/api/receipts?seed=7").json()["receipts"]
+    assert len(history) == 1 and history[0]["operation_id"] == committed["operation_id"]
+    assert refreshed.get("/api/receipts?seed=101").json()["receipts"] == []
+    assert demo(refreshed)["lanes"]["G"]["failures"] == []

@@ -18,6 +18,8 @@ Open [Baton](http://127.0.0.1:8000), [API docs](http://127.0.0.1:8000/docs) or [
 
 Four cached companies are available: 7, 101, 202 and 303. Click a marked day or proof link. Choose successors and replay: the preview leaves live ownership unchanged. **Write accepted plan** changes the live fixture graph and commits `OWNERS.d/<graph>.yaml` in the application's operations repository. Refresh to see the saved state. Capacity checks whether a feasible allocation exists; preview checks coverage and active successors, not capacity eligibility of each manually selected assignment.
 
+**v0.2:** Explore the live relationship graph, inspect nodes/edges and their sources, use **suggested successors** from the capacity solver, then preview and commit the plan. Saved receipts remain available after reload. See [the end-to-end upgrade](docs/END_TO_END_UPGRADE.md).
+
 ## Run the ZIP's tests
 
 ```powershell
@@ -25,7 +27,7 @@ docker compose --profile checks build checks
 docker compose --profile checks run --rm checks
 ```
 
-Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **124 tests pass:** the 88 unchanged ZIP checks through the original integrity-verifying harness, 22 foundation checks, and 14 HTTP/MCP/concurrency/recovery tests. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Results: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml` and `artifacts/transport-tests.xml`.
+Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **131 tests pass:** the 88 unchanged ZIP checks through the original integrity-verifying harness, 22 foundation checks, and 21 HTTP/MCP/planning/graph/history/concurrency/recovery tests. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. Results: `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml` and `artifacts/transport-tests.xml`.
 
 The original `checks/locked/**` and `loop/bin/**` are untouched. `loop/config.json` replaces the old author's absolute Python path with a portable command. See [verification](docs/BUILD_REPORT.md).
 

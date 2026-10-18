@@ -167,7 +167,8 @@ def run(world_dir, beliefs_file, leaver, assigns, repo, port):
             info, hash_before = _preview(s, {_parse_assign(a)[0] for a in assigns})
             committed, refused = _write_live(s, assigns, info)
             saved = {"committed": committed, "refused": refused, "live_hash_before": hash_before,
-                     "operation_id": operation_id, "state": "graph_committed"}
+                     "operation_id": operation_id, "state": "graph_committed", "graph": s["live"].name,
+                     "created_at": int(time.time() * 1000)}
             journal.parent.mkdir(parents=True, exist_ok=True)
             journal.write_text(json.dumps(saved, indent=2), encoding="utf-8")
         external = None
@@ -182,6 +183,7 @@ def run(world_dir, beliefs_file, leaver, assigns, repo, port):
                   "still_uncovered": still, "ready_to_leave": not still, "external": external,
                   "live_hash_before": hash_before, "live_hash_after": r["live_hash_after"],
                   "operation_id": operation_id,
+                  "created_at": saved.get("created_at", int(time.time() * 1000)),
                   "state": "external_pending" if external and not external["verified"] else "verified"}
         journal.write_text(json.dumps(result, indent=2), encoding="utf-8")
         return result

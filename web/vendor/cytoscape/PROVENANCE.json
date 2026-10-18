@@ -1,0 +1,12 @@
+{
+  "project": "cytoscape/cytoscape.js",
+  "version": "3.34.4",
+  "ref": "v3.34.4",
+  "tag_ref_sha": "96b15e57922163f052c1df7ed8da8de697b41370",
+  "license": "MIT",
+  "source": "https://github.com/cytoscape/cytoscape.js/tree/v3.34.4",
+  "files": {
+    "cytoscape.min.js": "081591ab735b2b6a3b31a3c60f8f3a3e2fee8c92939e0c7820ad1208571b6cd8",
+    "LICENSE": "eb319c6e6f233607f71e8e2f450391751883cfc0eeb3ca7ef574c13d1d9c2203"
+  }
+}

@@ -114,6 +114,9 @@ def run(world_dir, beliefs_file, leaver, port):
             if un == "S":
                 into[vn] += flows.get(eid, 0)
         caps = {un: cap for eid, u, v, un, vn, cap in edges if vn == "T"}  # every active stayer has one
+        assignments = sorted(({"duty": un, "person": vn} for eid, u, v, un, vn, cap in edges
+                              if un in duties and vn in caps and flows.get(eid, 0) >= 1 - 1e-9),
+                             key=lambda row: row["duty"])
         sweep = {}
         for pid in sorted(caps):
             fork.query(Q_SET_SINK_CAP, {"person": pid, "cap": 0})
@@ -121,7 +124,7 @@ def run(world_dir, beliefs_file, leaver, port):
             fork.query(Q_SET_SINK_CAP, {"person": pid, "cap": caps[pid]})
         return {"duties": duties, "flow": flow, "min_cut": cut, "n_minus_1": sweep,
                 "unplaceable": sorted(d for d in duties if into[d] < 1e-9) if flow < len(duties) else [],
-                "edges": len(edges)}
+                "edges": len(edges), "assignments": assignments}
 
     r = rehearse.on_fork(s, "G", "none", after_departure=flow_on_fork)
     a = r["after"]
@@ -131,5 +134,6 @@ def run(world_dir, beliefs_file, leaver, port):
             "demand": demand, "flow": a["flow"], "duties": a["duties"], "min_cut": a["min_cut"],
             "certificate": {"cut_capacity": cut_cap, "equals_flow": cut_cap == a["flow"]},
             "unplaceable": a["unplaceable"], "n_minus_1": a["n_minus_1"], "flow_edges": a["edges"],
+            "assignments": a["assignments"],
             "cypher": Q_MAXFLOW.strip(), "live_hash_before": r["live_hash_before"],
             "live_hash_after": r["live_hash_after"]}
