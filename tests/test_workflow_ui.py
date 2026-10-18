@@ -112,6 +112,8 @@ def test_partial_publication_errors_and_test_logs_remain_visible_as_text(complet
     assert '<script>window.pwned=true</script>' in result["text"]
     assert '<img src=x onerror=alert(1)>' in result["text"]
     assert "repair-receipt" in result["text"]
+    assert "Model explanations are unverified hypotheses" in result["text"]
+    assert "Passing checks establish observed before/after behavior, not a proven root cause" in result["text"]
     assert "not complete" in result["text"]
 
 

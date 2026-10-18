@@ -99,7 +99,9 @@
         addLink(row, 'Open check log ↗', check.log_url); root.append(row);
       }
     }
-    for (const repair of Array.isArray(record.repairs) ? record.repairs : []) root.append(details('Groq repair attempt ' + (repair.attempt ?? 'recorded') + ' · proposed diff and receipt', repair));
+    const repairs = Array.isArray(record.repairs) ? record.repairs : [];
+    if (repairs.length) root.append(el('p', 'Model explanations are unverified hypotheses. Passing checks establish observed before/after behavior, not a proven root cause.', 'muted'));
+    for (const repair of repairs) root.append(details('Groq repair attempt ' + (repair.attempt ?? 'recorded') + ' · proposed diff and receipt', repair));
     for (const entry of Array.isArray(record.evidence) ? record.evidence : []) {
       const row = el('div', undefined, 'workflow-evidence');
       if (entry.sha256) row.append(el('code', 'SHA-256 ' + entry.sha256));

@@ -230,9 +230,11 @@ class Worker:
         return result.stdout
 
     def source_state(self) -> dict:
-        script = """import subprocess,pathlib,hashlib,json,os
+        if self.command(["git", "rev-parse", "HEAD"]).decode().strip() != COMMIT:
+            raise ValueError("Cloud source HEAD moved away from the immutable reviewed commit")
+        script = """import subprocess,pathlib,hashlib,json,os,sys
 rows=[];bad=[]
-for row in subprocess.check_output(['git','ls-tree','-rz','HEAD']).split(b'\\0'):
+for row in subprocess.check_output(['git','ls-tree','-rz',sys.argv[1]]).split(b'\\0'):
  if not row:continue
  meta,name=row.split(b'\\t',1);mode,kind,oid=meta.split()
  if kind!=b'blob':continue
@@ -242,7 +244,7 @@ for row in subprocess.check_output(['git','ls-tree','-rz','HEAD']).split(b'\\0')
  if actual!=oid.decode():bad.append(path)
 print(json.dumps({'tracked_blobs':len(rows),'changed_paths':sorted(bad),'blob_hashes_sha256':hashlib.sha256(json.dumps(rows,separators=(',',':')).encode()).hexdigest()}))
 """
-        state = json.loads(self.command(["python3", "-c", script]))
+        state = json.loads(self.command(["python3", "-c", script, COMMIT]))
         if state["tracked_blobs"] != 957:
             raise ValueError("Pinned source inventory differs from the reviewed commit")
         return state

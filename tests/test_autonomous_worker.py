@@ -2,6 +2,8 @@
 import json
 import io
 from pathlib import Path
+import subprocess
+import sys
 import urllib.error
 from types import SimpleNamespace
 
@@ -84,6 +86,43 @@ def make_worker(monkeypatch, tmp_path):
     monkeypatch.setenv("GITHUB_RUN_ID", "123456")
     monkeypatch.setenv("GITHUB_SHA", "b" * 40)
     return worker.Worker("c" * 32, tmp_path / "artifact")
+
+
+def test_source_inventory_uses_immutable_commit_and_rejects_a_moved_head(monkeypatch, tmp_path):
+    """Exercise the real inventory program against a temporary Git repository."""
+    repo = tmp_path / "source"
+    repo.mkdir()
+
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=repo, stderr=subprocess.STDOUT)
+
+    git("init", "--quiet")
+    for index in range(957):
+        (repo / (str(index) + ".rs")).write_bytes(b"original production or test source\n")
+    git("add", ".")
+    git("-c", "user.name=Contract Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "original")
+    pinned = git("rev-parse", "HEAD").decode().strip()
+    monkeypatch.setattr(worker, "COMMIT", pinned)
+    run = make_worker(monkeypatch, tmp_path)
+    inventory_calls = []
+
+    def command(argv, **kwargs):
+        if argv[0] == "python3":
+            inventory_calls.append(argv)
+            argv = [sys.executable, *argv[1:]]
+        return subprocess.check_output(argv, cwd=repo, stderr=subprocess.STDOUT)
+
+    monkeypatch.setattr(run, "command", command)
+    assert run.source_state()["changed_paths"] == []
+    assert inventory_calls[-1][-1] == pinned
+    (repo / "0.rs").write_bytes(b"altered regression source\n")
+    assert run.source_state()["changed_paths"] == ["0.rs"]
+    git("add", ".")
+    git("-c", "user.name=Contract Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "move mutable HEAD")
+    before = len(inventory_calls)
+    with pytest.raises(ValueError, match="HEAD moved away"):
+        run.source_state()
+    assert len(inventory_calls) == before
 
 
 def test_no_unapproved_callback_origin_or_reused_output(monkeypatch, tmp_path):

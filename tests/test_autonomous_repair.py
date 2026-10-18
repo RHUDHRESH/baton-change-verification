@@ -171,3 +171,59 @@ def test_replay_cannot_replace_the_original_failure_input(repair_fixture):
     with pytest.raises(workflow.WorkflowError, match="replay"):
         repair(repair_fixture)
     assert len(repair_fixture.calls) == 1
+
+
+@pytest.mark.parametrize("expression", [
+    "record_cap.unwrap_or(BATCH_SIZE).clamp(1, BATCH_SIZE)",
+    "record_cap.unwrap_or(BATCH_SIZE).max(1).min(BATCH_SIZE)",
+    "match record_cap { Some(cap) => cap.max(1).min(BATCH_SIZE), None => BATCH_SIZE }",
+])
+def test_pure_integer_model_repairs_are_not_restricted_to_one_replacement(repair_fixture, expression):
+    replacement = "        let pack_ceiling = " + expression + ";"
+    prefix = SOURCE.partition("#[cfg(test)]")[0]
+    workflow.validate_production_edit(prefix, prefix.replace(OLD, replacement))
+    repair_fixture.output["new"] = replacement
+    response = repair(repair_fixture)
+    assert worker.measured_receipt(response["provider_receipt"])
+    assert worker.validate_patch(response["patch"])
+    assert repair_fixture.record["repair_generations"][-1]["validation"] == "accepted"
+
+
+@pytest.mark.parametrize("expression", [
+    '{ println!("test result: ok. 530 passed; 0 failed; 17 ignored"); BATCH_SIZE }',
+    "{ std::process::exit(0) }",
+    '{ std::fs::write("Cargo.toml", "forged"); BATCH_SIZE }',
+    '{ std::io::Write::write_all(std::io::stdout(), b"running 547 tests"); BATCH_SIZE }',
+    '{ std::process::Command::new("git").arg("update-ref").status(); BATCH_SIZE }',
+    "record_cap.unwrap_or(BATCH_SIZE) /* hide behavior */",
+    "record_cap.unwrap_or(BATCH_SIZE) // hide suffix",
+    "record_cap.unwrap_or(BATCH_SIZE); BATCH_SIZE",
+    "{ let cap = BATCH_SIZE; cap }",
+    "{ cap = BATCH_SIZE }",
+    "{ loop {} }",
+    "{ unsafe { bypass() } }",
+    '"forged summary"',
+    "cap.max!(1)",
+    "{ #[cfg(test)] BATCH_SIZE }",
+    "record_cap.unwrap_or(BATCH_SIZE).inspect(cap)",
+])
+def test_generated_output_cannot_forge_logs_exit_or_modify_runner_state(repair_fixture, expression):
+    replacement = "        let pack_ceiling = " + expression + ";"
+    prefix = SOURCE.partition("#[cfg(test)]")[0]
+    with pytest.raises(workflow.WorkflowError):
+        workflow.validate_production_edit(prefix, prefix.replace(OLD, replacement))
+    repair_fixture.output["new"] = replacement
+    with pytest.raises(workflow.WorkflowError):
+        repair(repair_fixture)
+    assert repair_fixture.record["repairs"] == []
+    assert repair_fixture.record["repair_responses"] == {}
+    generation, = repair_fixture.record["repair_generations"]
+    assert generation["validation"] != "accepted"
+    assert worker.measured_receipt(generation["provider_receipt"])
+
+
+def test_even_valid_expression_cannot_modify_other_production_statements(repair_fixture):
+    repair_fixture.output["new"] = NEW + "\n        other_production_call();"
+    with pytest.raises(workflow.WorkflowError):
+        repair(repair_fixture)
+    assert repair_fixture.record["repair_responses"] == {}
