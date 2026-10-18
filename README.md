@@ -2,11 +2,15 @@
 
 **Turn a public company issue into work you can verify.**
 
-[Open the deployed company app](https://baton-workspace.vercel.app). The Vercel frontend calls AWS Lambda in Mumbai, FalkorDB Cloud Free, and Groq Free. It uses actual FalkorDB public repositories: 28 sampled work items, 21 accounts (including bots), and 18 captured API responses. Public contributors are credited without inferred employment or internal ownership.
+[Open the cloud workflow workbench](https://baton-workspace.vercel.app/#workflow-runner). An authenticated operator can start the approved FalkorDB issue profile: Groq investigates graph evidence, GitHub Actions runs real code checks in a fresh isolated Docker container, Groq may propose a bounded production edit after an observed failure, and the app independently verifies the outcome before updating existing Jira/Slack work. The Vercel frontend uses AWS Lambda in Mumbai, FalkorDB Cloud Free and Groq; GitHub Actions supplies the code execution.
 
-The graph agent uses four actual Groq tool calls to inspect work, traverse connected work/files/contributors, open primary evidence, and save a verification task. The final browser run passed with exact source and graph-file checks, persisted provider receipts, and independent task read-back. Semantic entailment is not automatically verified.
+**The hardened app-triggered workflow is complete and independently verified.** The [sixth run](https://baton-workspace.vercel.app/api/public/workflows/de223685c514b134ae8b471263f90d7a) generated and applied its own Groq edit, retained the initial 529/1/17 library result, then passed the 530-test library, four targeted reruns and formatting. Actual provider GET and graph read-only audits verified Jira comment `10005` and Done, the original Slack run block, seven checks and their task/source/agent binding. Main-browser review showed all five stages completed. **716 application/verifier checks passed** separately. [Exact proof, hashes, commands, failed-attempt history and limits](docs/AUTONOMOUS_RELEASE.md). The aggregate 534 passes include targeted reruns; observed passing behavior does not prove the model's root-cause explanation or fix/merge the original tensor issue upstream.
 
-The completed workflow investigates [FalkorDB issue #3246](https://github.com/FalkorDB/FalkorDB/issues/3246), links its task to actual code-check evidence, and updates [Jira KAN-2 to Done](https://rhudhresh3697.atlassian.net/browse/KAN-2) and its original Raptorflow Slack message. [Open the execution workbench](https://baton-workspace.vercel.app/#executions). Codex ran upstream Rust checks in Docker; Groq performed graph investigation and inference. These are the user's integration workspaces, not FalkorDB's internal Jira or Slack. Jira's scoped token expires October 25, 2026. [Verified release and limits](docs/VERIFIED_RELEASE.md).
+The reviewed profile is [FalkorDB/FalkorDB issue #3246](https://github.com/FalkorDB/FalkorDB/issues/3246) at a pinned public source commit, not arbitrary repositories or shell commands. The graph connects public source, related work/files/contributors, the investigation task, runner checks and external artifacts. The captured public snapshot contains 28 sampled work items, 21 accounts including bots, and 18 API responses; contributor activity does not establish employment or internal ownership. The agent uses up to four Groq calls with source/file and task read-back gates. Semantic entailment and business usefulness are not automatically verified.
+
+Starting the cloud profile authorizes its bounded checks, at most two model repair attempts, and updates to the operator's existing [Jira KAN-2](https://rhudhresh3697.atlassian.net/browse/KAN-2) and original Raptorflow Slack message. These are the user's integration workspaces, not FalkorDB internal systems. A dispatch, callback, saved task or old Done state does not establish a new passing run. The [workflow guide](docs/AUTONOMOUS_WORKFLOW.md) explains the approval scope, protected source, independent artifact checks, shared runner allowance and failure handling. Jira's scoped token expires October 25, 2026.
+
+The [recorded Codex verification](https://baton-workspace.vercel.app/#executions) remains separate historical evidence: its disclosed local workaround yielded 530 library passes and two actual RDB reload cycles. The new GitHub Actions profile **does not run RDB reloads** and cannot reuse those results as its own. [Historical report](docs/evidence/KAN-2.md).
 
 The older departure and Acme benchmark companies are synthetic fixtures. Their extraction caches and scripted parser are explicitly labeled and are not evidence of live Groq inference. Acme from Liz Zhang's agent-memory-bench remains at `/benchmark.html`; the Halden fixture is isolated at `/sandbox.html`.
 
@@ -20,7 +24,7 @@ docker compose up -d --build
 
 Open [Baton](http://127.0.0.1:8000), [API docs](http://127.0.0.1:8000/docs) or [FalkorDB Browser](http://127.0.0.1:3000). Ports bind to this computer only. Data persists in named volumes; `docker compose down` stops services without erasing it.
 
-The default workspace requires an authenticated real GitHub import. The deployed Lambda uses request-scoped Groq inference and DynamoDB for sessions and locks; no persistent worker or local model is needed. The original four fixture scenarios (7, 101, 202 and 303) remain in [Departure analysis](http://127.0.0.1:8000/rehearsal.html). Saving fixture ownership changes the live fixture graph and commits `OWNERS.d/<graph>.yaml` in the operations repository. Capacity suggestions respect skills and capacity; manually selected assignments are checked for coverage and active successors.
+The default workspace requires an authenticated real GitHub import. Cloud execution additionally requires the configured GitHub workflow and connected destinations described in [cloud setup](docs/CLOUD_SETUP.md); without them the UI reports execution as unconfigured. Lambda coordinates request-scoped Groq inference, execution callbacks and provider read-backs; DynamoDB holds sessions, counters and locks. Rust builds run in GitHub Actions, with no persistent model worker or local model required. The original four fixture scenarios (7, 101, 202 and 303) remain in [Departure analysis](http://127.0.0.1:8000/rehearsal.html). Saving fixture ownership changes the live fixture graph and commits `OWNERS.d/<graph>.yaml` in the operations repository. Capacity suggestions respect skills and capacity; manually selected assignments are checked for coverage and active successors.
 
 **v0.2:** Explore the live relationship graph, inspect nodes/edges and their sources, use **suggested successors** from the capacity solver, then preview and commit the plan. Saved receipts remain available after reload. See [the end-to-end upgrade](docs/END_TO_END_UPGRADE.md).
 
@@ -37,9 +41,9 @@ docker compose --profile checks build checks
 docker compose --profile checks run --rm checks
 ```
 
-Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. **437 application checks passed across the recorded run and corrected reruns on October 18, 2026:** 88 unchanged ZIP checks, 22 foundation, 39 integration/security, 23 red-team, 142 cloud/provider/agent/company contracts, and 123 execution/publisher/runner/verification contracts. The first full invocation retained one obsolete homepage-copy assertion failure; after correcting that assertion, the entire integration suite passed. The original scoring harness verified locked-check integrity. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. [Exact reports and retained failure history](docs/VERIFIED_RELEASE.md).
+Or use `./scripts/test.ps1` on Windows / `sh scripts/test.sh` on Linux. The unchanged locked judge runs first; the harness reports foundation, integration/security, red-team, cloud/graph, historical execution and autonomous workflow/verifier checks separately. The Docker checks image includes Node.js so the actual vanilla-JavaScript UI tests execute. Each graph-dependent suite starts an isolated engine, leaving the application's graph alone. [Current reports, exact counts and retained failure history](docs/AUTONOMOUS_RELEASE.md) are the reference for this release; passing mocked provider contracts do not prove live runner or provider success.
 
-Docker's Linux engine was recovered without resetting volumes or data disks. One Mangum event-loop deprecation warning remains. Real production Groq, graph/task, agent, Jira and Slack checks passed separately from mocked provider contracts. Upstream Rust verification separately recorded **530 passed, zero failed, 17 ignored**, after the disclosed local clamp workaround, plus **two actual RDB reload cycles**. Ignored benchmarks/probes are not counted as passed. [Logs, reproduction details and limits](docs/evidence/KAN-2.md).
+The earlier [Codex Rust report](docs/evidence/KAN-2.md) separately recorded 530 passes, zero failures and 17 ignored upstream benchmarks/probes after the disclosed local clamp workaround, plus two actual RDB reload cycles. Those ignored cases were not run or counted as passed. These historical results are not results of the current cloud profile. One Mangum event-loop deprecation warning remains.
 The original `checks/locked/**` and `loop/bin/**` are untouched. `loop/config.json` replaces the old author's absolute Python path with a portable command. See [verification](docs/BUILD_REPORT.md).
 
 ## CLI
@@ -78,18 +82,21 @@ Start the application first. This generates 360 lane records. The graph lane mat
 
 ```mermaid
 flowchart LR
-  Data[Records + chat + logs + tickets] --> Live[(FalkorDB)]
-  Data --> Beliefs[Cached proposals]
-  Live --> Fork[GRAPH.COPY fork]
-  Beliefs --> Gate[Cypher evidence gate]
-  Gate --> Fork
-  Fork --> Coverage[Temporal coverage before/after departure]
-  Coverage --> Proof[Sourced events + preview + capacity cut]
-  Proof --> UI[Website / API / MCP / CLI]
-  UI --> Write[Explicit guarded commit + git read-back]
+  Source[Public GitHub source records] --> Graph[(FalkorDB)]
+  Graph --> Agent[Groq graph investigation]
+  Agent --> Task[Source-backed verification task]
+  Task --> Runner[GitHub Actions: fresh Docker checks]
+  Runner -->|Observed failure, bounded attempts| Repair[Groq production edit]
+  Repair --> Runner
+  Runner --> Gate[Independent job, artifact and source verification]
+  Gate --> Receipt[Graph execution receipt and checks]
+  Receipt --> Tools[Jira and Slack outcome read-backs]
+  Tools --> UI[Public workbench evidence]
 ```
 
-Coverage follows time-valid OWNER, ROUTES_TO, SHIFT, ESCALATES_TO and gated HOLDS paths. Fixed queries and graph algorithms decide; the model never writes Cypher. Accepted successors use database-enforced `OWNER.active_key` uniqueness. Source IDs, live fingerprints and actual queries are exposed.
+Lambda coordinates this approved profile; it does not execute the Rust build. Failed checks, unknown provider outcomes and partial publication remain visible. A successful patch stays in the runner and is not merged upstream. [Current workflow architecture](docs/AUTONOMOUS_WORKFLOW.md).
+
+The separate legacy departure fixtures retain time-valid OWNER, ROUTES_TO, SHIFT, ESCALATES_TO and gated HOLDS paths, graph-copy previews, capacity cuts and explicit operations-repository writes. Their fixed queries and graph algorithms are distinct from the current public-issue execution flow; the model never receives a raw-Cypher tool.
 
 - [Architecture](docs/ARCHITECTURE.md), [module status](docs/PHASES.md), [build report](docs/BUILD_REPORT.md)
 - [Deployment and recovery](docs/DEPLOYMENT.md), [reuse](docs/REUSE.md), [input provenance](docs/INPUT_PROVENANCE.md)
@@ -102,4 +109,4 @@ Extraction/cache/provider/fake-model and evaluation patterns adapt [agent-memory
 
 The interactive graph uses [Cytoscape.js 3.34.4](https://github.com/cytoscape/cytoscape.js/tree/v3.34.4), MIT, vendored with its full license and provenance manifest under `web/vendor/cytoscape/`.
 
-Synthetic corroboration is not independent real-world truth. Only scheduled work is checked. Public writes require operator authentication, exact-origin checks and bounded requests; read-only public repository records are visible without sign-in. Graph and repository writes are separate systems: external failures are retryable, but an abrupt crash between the graph write and first journal persistence remains a recovery gap. Paid-model validation, direct Jira/Slack integration and event submission are not claimed as completed. The new public workspace has separate cloud evidence linked above.
+Synthetic corroboration is not independent real-world truth. Only scheduled work is checked. Public writes require operator authentication, exact-origin checks and bounded requests; read-only public repository records are visible without sign-in. Graph and repository writes are separate systems: external failures are retryable, but an abrupt crash between the graph write and first journal persistence remains a recovery gap. Paid GPT/Claude evaluation and event submission are not claimed as completed. The current public workspace has actual Jira/Slack read-back evidence and separate cloud-run outcomes linked above; those outcomes must be inspected per run.

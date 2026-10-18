@@ -1,0 +1,54 @@
+{
+  "status": "verified",
+  "run_id": "de223685c514b134ae8b471263f90d7a",
+  "github_run_id": "39161825805",
+  "github_workflow_sha": "1af00116c84a3195f6bf1eeba1e9ebdd2e538bb4",
+  "artifact_id": 12149033898,
+  "artifact_sha256": "ee18bdd49827d9ab5ead7132ea6b0024e7fec1c14ff6a453e426fc11f8357e78",
+  "report_sha256": "abe7ae924787842344b37e2995461500f88542ef5a685ea5b5a146ce3fdd6ce6",
+  "source_commit": "d8190da5a99b4207e847e2fa2547911d96bd9e61",
+  "tracked_blobs": 957,
+  "checks": 7,
+  "final_checks": 6,
+  "passed": 534,
+  "failed": 0,
+  "ignored": 17,
+  "raw_public_logs_verified": 7,
+  "repairs": [
+    {
+      "attempt": 1,
+      "provider_response_id": "chatcmpl-2b9b35c7-963b-41ff-804e-091f5a8266c1",
+      "model": "openai/gpt-oss-20b",
+      "input_tokens": 4813,
+      "output_tokens": 301,
+      "patch_sha256": "53037d17511e978a10bdcaa8ab618da110dfacc1cec7364702f66af7f87823b3",
+      "raw_model_output_sha256": "7145c98f456f60fb06fc51ae6a4241a37b5981194148add5ae07f92e5a156e04",
+      "applied": true
+    }
+  ],
+  "provider_readbacks": {
+    "jira": true,
+    "slack": true
+  },
+  "task_statuses": {
+    "task-agent-15f9a93aad9c81b792a4a8238019e9c1": "done",
+    "task-agent-c108922c16a39ceaa82623d5748c4df0": "done"
+  },
+  "graph": {
+    "source_graph": "baton_public_falkordb_a497740dd9c5359440cd4a7f",
+    "run_nodes": 1,
+    "check_nodes": 7,
+    "has_autonomous_run_links": 1,
+    "validates_links": 1,
+    "investigated_by_links": 1,
+    "has_check_links": 7
+  },
+  "limits": [
+    "GitHub job/artifact and public app evidence were independently re-read; no writes were issued.",
+    "Provider publication proof is the app's saved independent readback receipt; this verifier did not query Jira or Slack directly.",
+    "Groq receipt and raw edit output match the applied artifact; the Groq provider API was not independently queried.",
+    "Actual workspace API graph nodes and relationships were checked; the direct database/provider audit is separate.",
+    "The edited source and immutable test region were independently reconstructed; the 957-file inventory count comes from the verified runner artifact.",
+    "Seventeen ignored tests and RDB reload are outside this cloud profile; no upstream merge is claimed."
+  ]
+}
