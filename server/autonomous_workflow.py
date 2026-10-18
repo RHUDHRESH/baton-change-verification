@@ -432,9 +432,11 @@ def complete(data, port, identity, body):
             files = artifact_files(raw)
             report = json.loads(files["report.json"])
             checks = validate_report(record, report, files)
-            success = report.get("status") in {"passed", "passed_no_fix"} and job["conclusion"] == "success"
+            claims_pass = report.get("status") in {"passed", "passed_no_fix"}
+            require(job["conclusion"] != "success" or claims_pass, "Successful runner job conflicts with a failed report")
+            success = claims_pass and job["conclusion"] == "success"
             final = _final_checks(checks)
-            if success:
+            if claims_pass:
                 _validate_success(record, report, final)
         except (WorkflowError, ValueError, KeyError, TypeError):
             record["status"] = "failed"

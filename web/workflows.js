@@ -150,7 +150,7 @@
     if (creating || polling || (current && !TERMINAL.has(current.status))) return;
     if (configured === false) { notice('Cloud execution is not configured on this deployment.'); return; }
     if (typeof authenticated === 'undefined' || !authenticated) { notice('Sign in before starting cloud checks or publishing work.'); return; }
-    creating = true; $('workflow-runner')?.scrollIntoView?.({behavior: 'smooth', block: 'start'}); controls(); $('workflow-progress').textContent = 'Submitting one cloud workflow for the approved issue…';
+    generation++; creating = true; $('workflow-runner')?.scrollIntoView?.({behavior: 'smooth', block: 'start'}); controls(); $('workflow-progress').textContent = 'Submitting one cloud workflow for the approved issue…';
     try {
       const record = await api('/api/public/workflows', {item_id: PROFILE_ITEM, allow_repair: true, publish_targets: TARGETS});
       if (!record || !/^[A-Za-z0-9_-]{1,100}$/.test(record.id || '')) throw Error('The server did not return a valid workflow identity.');
@@ -163,6 +163,7 @@
   }
 
   async function hydrate() {
+    const token = generation;
     try {
       let identity;
       try { identity = localStorage.getItem('baton.lastWorkflow'); } catch (_) { /* Optional browser hint. */ }
@@ -170,6 +171,7 @@
         current = {id: identity, status: 'unknown'}; await poll(identity); return;
       }
       const response = await api('/api/public/workflows');
+      if (token !== generation || creating) return;
       configured = response.configured;
       const record = response.latest;
       if (record) {
@@ -180,6 +182,7 @@
       }
       controls();
     } catch (error) {
+      if (token !== generation || creating) return;
       $('workflow-progress').textContent = 'Latest cloud workflow could not be read: ' + error.message + '. No new run was submitted.';
     }
   }

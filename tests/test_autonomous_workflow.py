@@ -297,3 +297,18 @@ def test_failed_bootstrap_with_no_executed_tests_stays_failed_and_never_complete
     assert result["status"] == "failed" and result["checks"]["total"] == 0
     assert result["checks"]["results"] == []
     fixture.tasks.assert_not_called()
+
+
+def test_successful_job_cannot_validate_a_failed_artifact(fixture):
+    fixture.report["status"] = "failed"
+    result = complete(fixture)
+    assert result["status"] == "failed" and "artifact failed" in result["error"]
+    fixture.publisher.assert_not_called()
+
+
+def test_failed_job_does_not_bypass_validation_of_a_claimed_passing_report(fixture):
+    fixture.management["conclusion"] = "failure"
+    fixture.report["checks"].pop()
+    result = complete(fixture)
+    assert result["status"] == "failed" and "artifact failed" in result["error"]
+    fixture.publisher.assert_not_called()

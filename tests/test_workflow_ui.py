@@ -44,6 +44,10 @@ function tree(node){return {tag:node.tag,text:node.own,href:node.href||null,chil
  if(input.mode==='hydrate-start'){await ui.hydrate();await ui.start();}
  if(input.mode==='poll')await ui.poll(input.identity||'workflow-test');
  if(input.mode==='start')await ui.start();
+ if(input.mode==='hydrate-start-race'){
+   let release;context.api=(path,body)=>{calls.push({path,body});if(calls.length===1)return new Promise(resolve=>{release=resolve;});return Promise.resolve(input.records[calls.length===2?1:2]);};
+   const hydration=ui.hydrate();await Promise.resolve();await ui.start();release(input.records[0]);await hydration;
+ }
  if(input.mode==='race'){
    let release;context.api=path=>{calls.push({path});if(calls.length===1)return new Promise(resolve=>{release=resolve;});return Promise.resolve(input.records[1]);};
    const old=ui.poll('workflow-old');await Promise.resolve();const fresh=ui.poll('workflow-new');await fresh;release(input.records[0]);await old;
@@ -217,3 +221,12 @@ def test_actual_graph_investigation_and_runner_limits_are_reviewable(completed):
     assert "RDB reload not part" in result["text"]
     assert "source-real" in result["text"]
     assert "inspect_primary_source" in result["text"]
+
+
+def test_slow_latest_receipt_cannot_overwrite_operator_new_run(completed):
+    older = copy.deepcopy(completed); older["id"] = "workflow-old"
+    newer = copy.deepcopy(completed); newer["id"] = "workflow-new"
+    result = js(mode="hydrate-start-race", records=[{"latest": older, "configured": True}, {"id": "workflow-new", "status": "queued"}, newer])
+    assert "Workflow workflow-new" in result["text"]
+    assert "Workflow workflow-old" not in result["text"]
+    assert len([call for call in result["calls"] if "body" in call]) == 1
