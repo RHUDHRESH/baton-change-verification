@@ -1,0 +1,1200 @@
+{
+ "company": "Halden",
+ "day_ms": 86400000,
+ "duties": [
+  {
+   "id": "d-codesign-windows",
+   "kind": "cert",
+   "name": "Windows code-signing certificate"
+  },
+  {
+   "id": "d-dr-runbook-review",
+   "kind": "review",
+   "name": "Disaster-recovery runbook review"
+  },
+  {
+   "id": "d-job-invoice-pdf-batch",
+   "kind": "job",
+   "name": "Invoice PDF batch"
+  },
+  {
+   "id": "d-job-payroll-export",
+   "kind": "job",
+   "name": "Payroll export to Ledgerly"
+  },
+  {
+   "id": "d-job-usage-rollup",
+   "kind": "job",
+   "name": "Usage metering rollup"
+  },
+  {
+   "id": "d-oncall-core-platform",
+   "kind": "oncall",
+   "name": "Core platform on-call"
+  },
+  {
+   "id": "d-oncall-identity",
+   "kind": "oncall",
+   "name": "Identity on-call"
+  },
+  {
+   "id": "d-pg-failover-drill",
+   "kind": "drill",
+   "name": "Postgres failover drill"
+  },
+  {
+   "id": "d-statuspage-report",
+   "kind": "report",
+   "name": "Monthly status-page report"
+  },
+  {
+   "id": "d-stripe-webhook-secret",
+   "kind": "renewal",
+   "name": "Stripe webhook signing secret rotation"
+  },
+  {
+   "id": "d-tls-partners",
+   "kind": "cert",
+   "name": "TLS certificate for partners.halden.io"
+  },
+  {
+   "id": "d-tls-status",
+   "kind": "cert",
+   "name": "TLS certificate for status.halden.io"
+  },
+  {
+   "id": "d-vat-filing-export",
+   "kind": "report",
+   "name": "VAT filing export"
+  }
+ ],
+ "events": [
+  {
+   "at": 1792400400000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0001",
+   "label": "Core platform on-call handover, week of Mon 19 Oct"
+  },
+  {
+   "at": 1792400400000,
+   "duty": "d-oncall-identity",
+   "id": "ev-0002",
+   "label": "Identity on-call handover, week of Mon 19 Oct"
+  },
+  {
+   "at": 1792753200000,
+   "duty": "d-codesign-windows",
+   "id": "ev-0003",
+   "label": "Renewal ticket opened"
+  },
+  {
+   "at": 1792922400000,
+   "duty": "d-statuspage-report",
+   "id": "ev-0004",
+   "label": "Monthly status-page report"
+  },
+  {
+   "at": 1793005200000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0005",
+   "label": "Core platform on-call handover, week of Mon 26 Oct"
+  },
+  {
+   "at": 1793005200000,
+   "duty": "d-oncall-identity",
+   "id": "ev-0006",
+   "label": "Identity on-call handover, week of Mon 26 Oct"
+  },
+  {
+   "at": 1793062800000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0007",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793149200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0008",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793160000000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0009",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1793181600000,
+   "duty": "d-vat-filing-export",
+   "id": "ev-0010",
+   "label": "VAT filing export"
+  },
+  {
+   "at": 1793235600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0011",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793271600000,
+   "duty": "d-codesign-windows",
+   "id": "ev-0012",
+   "label": "Windows code-signing certificate: renewal reminder"
+  },
+  {
+   "at": 1793610000000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0013",
+   "label": "Core platform on-call handover, week of Mon 2 Nov"
+  },
+  {
+   "at": 1793610000000,
+   "duty": "d-oncall-identity",
+   "id": "ev-0014",
+   "label": "Identity on-call handover, week of Mon 2 Nov"
+  },
+  {
+   "at": 1793667600000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0015",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793736000000,
+   "duty": "d-tls-partners",
+   "id": "ev-0016",
+   "label": "TLS certificate for partners.halden.io: renewal reminder"
+  },
+  {
+   "at": 1793754000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0017",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793764800000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0018",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1793840400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0019",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794006000000,
+   "duty": "d-tls-status",
+   "id": "ev-0020",
+   "label": "TLS certificate for status.halden.io: renewal reminder"
+  },
+  {
+   "at": 1794135600000,
+   "duty": "d-dr-runbook-review",
+   "id": "ev-0021",
+   "label": "Disaster-recovery runbook review"
+  },
+  {
+   "at": 1794214800000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0022",
+   "label": "Core platform on-call handover, week of Mon 9 Nov"
+  },
+  {
+   "at": 1794214800000,
+   "duty": "d-oncall-identity",
+   "id": "ev-0023",
+   "label": "Identity on-call handover, week of Mon 9 Nov"
+  },
+  {
+   "at": 1794272400000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0024",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794358800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0025",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794369600000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0026",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1794445200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0027",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794481200000,
+   "duty": "d-codesign-windows",
+   "id": "ev-0028",
+   "label": "Windows code-signing certificate expires"
+  },
+  {
+   "at": 1794819600000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0029",
+   "label": "Core platform on-call handover, week of Mon 16 Nov"
+  },
+  {
+   "at": 1794819600000,
+   "duty": "d-oncall-identity",
+   "id": "ev-0030",
+   "label": "Identity on-call handover, week of Mon 16 Nov"
+  },
+  {
+   "at": 1794877200000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0031",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794924000000,
+   "duty": "d-pg-failover-drill",
+   "id": "ev-0032",
+   "label": "Postgres failover drill"
+  },
+  {
+   "at": 1794945600000,
+   "duty": "d-tls-partners",
+   "id": "ev-0033",
+   "label": "TLS certificate for partners.halden.io expires"
+  },
+  {
+   "at": 1794963600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0034",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794974400000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0035",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1795050000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0036",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795082400000,
+   "duty": "d-vat-filing-export",
+   "id": "ev-0037",
+   "label": "VAT filing export"
+  },
+  {
+   "at": 1795215600000,
+   "duty": "d-tls-status",
+   "id": "ev-0038",
+   "label": "TLS certificate for status.halden.io expires"
+  },
+  {
+   "at": 1795424400000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0039",
+   "label": "Core platform on-call handover, week of Mon 23 Nov"
+  },
+  {
+   "at": 1795424400000,
+   "duty": "d-oncall-identity",
+   "id": "ev-0040",
+   "label": "Identity on-call handover, week of Mon 23 Nov"
+  },
+  {
+   "at": 1795428000000,
+   "duty": "d-statuspage-report",
+   "id": "ev-0041",
+   "label": "Monthly status-page report"
+  },
+  {
+   "at": 1795464000000,
+   "duty": "d-stripe-webhook-secret",
+   "id": "ev-0042",
+   "label": "Stripe webhook signing secret rotation: renewal reminder"
+  },
+  {
+   "at": 1795482000000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0043",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795568400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0044",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795579200000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0045",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1795654800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0046",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1796029200000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0047",
+   "label": "Core platform on-call handover, week of Mon 30 Nov"
+  },
+  {
+   "at": 1796029200000,
+   "duty": "d-oncall-identity",
+   "id": "ev-0048",
+   "label": "Identity on-call handover, week of Mon 30 Nov"
+  },
+  {
+   "at": 1796086800000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0049",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1796637600000,
+   "duty": "d-statuspage-report",
+   "id": "ev-0050",
+   "label": "Monthly status-page report"
+  },
+  {
+   "at": 1796673600000,
+   "duty": "d-stripe-webhook-secret",
+   "id": "ev-0051",
+   "label": "Stripe webhook signing secret rotation expires"
+  },
+  {
+   "at": 1797242400000,
+   "duty": "d-vat-filing-export",
+   "id": "ev-0052",
+   "label": "VAT filing export"
+  }
+ ],
+ "joblogs": [
+  {
+   "actor": "scheduler",
+   "at": 1790913600000,
+   "id": "log-0001",
+   "job": "d-job-usage-rollup",
+   "status": "failed"
+  },
+  {
+   "actor": "elena.rossi",
+   "at": 1790931600000,
+   "id": "log-0002",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791086400000,
+   "id": "log-0003",
+   "job": "d-job-usage-rollup",
+   "status": "failed"
+  },
+  {
+   "actor": "elena.rossi",
+   "at": 1791100800000,
+   "id": "log-0004",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791432000000,
+   "id": "log-0005",
+   "job": "d-job-usage-rollup",
+   "status": "failed"
+  },
+  {
+   "actor": "elena.rossi",
+   "at": 1791446400000,
+   "id": "log-0006",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791507600000,
+   "id": "log-0007",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "failed"
+  },
+  {
+   "actor": "elena.rossi",
+   "at": 1791518400000,
+   "id": "log-0008",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791518400000,
+   "id": "log-0009",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791853200000,
+   "id": "log-0010",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "failed"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791864000000,
+   "id": "log-0011",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "elena.rossi",
+   "at": 1791867600000,
+   "id": "log-0012",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791939600000,
+   "id": "log-0013",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791950400000,
+   "id": "log-0014",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792026000000,
+   "id": "log-0015",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792112400000,
+   "id": "log-0016",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792198800000,
+   "id": "log-0017",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "failed"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792198800000,
+   "id": "log-0018",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "elena.rossi",
+   "at": 1792216800000,
+   "id": "log-0019",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792285200000,
+   "id": "log-0020",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792285200000,
+   "id": "log-0021",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792371600000,
+   "id": "log-0022",
+   "job": "d-job-payroll-export",
+   "status": "failed"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792458000000,
+   "id": "log-0023",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792544400000,
+   "id": "log-0024",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792630800000,
+   "id": "log-0025",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792630800000,
+   "id": "log-0026",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792641600000,
+   "id": "log-0027",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  }
+ ],
+ "label": "FIXTURE",
+ "leave_at": 1792800000000,
+ "leaver": "elena.rossi",
+ "messages": [
+  {
+   "at": 1786708800000,
+   "author": "noah.osei",
+   "channel": "#general",
+   "id": "msg-0001",
+   "text": "Signing off for good - thanks all, handover notes are in the wiki (mostly)"
+  },
+  {
+   "at": 1786795200000,
+   "author": "hana.okafor",
+   "channel": "#general",
+   "id": "msg-0002",
+   "text": "Signing off for good - thanks all, handover notes are in the wiki (mostly)"
+  },
+  {
+   "at": 1789821180000,
+   "author": "rafael.silva",
+   "channel": "#platform",
+   "id": "msg-0003",
+   "text": "reminder: retro at 3pm"
+  },
+  {
+   "at": 1789828860000,
+   "author": "ravi.novak",
+   "channel": "#platform",
+   "id": "msg-0004",
+   "text": "PR for the files rate limiter is up, would love a review"
+  },
+  {
+   "at": 1790020320000,
+   "author": "rafael.silva",
+   "channel": "#platform",
+   "id": "msg-0005",
+   "text": "reminder: retro at 3pm"
+  },
+  {
+   "at": 1790164800000,
+   "author": "dev.tanaka",
+   "channel": "#general",
+   "id": "msg-0006",
+   "text": "Last day today. Thanks everyone, it's been a blast"
+  },
+  {
+   "at": 1790332200000,
+   "author": "zara.sharma",
+   "channel": "#platform",
+   "id": "msg-0007",
+   "text": "rolled back ledger v9.28, investigating"
+  },
+  {
+   "at": 1790359200000,
+   "author": "zara.sharma",
+   "channel": "#platform",
+   "id": "msg-0008",
+   "text": "api dashboards moved to the new folder, links in the wiki"
+  },
+  {
+   "at": 1790702040000,
+   "author": "rafael.silva",
+   "channel": "#platform",
+   "id": "msg-0009",
+   "text": "anyone seen elevated 5xx on ledger? looks fine now"
+  },
+  {
+   "at": 1791016320000,
+   "author": "kwame.halvorsen",
+   "channel": "#billing",
+   "id": "msg-0010",
+   "text": "standup: finishing the ledger migration, then reviews"
+  },
+  {
+   "at": 1791053400000,
+   "author": "elena.rossi",
+   "channel": "#platform",
+   "id": "msg-0011",
+   "text": "PR for the ledger rate limiter is up, would love a review"
+  },
+  {
+   "at": 1791057180000,
+   "author": "kwame.halvorsen",
+   "channel": "#billing",
+   "id": "msg-0012",
+   "text": "anyone seen elevated 5xx on files? looks fine now"
+  },
+  {
+   "at": 1791447600000,
+   "author": "elena.rossi",
+   "channel": "#ops",
+   "id": "msg-0013",
+   "text": "had to restart usage-rollup at 04:30 - S3 throttling again. done now, numbers look right"
+  },
+  {
+   "at": 1791484620000,
+   "author": "kwame.halvorsen",
+   "channel": "#billing",
+   "id": "msg-0014",
+   "text": "files dashboards moved to the new folder, links in the wiki"
+  },
+  {
+   "at": 1791572820000,
+   "author": "ravi.novak",
+   "channel": "#platform",
+   "id": "msg-0015",
+   "text": "standup: finishing the files migration, then reviews"
+  },
+  {
+   "at": 1791711600000,
+   "author": "rafael.silva",
+   "channel": "#platform",
+   "id": "msg-0016",
+   "text": "deploying files v4.6 to prod"
+  },
+  {
+   "at": 1791966720000,
+   "author": "ravi.novak",
+   "channel": "#general",
+   "id": "msg-0017",
+   "text": "Elena is the one who deals with the Datadog renewal, right?"
+  },
+  {
+   "at": 1791967140000,
+   "author": "rafael.silva",
+   "channel": "#general",
+   "id": "msg-0018",
+   "text": "yeah I think Elena handles Datadog, ask them"
+  },
+  {
+   "at": 1791972000000,
+   "author": "ravi.novak",
+   "channel": "#general",
+   "id": "msg-0019",
+   "text": "Heads up: Elena Rossi's last day is Fri 23 Oct. Grab them before then for anything they run."
+  },
+  {
+   "at": 1792081020000,
+   "author": "emeka.iyer",
+   "channel": "#ops",
+   "id": "msg-0020",
+   "text": "isn't usage-rollup Ravi's thing these days?"
+  },
+  {
+   "at": 1792218000000,
+   "author": "elena.rossi",
+   "channel": "#billing",
+   "id": "msg-0021",
+   "text": "invoice-pdf-batch fell over overnight (a schema drift upstream), kicked it manually. all green now"
+  },
+  {
+   "at": 1792334100000,
+   "author": "elena.rossi",
+   "channel": "#support-escalations",
+   "id": "msg-0022",
+   "text": "told Larkspur Travel we'd have a rate-limit bump to 500 req/s done by Wed 11 Nov, that's on me"
+  },
+  {
+   "at": 1792497000000,
+   "author": "elena.rossi",
+   "channel": "#support-escalations",
+   "id": "msg-0023",
+   "text": "Oaktree Clinics asked about the uptime report again, I'll look"
+  },
+  {
+   "at": 1792497960000,
+   "author": "rafael.silva",
+   "channel": "#platform",
+   "id": "msg-0024",
+   "text": "rolled back ledger v4.0, investigating"
+  },
+  {
+   "at": 1792523700000,
+   "author": "ravi.novak",
+   "channel": "#platform",
+   "id": "msg-0025",
+   "text": "rolled back checkout v6.6, investigating"
+  },
+  {
+   "at": 1792594800000,
+   "author": "elena.rossi",
+   "channel": "#platform",
+   "id": "msg-0026",
+   "text": "writing up handover notes this week, shout if there's something I should cover"
+  }
+ ],
+ "now": 1792713600000,
+ "people": [
+  {
+   "capacity": 2,
+   "id": "dev.tanaka",
+   "left_at": 1790182800000,
+   "name": "Dev Tanaka",
+   "role": "Support engineer",
+   "team": "Support"
+  },
+  {
+   "capacity": 1,
+   "id": "elena.rossi",
+   "left_at": null,
+   "name": "Elena Rossi",
+   "role": "Staff SRE",
+   "team": "Platform"
+  },
+  {
+   "capacity": 1,
+   "id": "emeka.iyer",
+   "left_at": null,
+   "name": "Emeka Iyer",
+   "role": "Customer success manager",
+   "team": "Support"
+  },
+  {
+   "capacity": 1,
+   "id": "hana.okafor",
+   "left_at": 1786813200000,
+   "name": "Hana Okafor",
+   "role": "Senior backend engineer",
+   "team": "Billing"
+  },
+  {
+   "capacity": 3,
+   "id": "kwame.halvorsen",
+   "left_at": null,
+   "name": "Kwame Halvorsen",
+   "role": "Billing engineer",
+   "team": "Billing"
+  },
+  {
+   "capacity": 3,
+   "id": "noah.osei",
+   "left_at": 1786726800000,
+   "name": "Noah Osei",
+   "role": "Billing engineer",
+   "team": "Billing"
+  },
+  {
+   "capacity": 2,
+   "id": "rafael.silva",
+   "left_at": null,
+   "name": "Rafael Silva",
+   "role": "Senior SRE",
+   "team": "Platform"
+  },
+  {
+   "capacity": 1,
+   "id": "ravi.novak",
+   "left_at": null,
+   "name": "Ravi Novak",
+   "role": "Staff SRE",
+   "team": "Platform"
+  },
+  {
+   "capacity": 3,
+   "id": "zara.sharma",
+   "left_at": null,
+   "name": "Zara Sharma",
+   "role": "Senior SRE",
+   "team": "Platform"
+  }
+ ],
+ "records": [
+  {
+   "duty": "d-codesign-windows",
+   "id": "rec-0001",
+   "person": "elena.rossi",
+   "since": 1769212800000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-dr-runbook-review",
+   "id": "rec-0002",
+   "person": "dev.tanaka",
+   "since": 1775606400000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-job-payroll-export",
+   "id": "rec-0003",
+   "person": "kwame.halvorsen",
+   "since": 1770768000000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-oncall-core-platform",
+   "id": "rec-0004",
+   "rota": "rota-core-platform",
+   "type": "ROUTES_TO"
+  },
+  {
+   "duty": "d-oncall-identity",
+   "id": "rec-0005",
+   "rota": "rota-identity",
+   "type": "ROUTES_TO"
+  },
+  {
+   "duty": "d-pg-failover-drill",
+   "id": "rec-0006",
+   "person": "elena.rossi",
+   "since": 1780099200000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-pg-failover-drill",
+   "id": "rec-0007",
+   "person": "ravi.novak",
+   "since": 1786492800000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-statuspage-report",
+   "id": "rec-0008",
+   "person": "emeka.iyer",
+   "since": 1745193600000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-stripe-webhook-secret",
+   "id": "rec-0009",
+   "person": "elena.rossi",
+   "since": 1772236800000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-tls-partners",
+   "id": "rec-0010",
+   "person": "elena.rossi",
+   "since": 1787443200000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-tls-status",
+   "id": "rec-0011",
+   "person": "elena.rossi",
+   "since": 1735430400000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-vat-filing-export",
+   "id": "rec-0012",
+   "person": "kwame.halvorsen",
+   "since": 1757548800000,
+   "type": "OWNER"
+  },
+  {
+   "from": 1792400400000,
+   "id": "rec-0013",
+   "person": "kwame.halvorsen",
+   "rota": "rota-core-platform",
+   "to": 1793005200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1792400400000,
+   "id": "rec-0014",
+   "person": "rafael.silva",
+   "rota": "rota-identity",
+   "to": 1793005200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793005200000,
+   "id": "rec-0015",
+   "person": "kwame.halvorsen",
+   "rota": "rota-identity",
+   "to": 1793610000000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793005200000,
+   "id": "rec-0016",
+   "person": "ravi.novak",
+   "rota": "rota-core-platform",
+   "to": 1793610000000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793610000000,
+   "id": "rec-0017",
+   "person": "noah.osei",
+   "rota": "rota-core-platform",
+   "to": 1794214800000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793610000000,
+   "id": "rec-0018",
+   "person": "zara.sharma",
+   "rota": "rota-identity",
+   "to": 1794214800000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794214800000,
+   "id": "rec-0019",
+   "person": "hana.okafor",
+   "rota": "rota-identity",
+   "to": 1794819600000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794214800000,
+   "id": "rec-0020",
+   "person": "kwame.halvorsen",
+   "rota": "rota-core-platform",
+   "to": 1794819600000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794819600000,
+   "id": "rec-0021",
+   "person": "kwame.halvorsen",
+   "rota": "rota-identity",
+   "to": 1795424400000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794819600000,
+   "id": "rec-0022",
+   "person": "ravi.novak",
+   "rota": "rota-core-platform",
+   "to": 1795424400000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1795424400000,
+   "id": "rec-0023",
+   "person": "emeka.iyer",
+   "rota": "rota-core-platform",
+   "to": 1796029200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1795424400000,
+   "id": "rec-0024",
+   "person": "zara.sharma",
+   "rota": "rota-identity",
+   "to": 1796029200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1796029200000,
+   "id": "rec-0025",
+   "person": "kwame.halvorsen",
+   "rota": "rota-core-platform",
+   "to": 1796634000000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1796029200000,
+   "id": "rec-0026",
+   "person": "rafael.silva",
+   "rota": "rota-identity",
+   "to": 1796634000000,
+   "type": "SHIFT"
+  },
+  {
+   "from_person": "emeka.iyer",
+   "id": "rec-0027",
+   "to_person": "elena.rossi",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "from_person": "hana.okafor",
+   "id": "rec-0028",
+   "to_person": "elena.rossi",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "from_person": "kwame.halvorsen",
+   "id": "rec-0029",
+   "to_person": "ravi.novak",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "from_person": "noah.osei",
+   "id": "rec-0030",
+   "to_person": "ravi.novak",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "from_person": "zara.sharma",
+   "id": "rec-0031",
+   "to_person": "elena.rossi",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "duty": "d-dr-runbook-review",
+   "id": "rec-0032",
+   "person": "kwame.halvorsen",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-payroll-export",
+   "id": "rec-0033",
+   "person": "kwame.halvorsen",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-payroll-export",
+   "id": "rec-0034",
+   "person": "zara.sharma",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-usage-rollup",
+   "id": "rec-0035",
+   "person": "emeka.iyer",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-usage-rollup",
+   "id": "rec-0036",
+   "person": "rafael.silva",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-usage-rollup",
+   "id": "rec-0037",
+   "person": "ravi.novak",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-oncall-core-platform",
+   "id": "rec-0038",
+   "person": "kwame.halvorsen",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-oncall-core-platform",
+   "id": "rec-0039",
+   "person": "rafael.silva",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-oncall-identity",
+   "id": "rec-0040",
+   "person": "emeka.iyer",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-pg-failover-drill",
+   "id": "rec-0041",
+   "person": "emeka.iyer",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-pg-failover-drill",
+   "id": "rec-0042",
+   "person": "kwame.halvorsen",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-pg-failover-drill",
+   "id": "rec-0043",
+   "person": "rafael.silva",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-stripe-webhook-secret",
+   "id": "rec-0044",
+   "person": "kwame.halvorsen",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-stripe-webhook-secret",
+   "id": "rec-0045",
+   "person": "rafael.silva",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-tls-partners",
+   "id": "rec-0046",
+   "person": "emeka.iyer",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-tls-status",
+   "id": "rec-0047",
+   "person": "ravi.novak",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-tls-status",
+   "id": "rec-0048",
+   "person": "zara.sharma",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-vat-filing-export",
+   "id": "rec-0049",
+   "person": "kwame.halvorsen",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-vat-filing-export",
+   "id": "rec-0050",
+   "person": "rafael.silva",
+   "type": "CAN"
+  }
+ ],
+ "seed": 2003,
+ "tickets": [
+  {
+   "at": 1791480780000,
+   "author": "Clara Duarte (Larkspur Travel)",
+   "id": "tkt-0001",
+   "text": "CSV export stuck at 99% for our account"
+  },
+  {
+   "at": 1791966540000,
+   "author": "Tariq Nakamura (Quayside Energy)",
+   "id": "tkt-0002",
+   "text": "Can't log in via SSO since this morning"
+  },
+  {
+   "at": 1792445700000,
+   "author": "Amara Petrov (Larkspur Travel)",
+   "id": "tkt-0003",
+   "text": "Hi team, Elena promised us a rate-limit bump to 500 req/s by Wed 11 Nov. Our launch depends on it - any update?"
+  }
+ ],
+ "window_days": 30
+}

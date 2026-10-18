@@ -1,0 +1,1314 @@
+{
+ "company": "Halden",
+ "day_ms": 86400000,
+ "duties": [
+  {
+   "id": "d-aws-access-review",
+   "kind": "review",
+   "name": "Quarterly AWS access review"
+  },
+  {
+   "id": "d-churn-dashboard",
+   "kind": "report",
+   "name": "Churn dashboard refresh"
+  },
+  {
+   "id": "d-codesign-windows",
+   "kind": "cert",
+   "name": "Windows code-signing certificate"
+  },
+  {
+   "id": "d-domain-halden-io",
+   "kind": "renewal",
+   "name": "Domain registration for halden.io"
+  },
+  {
+   "id": "d-job-invoice-pdf-batch",
+   "kind": "job",
+   "name": "Invoice PDF batch"
+  },
+  {
+   "id": "d-job-search-reindex",
+   "kind": "job",
+   "name": "Search index rebuild"
+  },
+  {
+   "id": "d-job-warehouse-snapshot",
+   "kind": "job",
+   "name": "Warehouse snapshot to cold storage"
+  },
+  {
+   "id": "d-oncall-edge",
+   "kind": "oncall",
+   "name": "Edge and CDN on-call"
+  },
+  {
+   "id": "d-partner-key-rotation",
+   "kind": "rotation",
+   "name": "Partner API key rotation"
+  },
+  {
+   "id": "d-saml-azure-ad",
+   "kind": "cert",
+   "name": "SAML signing certificate for Azure AD"
+  },
+  {
+   "id": "d-statuspage-report",
+   "kind": "report",
+   "name": "Monthly status-page report"
+  },
+  {
+   "id": "d-tls-payments",
+   "kind": "cert",
+   "name": "TLS certificate for payments.halden.io"
+  },
+  {
+   "id": "d-vat-filing-export",
+   "kind": "report",
+   "name": "VAT filing export"
+  }
+ ],
+ "events": [
+  {
+   "at": 1792400400000,
+   "duty": "d-oncall-edge",
+   "id": "ev-0001",
+   "label": "Edge and CDN on-call handover, week of Mon 19 Oct"
+  },
+  {
+   "at": 1792717200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0002",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1792756800000,
+   "duty": "d-domain-halden-io",
+   "id": "ev-0003",
+   "label": "Renewal ticket opened"
+  },
+  {
+   "at": 1792800000000,
+   "duty": "d-domain-halden-io",
+   "id": "ev-0004",
+   "label": "Domain registration for halden.io: renewal reminder"
+  },
+  {
+   "at": 1792803600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0005",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1792890000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0006",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1792890000000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0007",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1792893600000,
+   "duty": "d-job-search-reindex",
+   "id": "ev-0008",
+   "label": "Search index rebuild run"
+  },
+  {
+   "at": 1792976400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0009",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1792976400000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0010",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1793005200000,
+   "duty": "d-oncall-edge",
+   "id": "ev-0011",
+   "label": "Edge and CDN on-call handover, week of Mon 26 Oct"
+  },
+  {
+   "at": 1793062800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0012",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793149200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0013",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793181600000,
+   "duty": "d-vat-filing-export",
+   "id": "ev-0014",
+   "label": "VAT filing export"
+  },
+  {
+   "at": 1793235600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0015",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793239200000,
+   "duty": "d-job-search-reindex",
+   "id": "ev-0016",
+   "label": "Search index rebuild run"
+  },
+  {
+   "at": 1793322000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0017",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793332800000,
+   "duty": "d-tls-payments",
+   "id": "ev-0018",
+   "label": "TLS certificate for payments.halden.io: renewal reminder"
+  },
+  {
+   "at": 1793354400000,
+   "duty": "d-statuspage-report",
+   "id": "ev-0019",
+   "label": "Monthly status-page report"
+  },
+  {
+   "at": 1793408400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0020",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793494800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0021",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793494800000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0022",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1793498400000,
+   "duty": "d-job-search-reindex",
+   "id": "ev-0023",
+   "label": "Search index rebuild run"
+  },
+  {
+   "at": 1793527200000,
+   "duty": "d-churn-dashboard",
+   "id": "ev-0024",
+   "label": "Churn dashboard refresh"
+  },
+  {
+   "at": 1793581200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0025",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793581200000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0026",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1793610000000,
+   "duty": "d-oncall-edge",
+   "id": "ev-0027",
+   "label": "Edge and CDN on-call handover, week of Mon 2 Nov"
+  },
+  {
+   "at": 1793667600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0028",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793746800000,
+   "duty": "d-codesign-windows",
+   "id": "ev-0029",
+   "label": "Windows code-signing certificate: renewal reminder"
+  },
+  {
+   "at": 1793754000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0030",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793840400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0031",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793844000000,
+   "duty": "d-job-search-reindex",
+   "id": "ev-0032",
+   "label": "Search index rebuild run"
+  },
+  {
+   "at": 1793876400000,
+   "duty": "d-partner-key-rotation",
+   "id": "ev-0033",
+   "label": "Partner API key rotation"
+  },
+  {
+   "at": 1793926800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0034",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794009600000,
+   "duty": "d-domain-halden-io",
+   "id": "ev-0035",
+   "label": "Domain registration for halden.io expires"
+  },
+  {
+   "at": 1794013200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0036",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794099600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0037",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794099600000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0038",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1794103200000,
+   "duty": "d-job-search-reindex",
+   "id": "ev-0039",
+   "label": "Search index rebuild run"
+  },
+  {
+   "at": 1794186000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0040",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794186000000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0041",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1794214800000,
+   "duty": "d-oncall-edge",
+   "id": "ev-0042",
+   "label": "Edge and CDN on-call handover, week of Mon 9 Nov"
+  },
+  {
+   "at": 1794272400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0043",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794319200000,
+   "duty": "d-aws-access-review",
+   "id": "ev-0044",
+   "label": "Quarterly AWS access review"
+  },
+  {
+   "at": 1794358800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0045",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794445200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0046",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794448800000,
+   "duty": "d-job-search-reindex",
+   "id": "ev-0047",
+   "label": "Search index rebuild run"
+  },
+  {
+   "at": 1794531600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0048",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794542400000,
+   "duty": "d-tls-payments",
+   "id": "ev-0049",
+   "label": "TLS certificate for payments.halden.io expires"
+  },
+  {
+   "at": 1794618000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0050",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794704400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0051",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794704400000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0052",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1794708000000,
+   "duty": "d-job-search-reindex",
+   "id": "ev-0053",
+   "label": "Search index rebuild run"
+  },
+  {
+   "at": 1794790800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0054",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794790800000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0055",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1794819600000,
+   "duty": "d-oncall-edge",
+   "id": "ev-0056",
+   "label": "Edge and CDN on-call handover, week of Mon 16 Nov"
+  },
+  {
+   "at": 1794823200000,
+   "duty": "d-churn-dashboard",
+   "id": "ev-0057",
+   "label": "Churn dashboard refresh"
+  },
+  {
+   "at": 1794877200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0058",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794956400000,
+   "duty": "d-codesign-windows",
+   "id": "ev-0059",
+   "label": "Windows code-signing certificate expires"
+  },
+  {
+   "at": 1794960000000,
+   "duty": "d-saml-azure-ad",
+   "id": "ev-0060",
+   "label": "SAML signing certificate for Azure AD: renewal reminder"
+  },
+  {
+   "at": 1794963600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0061",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795050000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0062",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795053600000,
+   "duty": "d-job-search-reindex",
+   "id": "ev-0063",
+   "label": "Search index rebuild run"
+  },
+  {
+   "at": 1795136400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0064",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795168800000,
+   "duty": "d-statuspage-report",
+   "id": "ev-0065",
+   "label": "Monthly status-page report"
+  },
+  {
+   "at": 1795222800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0066",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795309200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0067",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795309200000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0068",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1795312800000,
+   "duty": "d-job-search-reindex",
+   "id": "ev-0069",
+   "label": "Search index rebuild run"
+  },
+  {
+   "at": 1795395600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0070",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795395600000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0071",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1795424400000,
+   "duty": "d-oncall-edge",
+   "id": "ev-0072",
+   "label": "Edge and CDN on-call handover, week of Mon 23 Nov"
+  },
+  {
+   "at": 1795482000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0073",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795568400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0074",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795600800000,
+   "duty": "d-vat-filing-export",
+   "id": "ev-0075",
+   "label": "VAT filing export"
+  },
+  {
+   "at": 1795654800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0076",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795658400000,
+   "duty": "d-job-search-reindex",
+   "id": "ev-0077",
+   "label": "Search index rebuild run"
+  },
+  {
+   "at": 1795741200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0078",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795827600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0079",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795914000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0080",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795914000000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0081",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1795917600000,
+   "duty": "d-job-search-reindex",
+   "id": "ev-0082",
+   "label": "Search index rebuild run"
+  },
+  {
+   "at": 1796000400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0083",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1796000400000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0084",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1796029200000,
+   "duty": "d-oncall-edge",
+   "id": "ev-0085",
+   "label": "Edge and CDN on-call handover, week of Mon 30 Nov"
+  },
+  {
+   "at": 1796086800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0086",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1796169600000,
+   "duty": "d-saml-azure-ad",
+   "id": "ev-0087",
+   "label": "SAML signing certificate for Azure AD expires"
+  },
+  {
+   "at": 1796896800000,
+   "duty": "d-churn-dashboard",
+   "id": "ev-0088",
+   "label": "Churn dashboard refresh"
+  },
+  {
+   "at": 1796896800000,
+   "duty": "d-statuspage-report",
+   "id": "ev-0089",
+   "label": "Monthly status-page report"
+  },
+  {
+   "at": 1797328800000,
+   "duty": "d-vat-filing-export",
+   "id": "ev-0090",
+   "label": "VAT filing export"
+  }
+ ],
+ "joblogs": [
+  {
+   "actor": "scheduler",
+   "at": 1790989200000,
+   "id": "log-0001",
+   "job": "d-job-warehouse-snapshot",
+   "status": "failed"
+  },
+  {
+   "actor": "ines.iyer",
+   "at": 1791007200000,
+   "id": "log-0002",
+   "job": "d-job-warehouse-snapshot",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791079200000,
+   "id": "log-0003",
+   "job": "d-job-search-reindex",
+   "status": "failed"
+  },
+  {
+   "actor": "ines.iyer",
+   "at": 1791097200000,
+   "id": "log-0004",
+   "job": "d-job-search-reindex",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791421200000,
+   "id": "log-0005",
+   "job": "d-job-warehouse-snapshot",
+   "status": "failed"
+  },
+  {
+   "actor": "ines.iyer",
+   "at": 1791439200000,
+   "id": "log-0006",
+   "job": "d-job-warehouse-snapshot",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791507600000,
+   "id": "log-0007",
+   "job": "d-job-warehouse-snapshot",
+   "status": "failed"
+  },
+  {
+   "actor": "ines.iyer",
+   "at": 1791522000000,
+   "id": "log-0008",
+   "job": "d-job-warehouse-snapshot",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791684000000,
+   "id": "log-0009",
+   "job": "d-job-search-reindex",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791939600000,
+   "id": "log-0010",
+   "job": "d-job-warehouse-snapshot",
+   "status": "failed"
+  },
+  {
+   "actor": "ines.iyer",
+   "at": 1791957600000,
+   "id": "log-0011",
+   "job": "d-job-warehouse-snapshot",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792112400000,
+   "id": "log-0012",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792116000000,
+   "id": "log-0013",
+   "job": "d-job-search-reindex",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792198800000,
+   "id": "log-0014",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792202400000,
+   "id": "log-0015",
+   "job": "d-job-search-reindex",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792285200000,
+   "id": "log-0016",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "failed"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792371600000,
+   "id": "log-0017",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792458000000,
+   "id": "log-0018",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792544400000,
+   "id": "log-0019",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "failed"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792630800000,
+   "id": "log-0020",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792630800000,
+   "id": "log-0021",
+   "job": "d-job-warehouse-snapshot",
+   "status": "failed"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792634400000,
+   "id": "log-0022",
+   "job": "d-job-search-reindex",
+   "status": "succeeded"
+  },
+  {
+   "actor": "ines.iyer",
+   "at": 1792652400000,
+   "id": "log-0023",
+   "job": "d-job-warehouse-snapshot",
+   "status": "succeeded"
+  }
+ ],
+ "label": "FIXTURE",
+ "leave_at": 1792800000000,
+ "leaver": "ines.iyer",
+ "messages": [
+  {
+   "at": 1787659200000,
+   "author": "mira.abara",
+   "channel": "#general",
+   "id": "msg-0001",
+   "text": "Last day today. Thanks everyone, it's been a blast"
+  },
+  {
+   "at": 1787918400000,
+   "author": "nadia.novak",
+   "channel": "#general",
+   "id": "msg-0002",
+   "text": "Last day today. Thanks everyone, it's been a blast"
+  },
+  {
+   "at": 1789214400000,
+   "author": "kwame.engel",
+   "channel": "#general",
+   "id": "msg-0003",
+   "text": "Last day today. Thanks everyone, it's been a blast"
+  },
+  {
+   "at": 1789917720000,
+   "author": "sofia.nakamura",
+   "channel": "#data-eng",
+   "id": "msg-0004",
+   "text": "standup: finishing the api migration, then reviews"
+  },
+  {
+   "at": 1789984500000,
+   "author": "felix.okafor",
+   "channel": "#platform",
+   "id": "msg-0005",
+   "text": "PR for the checkout rate limiter is up, would love a review"
+  },
+  {
+   "at": 1790169540000,
+   "author": "felix.okafor",
+   "channel": "#platform",
+   "id": "msg-0006",
+   "text": "lunch order closes in 10"
+  },
+  {
+   "at": 1790249460000,
+   "author": "ines.iyer",
+   "channel": "#security",
+   "id": "msg-0007",
+   "text": "standup: finishing the ledger migration, then reviews"
+  },
+  {
+   "at": 1790261040000,
+   "author": "ines.iyer",
+   "channel": "#security",
+   "id": "msg-0008",
+   "text": "reminder: retro at 3pm"
+  },
+  {
+   "at": 1790674920000,
+   "author": "dev.quinn",
+   "channel": "#support",
+   "id": "msg-0009",
+   "text": "reminder: retro at 3pm"
+  },
+  {
+   "at": 1790939460000,
+   "author": "ines.iyer",
+   "channel": "#security",
+   "id": "msg-0010",
+   "text": "lunch order closes in 10"
+  },
+  {
+   "at": 1790959620000,
+   "author": "sofia.nakamura",
+   "channel": "#data-eng",
+   "id": "msg-0011",
+   "text": "payments dashboards moved to the new folder, links in the wiki"
+  },
+  {
+   "at": 1791098400000,
+   "author": "ines.iyer",
+   "channel": "#ops",
+   "id": "msg-0012",
+   "text": "fyi I babysit search-reindex. if it goes red just rerun it with --resume, I usually do it before standup"
+  },
+  {
+   "at": 1791720180000,
+   "author": "sofia.nakamura",
+   "channel": "#data-eng",
+   "id": "msg-0013",
+   "text": "deploying status v7.16 to prod"
+  },
+  {
+   "at": 1791809640000,
+   "author": "ines.iyer",
+   "channel": "#support-escalations",
+   "id": "msg-0014",
+   "text": "Spoke to Jonas Duarte at Brightwell Foods - I promised them the written RCA for last week's outage by Fri 13 Nov. I'll own that one."
+  },
+  {
+   "at": 1791833760000,
+   "author": "tariq.achebe",
+   "channel": "#billing",
+   "id": "msg-0015",
+   "text": "standup: finishing the webhooks migration, then reviews"
+  },
+  {
+   "at": 1791997320000,
+   "author": "ines.iyer",
+   "channel": "#cust-pinecrest-media",
+   "id": "msg-0016",
+   "text": "told Pinecrest Media we'd have a full audit-log export done by Tue 27 Oct, that's on me"
+  },
+  {
+   "at": 1792058400000,
+   "author": "bao.lund",
+   "channel": "#general",
+   "id": "msg-0017",
+   "text": "Heads up: Ines Iyer's last day is Fri 23 Oct. Grab them before then for anything they run."
+  },
+  {
+   "at": 1792087320000,
+   "author": "dev.quinn",
+   "channel": "#support",
+   "id": "msg-0018",
+   "text": "anyone seen elevated 5xx on checkout? looks fine now"
+  },
+  {
+   "at": 1792349940000,
+   "author": "felix.okafor",
+   "channel": "#general",
+   "id": "msg-0019",
+   "text": "Ines is the one who deals with the PagerDuty renewal, right?"
+  },
+  {
+   "at": 1792350360000,
+   "author": "sofia.nakamura",
+   "channel": "#general",
+   "id": "msg-0020",
+   "text": "yeah I think Ines handles PagerDuty, ask them"
+  },
+  {
+   "at": 1792418820000,
+   "author": "dev.quinn",
+   "channel": "#support",
+   "id": "msg-0021",
+   "text": "api dashboards moved to the new folder, links in the wiki"
+  },
+  {
+   "at": 1792436700000,
+   "author": "ines.iyer",
+   "channel": "#support-escalations",
+   "id": "msg-0022",
+   "text": "Kestrel Logistics asked about the uptime report again, I'll look"
+  },
+  {
+   "at": 1792507980000,
+   "author": "sofia.nakamura",
+   "channel": "#ops",
+   "id": "msg-0023",
+   "text": "isn't search-reindex Felix's thing these days?"
+  },
+  {
+   "at": 1792594800000,
+   "author": "ines.iyer",
+   "channel": "#security",
+   "id": "msg-0024",
+   "text": "writing up handover notes this week, shout if there's something I should cover"
+  },
+  {
+   "at": 1792653600000,
+   "author": "ines.iyer",
+   "channel": "#platform",
+   "id": "msg-0025",
+   "text": "warehouse-snapshot fell over overnight (the worker running out of memory), kicked it manually. all green now"
+  }
+ ],
+ "now": 1792713600000,
+ "people": [
+  {
+   "capacity": 2,
+   "id": "bao.lund",
+   "left_at": null,
+   "name": "Bao Lund",
+   "role": "Platform engineer",
+   "team": "Platform"
+  },
+  {
+   "capacity": 1,
+   "id": "dev.quinn",
+   "left_at": null,
+   "name": "Dev Quinn",
+   "role": "Customer success manager",
+   "team": "Support"
+  },
+  {
+   "capacity": 1,
+   "id": "felix.okafor",
+   "left_at": null,
+   "name": "Felix Okafor",
+   "role": "SRE",
+   "team": "Platform"
+  },
+  {
+   "capacity": 1,
+   "id": "ines.iyer",
+   "left_at": null,
+   "name": "Ines Iyer",
+   "role": "Security engineer",
+   "team": "Security"
+  },
+  {
+   "capacity": 2,
+   "id": "kwame.engel",
+   "left_at": 1789232400000,
+   "name": "Kwame Engel",
+   "role": "Support lead",
+   "team": "Support"
+  },
+  {
+   "capacity": 1,
+   "id": "mira.abara",
+   "left_at": 1787677200000,
+   "name": "Mira Abara",
+   "role": "SRE",
+   "team": "Platform"
+  },
+  {
+   "capacity": 3,
+   "id": "nadia.novak",
+   "left_at": 1787936400000,
+   "name": "Nadia Novak",
+   "role": "Analytics engineer",
+   "team": "Data"
+  },
+  {
+   "capacity": 2,
+   "id": "sofia.nakamura",
+   "left_at": null,
+   "name": "Sofia Nakamura",
+   "role": "Data engineer",
+   "team": "Data"
+  },
+  {
+   "capacity": 2,
+   "id": "tariq.achebe",
+   "left_at": null,
+   "name": "Tariq Achebe",
+   "role": "Senior backend engineer",
+   "team": "Billing"
+  }
+ ],
+ "records": [
+  {
+   "duty": "d-aws-access-review",
+   "id": "rec-0001",
+   "person": "felix.okafor",
+   "since": 1734393600000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-aws-access-review",
+   "id": "rec-0002",
+   "person": "ines.iyer",
+   "since": 1758931200000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-churn-dashboard",
+   "id": "rec-0003",
+   "person": "sofia.nakamura",
+   "since": 1786752000000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-codesign-windows",
+   "id": "rec-0004",
+   "person": "ines.iyer",
+   "since": 1740873600000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-domain-halden-io",
+   "id": "rec-0005",
+   "person": "ines.iyer",
+   "since": 1734393600000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "rec-0006",
+   "person": "tariq.achebe",
+   "since": 1786406400000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-oncall-edge",
+   "id": "rec-0007",
+   "rota": "rota-edge",
+   "type": "ROUTES_TO"
+  },
+  {
+   "duty": "d-partner-key-rotation",
+   "id": "rec-0008",
+   "person": "mira.abara",
+   "since": 1756252800000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-saml-azure-ad",
+   "id": "rec-0009",
+   "person": "ines.iyer",
+   "since": 1734134400000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-statuspage-report",
+   "id": "rec-0010",
+   "person": "dev.quinn",
+   "since": 1775433600000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-tls-payments",
+   "id": "rec-0011",
+   "person": "ines.iyer",
+   "since": 1743206400000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-vat-filing-export",
+   "id": "rec-0012",
+   "person": "tariq.achebe",
+   "since": 1768262400000,
+   "type": "OWNER"
+  },
+  {
+   "from": 1792400400000,
+   "id": "rec-0013",
+   "person": "felix.okafor",
+   "rota": "rota-edge",
+   "to": 1793005200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793005200000,
+   "id": "rec-0014",
+   "person": "sofia.nakamura",
+   "rota": "rota-edge",
+   "to": 1793610000000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793610000000,
+   "id": "rec-0015",
+   "person": "kwame.engel",
+   "rota": "rota-edge",
+   "to": 1794214800000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794214800000,
+   "id": "rec-0016",
+   "person": "felix.okafor",
+   "rota": "rota-edge",
+   "to": 1794819600000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794819600000,
+   "id": "rec-0017",
+   "person": "kwame.engel",
+   "rota": "rota-edge",
+   "to": 1795424400000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1795424400000,
+   "id": "rec-0018",
+   "person": "bao.lund",
+   "rota": "rota-edge",
+   "to": 1796029200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1796029200000,
+   "id": "rec-0019",
+   "person": "felix.okafor",
+   "rota": "rota-edge",
+   "to": 1796634000000,
+   "type": "SHIFT"
+  },
+  {
+   "from_person": "kwame.engel",
+   "id": "rec-0020",
+   "to_person": "ines.iyer",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "duty": "d-aws-access-review",
+   "id": "rec-0021",
+   "person": "felix.okafor",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-aws-access-review",
+   "id": "rec-0022",
+   "person": "tariq.achebe",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-churn-dashboard",
+   "id": "rec-0023",
+   "person": "felix.okafor",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-codesign-windows",
+   "id": "rec-0024",
+   "person": "bao.lund",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-domain-halden-io",
+   "id": "rec-0025",
+   "person": "bao.lund",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-domain-halden-io",
+   "id": "rec-0026",
+   "person": "felix.okafor",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-domain-halden-io",
+   "id": "rec-0027",
+   "person": "tariq.achebe",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "rec-0028",
+   "person": "dev.quinn",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "rec-0029",
+   "person": "felix.okafor",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-search-reindex",
+   "id": "rec-0030",
+   "person": "bao.lund",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-search-reindex",
+   "id": "rec-0031",
+   "person": "tariq.achebe",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-partner-key-rotation",
+   "id": "rec-0032",
+   "person": "bao.lund",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-partner-key-rotation",
+   "id": "rec-0033",
+   "person": "dev.quinn",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-saml-azure-ad",
+   "id": "rec-0034",
+   "person": "felix.okafor",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-statuspage-report",
+   "id": "rec-0035",
+   "person": "sofia.nakamura",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-tls-payments",
+   "id": "rec-0036",
+   "person": "felix.okafor",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-vat-filing-export",
+   "id": "rec-0037",
+   "person": "bao.lund",
+   "type": "CAN"
+  }
+ ],
+ "seed": 2002,
+ "tickets": [
+  {
+   "at": 1791456900000,
+   "author": "Tomas Ferreira (Kestrel Logistics)",
+   "id": "tkt-0001",
+   "text": "Webhook deliveries delayed by ~10 minutes"
+  },
+  {
+   "at": 1791833460000,
+   "author": "Anika Haddad (Quayside Energy)",
+   "id": "tkt-0002",
+   "text": "Can't log in via SSO since this morning"
+  },
+  {
+   "at": 1791950040000,
+   "author": "Jonas Duarte (Brightwell Foods)",
+   "id": "tkt-0003",
+   "text": "Following up on our call with Ines: you committed to the written RCA for last week's outage by Fri 13 Nov. Please confirm we're on track."
+  },
+  {
+   "at": 1792040520000,
+   "author": "Hana Castillo (Pinecrest Media)",
+   "id": "tkt-0004",
+   "text": "Following up on our call with Ines: you committed to a full audit-log export by Tue 27 Oct. Please confirm we're on track."
+  },
+  {
+   "at": 1792684680000,
+   "author": "Clara Osei (Brightwell Foods)",
+   "id": "tkt-0005",
+   "text": "Invoice for last month shows the wrong VAT number"
+  }
+ ],
+ "window_days": 30
+}

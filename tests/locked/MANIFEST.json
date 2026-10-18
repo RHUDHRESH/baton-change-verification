@@ -1,0 +1,10 @@
+{
+  "origin": "reference/Baton_build_pack/repo_snapshot/checks/locked/rehearsal_core/test_rehearsal_core.py",
+  "source_sha256": "ebd2635f824a7ba3447382a93f6fcc6292700595f8bcfca1e672359f4ba48c05",
+  "notes": "Three original test functions (9 cases) and _setup extracted unchanged; CLI fixture adapted for Windows; independent reference copied unchanged. Original ZIP checks remain untouched.",
+  "files": {
+    "tests/locked/M01/test_generator_contract.py": "66c11b1e322eab9ff0c55cb7e50bf30eb0a270450e67eb787813ff032ef89c2b",
+    "tests/locked/M01/conftest.py": "35ed6e4c0204cc2d5e2c5ba7874388725325cb9c8333b6579fda183a29639037",
+    "tests/support/oracle.py": "4225369f8ef84140bd8b42aba99b79a224092c64e4c982eb48ba1c6fa5ba95df"
+  }
+}

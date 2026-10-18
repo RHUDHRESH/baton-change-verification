@@ -1,0 +1,29 @@
+{
+  "model": "claude-haiku (via Claude Code subagent, paged Read, no code)",
+  "question": "The person `leaver` leaves at `leave_at`. Over the window [now, now + window_days*day_ms), which scheduled events will have nobody able to act (because the leaver was the one who handled them: directly, through an on-call escalation chain, or through duties visible only in chat/job logs/tickets)? Also: who owns each duty right now, according to everything you read?",
+  "failures": [
+    {"duty": "d-oncall-payments-api", "at": 1793005200000, "why": "Payments API on-call handover week of Mon 26 Oct: rota slot is noah.achebe (rec-0012), who left 2 Oct; his only escalation is lucia.varga (rec-0019), who leaves 23 Oct"},
+    {"duty": "d-oncall-payments-api", "at": 1794819600000, "why": "Payments API on-call handover week of Mon 16 Nov: rota slot is noah.achebe (rec-0015), who has left; escalation only to lucia.varga, who has left"},
+    {"duty": "d-tls-api", "at": 1793714400000, "why": "api.haldenhq.net renewal reminder: sole OWNER is lucia.varga (rec-0009), no successor recorded"},
+    {"duty": "d-codesign-windows", "at": 1793912400000, "why": "Windows code-signing certificate expiry: sole OWNER is lucia.varga (rec-0002), no successor recorded"},
+    {"duty": "d-tls-api", "at": 1794924000000, "why": "api.haldenhq.net certificate expiry: sole OWNER is lucia.varga (rec-0009), no successor recorded"},
+    {"duty": "chat-pinecrest-eu-move", "at": 1793664000000, "why": "Lucia promised Pinecrest Media the EU-region move by Tue 3 Nov (msg-0011, tkt-0003); no owner record; she was to ping Priya Brandt when done. Due time inferred as 00:00 UTC of the due day"},
+    {"duty": "chat-tidemark-audit-export", "at": 1793232000000, "why": "Lucia promised Tidemark Retail a full audit-log export by Thu 29 Oct (msg-0015, tkt-0004 asks whether the date still holds); no owner record; she was to ping Ravi Castillo when done. Due time inferred as 00:00 UTC of the due day"},
+    {"duty": "d-job-invoice-pdf-batch", "at": 1792807200000, "why": "Conditional on a scheduler failure: no OWNER record. Scheduler failed 3 times (log-0001, log-0003, log-0005) and lucia.varga reran each one by hand (log-0002, log-0004, log-0006; msg-0012). This is the first run after she leaves. Later daily runs are not listed individually"}
+  ],
+  "owners": [
+    {"duty": "d-churn-dashboard", "person": "tariq.abara", "basis": "OWNER rec-0001; active"},
+    {"duty": "d-codesign-windows", "person": "lucia.varga", "basis": "OWNER rec-0002; leaves 23 Oct with no successor recorded"},
+    {"duty": "d-dr-runbook-review", "person": "bao.tanaka", "basis": "OWNER rec-0003; bao left before now (left_at 1786467600000), so no live owner. Not caused by the leaver, so not in failures"},
+    {"duty": "d-job-billing-reconcile", "person": "felix.iyer", "basis": "OWNER rec-0004; active; joblogs show scheduler runs only"},
+    {"duty": "d-job-invoice-pdf-batch", "person": "lucia.varga", "basis": "No OWNER record. De facto handler per joblogs log-0002/0004/0006 and msg-0012. msg-0020 asks whether it is tomas.duarte's, unconfirmed"},
+    {"duty": "d-oncall-payments-api", "person": "felix.iyer", "basis": "Current SHIFT rec-0011 on rota-payments-api (to 26 Oct); escalates to tomas.duarte (rec-0018)"},
+    {"duty": "d-pg-failover-drill", "person": "tomas.duarte", "basis": "OWNER rec-0007; co-owner lucia.varga (rec-0006) leaves"},
+    {"duty": "d-soc2-evidence", "person": "tariq.abara", "basis": "OWNER rec-0008; active"},
+    {"duty": "d-tls-api", "person": "lucia.varga", "basis": "OWNER rec-0009; leaves 23 Oct with no successor recorded"},
+    {"duty": "d-tls-status", "person": "lucia.varga", "basis": "OWNER rec-0010; leaves 23 Oct with no successor recorded"},
+    {"duty": "chat-pinecrest-eu-move", "person": "lucia.varga", "basis": "Own promise in msg-0011 and tkt-0003; no OWNER record"},
+    {"duty": "chat-tidemark-audit-export", "person": "lucia.varga", "basis": "Own promise in msg-0015 and tkt-0004; no OWNER record"}
+  ],
+  "notes": "Read all 1254 lines of world.json in one Read call, no paging needed, no code run. CAN records were ignored per the brief; they would name felix.iyer and tariq.abara for the code-signing cert and tariq.abara for invoice-pdf-batch, and would change the picture if they count as ability to act. Not listed as failures because they are undated: Brightwell Foods uptime report (msg-0019, lucia said I'll look) and Twilio renewal (msg-0017/msg-0018, owner unclear). Due times for chat commitments are inferred as 00:00 UTC of the due day."
+}

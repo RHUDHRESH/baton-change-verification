@@ -1,0 +1,99 @@
+{
+ "beliefs": [
+  {
+   "claim": "Hana says she babysits warehouse-snapshot and reruns it with --resume when it goes red before standup, and joblogs show succeeded runs by hana.sharma.",
+   "duty": "d-job-warehouse-snapshot",
+   "duty_name": "Warehouse snapshot to cold storage",
+   "events": [],
+   "id": "b-01",
+   "kind": "job",
+   "person": "hana.sharma",
+   "sources": [
+    "msg-0009",
+    "log-0002",
+    "log-0005",
+    "log-0007",
+    "log-0009"
+   ]
+  },
+  {
+   "claim": "Tomas Duarte thinks Felix Petrov owns warehouse-snapshot now, having seen him poking at it.",
+   "duty": "d-job-warehouse-snapshot",
+   "duty_name": "Warehouse snapshot to cold storage",
+   "events": [],
+   "id": "b-02",
+   "kind": "job",
+   "person": "felix.petrov",
+   "sources": [
+    "msg-0011"
+   ]
+  },
+  {
+   "claim": "Hana committed to Oaktree Clinics a fix for the CSV export encoding by Tue 3 Nov and said she would ping Bao when it is out; Bao Brandt's ticket repeats that Hana promised the fix by Tue 3 Nov.",
+   "duty": "promise-oaktree-clinics-csv-encoding",
+   "duty_name": "CSV export encoding fix for Oaktree Clinics",
+   "events": [
+    {
+     "at": 1793664000000,
+     "label": "CSV export encoding fix due to Oaktree Clinics (Tue 3 Nov, no time stated, start of day used)"
+    }
+   ],
+   "id": "b-03",
+   "kind": "promise",
+   "person": "hana.sharma",
+   "sources": [
+    "msg-0012",
+    "tkt-0003"
+   ]
+  },
+  {
+   "claim": "Hana said she would look into Quayside Energy's repeated request for the uptime report.",
+   "duty": "promise-quayside-energy-uptime-report",
+   "duty_name": "Quayside Energy uptime report",
+   "events": [],
+   "id": "b-04",
+   "kind": "promise",
+   "person": "hana.sharma",
+   "sources": [
+    "msg-0008"
+   ]
+  },
+  {
+   "claim": "Felix believes Hana handled the PagerDuty renewal last year, and Tomas asked whether Hana renews it; no one confirmed it in these messages.",
+   "duty": "other-pagerduty-renewal",
+   "duty_name": "PagerDuty renewal",
+   "events": [],
+   "id": "b-05",
+   "kind": "other",
+   "person": "hana.sharma",
+   "sources": [
+    "msg-0006",
+    "msg-0007"
+   ]
+  },
+  {
+   "claim": "Hana said she is writing up handover notes this week and asked people to tell her what to cover.",
+   "duty": "promise-handover-notes",
+   "duty_name": "Handover notes",
+   "events": [
+    {
+     "at": 1792800000000,
+     "label": "Handover notes expected this week, before Hana's last day Fri 23 Oct (inferred from 'this week')"
+    }
+   ],
+   "id": "b-06",
+   "kind": "promise",
+   "person": "hana.sharma",
+   "sources": [
+    "msg-0017"
+   ]
+  }
+ ],
+ "created": "2026-10-18T06:08:21Z",
+ "input_sha": "05b61826bd27f7462c3f152831425812412a7922dcd89ea40a1f3bfb6e5d4428",
+ "model": "claude-haiku-via-harness",
+ "prompt_version": "harness",
+ "provenance": "Produced by a Claude Haiku subagent in Claude Code (the harness, not the API) reading this world's messages, job logs and tickets for seed 7 (python -m baton generate --seed 7). No token usage was recorded. Migrated from fixtures/beliefs_seed7.json. Re-keyed 2026-10-18 (cut round 1) from the whole world.json sha (world_sha, kept for the record) to the sha of only what this step reads, extract_input(world): clock, people id/name/team/role/left_at, duties, records except CAN, messages, job logs, tickets, as canonical compact JSON, after world.json gained capability data (CAN records, people[].capacity) that this step never sees. Verified that this input for seed 7 is identical to the world the entry was produced from. Contents unchanged; old file 3f598e4eb3fdff1c-claude-haiku-via-harness-6777c647fedd586e.json.",
+ "usage": null,
+ "world_sha": "3f598e4eb3fdff1c39b1bd449b33fa0fa25ff7f08fb159b431bc36a2ea544f67"
+}

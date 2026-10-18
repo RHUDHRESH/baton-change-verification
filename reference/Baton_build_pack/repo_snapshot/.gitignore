@@ -1,0 +1,11 @@
+# karpathy-loop run state (local; survives git reset because it is untracked)
+loop/results.tsv
+loop/opt_results.tsv
+loop/junit.xml
+loop/last_*.json
+loop/last_run.log
+loop/state/
+loop/rounds/
+loop/disputes/
+__pycache__/
+.pytest_cache/

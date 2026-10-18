@@ -1,0 +1,31 @@
+services:
+  falkordb:
+    image: falkordb/falkordb:v4.22.1   # pinned: CCH/maxFlow behaviour verified on this version
+    ports: ["127.0.0.1:6379:6379", "127.0.0.1:3000:3000"]   # 3000 = FalkorDB Browser (judge view, local only)
+    restart: unless-stopped
+    volumes: ["graph-data:/var/lib/falkordb/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  api:
+    build: { context: ., dockerfile: deploy/Dockerfile }
+    environment:
+      FALKORDB_HOST: falkordb
+      FALKORDB_PORT: "6379"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      BATON_OFFLINE: ${BATON_OFFLINE:-1}
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: ["baton-data:/data"]
+    depends_on:
+      falkordb: {condition: service_healthy}
+    restart: unless-stopped
+  checks:
+    profiles: ["checks"]
+    build: {context: ., dockerfile: deploy/Dockerfile.checks}
+    volumes: [".:/workspace"]
+    command: ["python", "scripts/check_all.py"]
+volumes:
+  graph-data:
+  baton-data:

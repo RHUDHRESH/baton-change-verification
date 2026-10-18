@@ -1,0 +1,86 @@
+{
+ "beliefs": [
+  {
+   "claim": "Amara has been manually re-running the usage metering rollup after scheduler failures, most recently fixing expired DB credentials.",
+   "duty": "d-job-usage-rollup",
+   "duty_name": "Usage metering rollup",
+   "events": [],
+   "id": "b-01",
+   "kind": "job",
+   "person": "amara.sharma",
+   "sources": [
+    "msg-0017",
+    "log-0002",
+    "log-0008",
+    "log-0012",
+    "log-0024"
+   ]
+  },
+  {
+   "claim": "Amara babysits the warehouse snapshot job and reruns it with --resume when it fails, usually before standup.",
+   "duty": "d-job-warehouse-snapshot",
+   "duty_name": "Warehouse snapshot to cold storage",
+   "events": [],
+   "id": "b-02",
+   "kind": "job",
+   "person": "amara.sharma",
+   "sources": [
+    "msg-0020",
+    "log-0004",
+    "log-0006",
+    "log-0010",
+    "log-0018",
+    "log-0028"
+   ]
+  },
+  {
+   "claim": "Lena thinks Freya took over the usage metering rollup last month, though she is only 'pretty sure' and no record or log confirms it.",
+   "duty": "d-job-usage-rollup",
+   "duty_name": "Usage metering rollup",
+   "events": [],
+   "id": "b-03",
+   "kind": "job",
+   "person": "freya.petrov",
+   "sources": [
+    "msg-0022"
+   ]
+  },
+  {
+   "claim": "Amara promised Norvale Bank SSO through Google Workspace by Tue 3 Nov, and the customer is now asking for confirmation.",
+   "duty": "promise-norvale-bank",
+   "duty_name": "SSO via Google Workspace for Norvale Bank",
+   "events": [
+    {
+     "at": 1793750399000,
+     "label": "SSO via Google Workspace delivered to Norvale Bank"
+    }
+   ],
+   "id": "b-04",
+   "kind": "promise",
+   "person": "amara.sharma",
+   "sources": [
+    "msg-0012",
+    "tkt-0003"
+   ]
+  },
+  {
+   "claim": "Amara told the team she would look into Pinecrest Media's repeated request about the uptime report, with no date given.",
+   "duty": "promise-pinecrest-media",
+   "duty_name": "Uptime report follow-up for Pinecrest Media",
+   "events": [],
+   "id": "b-05",
+   "kind": "promise",
+   "person": "amara.sharma",
+   "sources": [
+    "msg-0009"
+   ]
+  }
+ ],
+ "created": "2026-10-18T06:38:30Z",
+ "input_sha": "8aaf72c67e6b4c717a664df838f844820a39c28b8a65770c3c13753c51a3962d",
+ "model": "claude-haiku-via-harness",
+ "prompt_version": "harness",
+ "provenance": "Produced by a Claude Haiku subagent in Claude Code (the harness, not the API) reading this world's messages, job logs and tickets for seed 101 (python -m baton generate --seed 101). The answer key was moved out of the folder before the run. No token usage recorded.",
+ "usage": null,
+ "world_sha": "49d716ea923afa90b2126359547d288e72c25fa5db898253120a7f16ce6ce1f3"
+}

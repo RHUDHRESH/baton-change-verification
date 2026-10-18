@@ -1,0 +1,26 @@
+{
+  "model": "claude-haiku (via Claude Code subagent, paged Read, no code)",
+  "question": "The person `leaver` leaves at `leave_at`. Over the window [now, now + window_days*day_ms), which scheduled events will have nobody able to act (because the leaver was the one who handled them: directly, through an on-call escalation chain, or through duties visible only in chat/job logs/tickets)? Also: who owns each duty right now, according to everything you read?",
+  "failures": [
+    {
+      "duty": "chat-norvale-rca",
+      "at": 1793577600000,
+      "why": "Written RCA for Norvale Bank outage promised by bao.okafor 'by Tue 27 Oct' (msg-0012; ticket tkt-0003 is chasing it). No OWNER or CAN record for it, and no successor named. Inferred due time = end of Tue 27 Oct UTC."
+    }
+  ],
+  "owners": [
+    {"duty": "d-apns-halden-pay", "person": "bao.okafor", "basis": "OWNER rec-0001; leaver, no successor recorded. CAN lucia.engel, ravi.halvorsen"},
+    {"duty": "d-churn-dashboard", "person": "sofia.silva", "basis": "OWNER rec-0002"},
+    {"duty": "d-job-billing-reconcile", "person": "emeka.lund", "basis": "No OWNER record. Chat only: ravi.halvorsen msg-0021 says Emeka owns it 'I think' (unconfirmed). Emeka has no CAN; only CAN is ravi.halvorsen"},
+    {"duty": "d-job-payroll-export", "person": "ingrid.varga", "basis": "OWNER rec-0003. CAN ingrid.varga, lucia.engel"},
+    {"duty": "d-job-usage-rollup", "person": "bao.okafor", "basis": "No OWNER record. De facto handler: manual reruns in job logs (log-0004, 0006, 0025, 0034) and msg-0023 'I'll keep an eye on it'. Leaver, no successor. CAN omar.brandt, ravi.halvorsen"},
+    {"duty": "d-job-warehouse-snapshot", "person": "ingrid.varga", "basis": "OWNER rec-0004. CAN emeka.lund, ingrid.varga"},
+    {"duty": "d-oncall-core-platform", "person": "sofia.silva", "basis": "Current on-call per SHIFT rec-0012 (covers now). Only CAN is sofia.silva (rec-0040). Routes to rota-core-platform"},
+    {"duty": "d-oncall-payments-api", "person": "emeka.lund", "basis": "Current on-call per SHIFT rec-0011. Only CAN is amara.quinn (rec-0041). Emeka escalates to omar.brandt"},
+    {"duty": "d-pentest-scoping", "person": "bao.okafor", "basis": "OWNER rec-0007; leaver, co-owner"},
+    {"duty": "d-pentest-scoping", "person": "jonas.abara", "basis": "OWNER rec-0008; remains after leave. CAN ravi.halvorsen"},
+    {"duty": "d-soc2-evidence", "person": "omar.brandt", "basis": "OWNER rec-0009"},
+    {"duty": "d-tls-search", "person": "bao.okafor", "basis": "OWNER rec-0010; leaver, no successor recorded. Renewal ticket opened before leave (ev-0006). CAN amara.quinn, ingrid.varga, lucia.engel"}
+  ],
+  "notes": "Read all of world.json (1657 lines) in one Read call, no gaps, no code. Every in-window scheduled event after leave_at has at least one live person with an OWNER or CAN record, so none are strict failures. At-risk, not listed as failures: billing-reconcile and usage-rollup have no OWNER record (leaver did the manual reruns; billing's only CAN is a CSM); lucia.engel's core-platform shift from 2 Nov (ev-0039) escalates only to bao.okafor, and sofia.silva (CAN) is off-shift; the payments shift from 9 Nov (ev-0060) names tariq.sharma, who left before now; apns renewal reminder (ev-0096) falls 12h after window end. Not listed: Oaktree uptime report (msg-0017) and PagerDuty renewal (msg-0018/0019), both chat-only with no due date; bao's handover notes (msg-0022) are not in the data."
+}

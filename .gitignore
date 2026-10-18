@@ -8,3 +8,8 @@ artifacts/
 .env
 .env.*
 !.env.example
+output/
+.playwright-cli/
+loop/junit.xml
+loop/last_run.log
+loop/last_score.json

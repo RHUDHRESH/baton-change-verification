@@ -1,0 +1,97 @@
+{
+ "beliefs": [
+  {
+   "claim": "Clara Engel told Oaktree Clinics she would deliver a rate-limit bump to 500 req/s by Mon 2 Nov, and a ticket from Oaktree repeats that commitment.",
+   "duty": "promise-oaktree-clinics",
+   "duty_name": "Rate-limit bump to 500 req/s for Oaktree Clinics",
+   "events": [
+    {
+     "at": 1793577600000,
+     "label": "Rate-limit bump to 500 req/s due"
+    }
+   ],
+   "id": "b-01",
+   "kind": "promise",
+   "person": "clara.engel",
+   "sources": [
+    "msg-0009",
+    "tkt-0003"
+   ]
+  },
+  {
+   "claim": "Clara Engel told Tidemark Retail the written RCA for last week outage would be done by Wed 4 Nov, and a ticket from Tidemark repeats that commitment.",
+   "duty": "promise-tidemark-retail",
+   "duty_name": "Written RCA for Tidemark Retail outage",
+   "events": [
+    {
+     "at": 1793750400000,
+     "label": "Written RCA for Tidemark Retail due"
+    }
+   ],
+   "id": "b-02",
+   "kind": "promise",
+   "person": "clara.engel",
+   "sources": [
+    "msg-0011",
+    "tkt-0004"
+   ]
+  },
+  {
+   "claim": "Clara Engel has re-run the GDPR deletion sweep by hand after scheduled failures.",
+   "duty": "d-job-gdpr-sweep",
+   "duty_name": "GDPR deletion sweep",
+   "events": [],
+   "id": "b-03",
+   "kind": "job",
+   "person": "clara.engel",
+   "sources": [
+    "msg-0005",
+    "log-0002",
+    "log-0004"
+   ]
+  },
+  {
+   "claim": "A chat message from Nadia Castillo says Tariq Novak now owns the GDPR deletion sweep.",
+   "duty": "d-job-gdpr-sweep",
+   "duty_name": "GDPR deletion sweep",
+   "events": [],
+   "id": "b-04",
+   "kind": "job",
+   "person": "tariq.novak",
+   "sources": [
+    "msg-0015"
+   ]
+  },
+  {
+   "claim": "Anika Tanaka says in chat that Clara Engel handles the Snowflake renewal.",
+   "duty": "other-snowflake-renewal",
+   "duty_name": "Snowflake renewal",
+   "events": [],
+   "id": "b-05",
+   "kind": "other",
+   "person": "clara.engel",
+   "sources": [
+    "msg-0013"
+   ]
+  },
+  {
+   "claim": "Clara Engel said in chat she would look into the Norvale Bank request for the uptime report.",
+   "duty": "other-norvale-bank-uptime-report",
+   "duty_name": "Norvale Bank uptime report request",
+   "events": [],
+   "id": "b-06",
+   "kind": "other",
+   "person": "clara.engel",
+   "sources": [
+    "msg-0018"
+   ]
+  }
+ ],
+ "created": "2026-10-18T06:38:30Z",
+ "input_sha": "1036448a1f3e79aecf240ce6bf06472286f39f9b8af981ccde56e5bddf3919aa",
+ "model": "claude-haiku-via-harness",
+ "prompt_version": "harness",
+ "provenance": "Produced by a Claude Haiku subagent in Claude Code (the harness, not the API) reading this world's messages, job logs and tickets for seed 303 (python -m baton generate --seed 303). The answer key was moved out of the folder before the run. No token usage recorded.",
+ "usage": null,
+ "world_sha": "24de3c2850b1ead1fc13edf4da96b7a4a7ea628faec9ea523e4f99375d3c792b"
+}

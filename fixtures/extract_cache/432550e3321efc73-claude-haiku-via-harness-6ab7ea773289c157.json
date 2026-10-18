@@ -1,0 +1,95 @@
+{
+ "beliefs": [
+  {
+   "claim": "Omar Rossi has been re-running the payroll export by hand after scheduler failures, on top of the scheduled runs.",
+   "duty": "d-job-payroll-export",
+   "duty_name": "Payroll export to Ledgerly",
+   "events": [],
+   "id": "b-01",
+   "kind": "job",
+   "person": "omar.rossi",
+   "sources": [
+    "msg-0018",
+    "log-0002",
+    "log-0010",
+    "log-0013"
+   ]
+  },
+  {
+   "claim": "Omar Rossi has been re-running the warehouse snapshot to cold storage by hand after scheduler failures and said he would keep an eye on it.",
+   "duty": "d-job-warehouse-snapshot",
+   "duty_name": "Warehouse snapshot to cold storage",
+   "events": [],
+   "id": "b-02",
+   "kind": "job",
+   "person": "omar.rossi",
+   "sources": [
+    "msg-0019",
+    "log-0004",
+    "log-0006",
+    "log-0017"
+   ]
+  },
+  {
+   "claim": "Hana Duarte reportedly took over the payroll export from Omar Rossi, per a single chat line that hedges with 'I think'.",
+   "duty": "d-job-payroll-export",
+   "duty_name": "Payroll export to Ledgerly",
+   "events": [],
+   "id": "b-03",
+   "kind": "job",
+   "person": "hana.duarte",
+   "sources": [
+    "msg-0023"
+   ]
+  },
+  {
+   "claim": "Omar Rossi promised Norvale Bank (Clara Abara) a fix for the CSV export encoding by Tue 27 Oct and said he would own it, and the customer's ticket repeats that commitment.",
+   "duty": "promise-norvale-bank",
+   "duty_name": "CSV export encoding fix for Norvale Bank",
+   "events": [
+    {
+     "at": 1793059200000,
+     "label": "Promised CSV export encoding fix due (Tue 27 Oct)"
+    }
+   ],
+   "id": "b-04",
+   "kind": "promise",
+   "person": "omar.rossi",
+   "sources": [
+    "msg-0014",
+    "tkt-0003"
+   ]
+  },
+  {
+   "claim": "Omar Rossi said he would look into Quayside Energy's repeated question about the uptime report; this is a tentative 'I'll look' with no due date or firm commitment stated.",
+   "duty": "promise-quayside-energy",
+   "duty_name": "Uptime report follow-up for Quayside Energy",
+   "events": [],
+   "id": "b-05",
+   "kind": "promise",
+   "person": "omar.rossi",
+   "sources": [
+    "msg-0017"
+   ]
+  },
+  {
+   "claim": "Omar Rossi is believed to handle the Cloudflare renewal, per Hana Duarte's hedged guess ('I think'), which is not confirmed by any ownership record.",
+   "duty": "other-cloudflare-renewal",
+   "duty_name": "Cloudflare renewal",
+   "events": [],
+   "id": "b-06",
+   "kind": "other",
+   "person": "omar.rossi",
+   "sources": [
+    "msg-0021"
+   ]
+  }
+ ],
+ "created": "2026-10-18T06:38:30Z",
+ "input_sha": "432550e3321efc733cac76ac9de10e6a80dc559070dd749b8ec4d561b1475ec4",
+ "model": "claude-haiku-via-harness",
+ "prompt_version": "harness",
+ "provenance": "Produced by a Claude Haiku subagent in Claude Code (the harness, not the API) reading this world's messages, job logs and tickets for seed 202 (python -m baton generate --seed 202). The answer key was moved out of the folder before the run. No token usage recorded.",
+ "usage": null,
+ "world_sha": "8bf2adb3675a2bfc9a735351b65222078ac893e27a1b9accd71c4b586ebcb266"
+}

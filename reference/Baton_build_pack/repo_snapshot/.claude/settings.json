@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(/checks/locked/**)",
+      "Edit(/loop/bin/**)",
+      "Edit(/.claude/settings.json)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/loop/bin/guard_locked.py"
+          }
+        ]
+      }
+    ]
+  }
+}

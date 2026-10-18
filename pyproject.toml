@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "baton-departure"
+version = "0.1.0"
+description = "Evidence-backed departure rehearsal with FalkorDB"
+requires-python = ">=3.10"
+dependencies = ["falkordb==1.8.0", "redis==8.1.0", "fastapi==0.143.3", "uvicorn==0.54.0", "mcp==2.3.0", "openai==3.35.1"]
+
+[project.scripts]
+baton = "baton.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["baton*", "server*", "third_party*"]
+
+[tool.setuptools.package-data]
+third_party = ["amb/LICENSE"]
+
+[tool.setuptools.data-files]
+"share/baton/web" = ["web/index.html", "web/app.js", "web/styles.css"]
+"share/baton/web/samples" = ["web/samples/*.json"]
+"share/baton/fixtures/extract_cache" = ["fixtures/extract_cache/*.json"]
+"share/baton/fixtures/lane_a_cache" = ["fixtures/lane_a_cache/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/test_phase_one.py", "tests/locked/M01"]
+pythonpath = [".", "tests/support"]
+addopts = "-ra"

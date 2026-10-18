@@ -1,0 +1,50 @@
+{
+ "model_note": "cached extractions labelled claude-haiku-via-harness (Claude Haiku subagent in Claude Code)",
+ "rows": [
+  {
+   "beliefs": 6,
+   "false_promoted": [],
+   "promoted": 2,
+   "refused": 4,
+   "seed": 7,
+   "true_duties": 2,
+   "true_found_and_promoted": 2,
+   "true_found_by_model": 2
+  },
+  {
+   "beliefs": 5,
+   "false_promoted": [],
+   "promoted": 3,
+   "refused": 2,
+   "seed": 101,
+   "true_duties": 3,
+   "true_found_and_promoted": 3,
+   "true_found_by_model": 3
+  },
+  {
+   "beliefs": 6,
+   "false_promoted": [],
+   "promoted": 3,
+   "refused": 3,
+   "seed": 202,
+   "true_duties": 3,
+   "true_found_and_promoted": 3,
+   "true_found_by_model": 3
+  },
+  {
+   "beliefs": 6,
+   "false_promoted": [],
+   "promoted": 3,
+   "refused": 3,
+   "seed": 303,
+   "true_duties": 3,
+   "true_found_and_promoted": 3,
+   "true_found_by_model": 3
+  }
+ ],
+ "summary": {
+  "false_promotions": 0,
+  "found_share_of_true": 1.0,
+  "promoted_share_of_found": 1.0
+ }
+}

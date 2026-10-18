@@ -1,0 +1,92 @@
+{
+ "rows": [
+  {
+   "answered": 1,
+   "case": "eval/results/lane_a_runs/2000_x1",
+   "false_claims_adopted": [
+    "emeka.lund->d-job-billing-reconcile"
+   ],
+   "false_claims_planted": 2,
+   "hits": 0,
+   "model": "claude-haiku (via Claude Code subagent, paged Read, no code)",
+   "notes": "Read all of world.json (1657 lines) in one Read call, no gaps, no code. Every in-window scheduled event after leave_at has at least one live person with an OWNER or CAN record, so none are strict failures. At-risk, not listed as failures: billing-reconcile and usage-rollup have no OWNER record (leaver did the manual reruns; billing's only CAN is a CSM); lucia.engel's core-platform shift from 2 Nov (ev-0039) escalates only to bao.okafor, and sofia.silva (CAN) is off-shift; the payments shift from 9 Nov (ev-0060) names tariq.sharma, who left before now; apns renewal reminder (ev-0096) falls 12h after window end. Not listed: Oaktree uptime report (msg-0017) and PagerDuty renewal (msg-0018/0019), both chat-only with no due date; bao's handover notes (msg-0022) are not in the data.",
+   "precision": 0.0,
+   "recall": 0.0,
+   "scale": 1,
+   "seed": 2000,
+   "truth_events": 41
+  },
+  {
+   "answered": 8,
+   "case": "eval/results/lane_a_runs/2001_x1",
+   "false_claims_adopted": [],
+   "false_claims_planted": 2,
+   "hits": 8,
+   "model": "claude-haiku (via Claude Code subagent, paged Read, no code)",
+   "notes": "Read all 1254 lines of world.json in one Read call, no paging needed, no code run. CAN records were ignored per the brief; they would name felix.iyer and tariq.abara for the code-signing cert and tariq.abara for invoice-pdf-batch, and would change the picture if they count as ability to act. Not listed as failures because they are undated: Brightwell Foods uptime report (msg-0019, lucia said I'll look) and Twilio renewal (msg-0017/msg-0018, owner unclear). Due times for chat commitments are inferred as 00:00 UTC of the due day.",
+   "precision": 1.0,
+   "recall": 0.21052631578947367,
+   "scale": 1,
+   "seed": 2001,
+   "truth_events": 38
+  },
+  {
+   "answered": 27,
+   "case": "eval/results/lane_a_runs/2002_x1",
+   "false_claims_adopted": [],
+   "false_claims_planted": 1,
+   "hits": 27,
+   "model": "claude-haiku (via Claude Code subagent, paged Read, no code)",
+   "notes": "Read all 1314 lines of world.json in one Read call with no code; CAN records ignored per brief; the PagerDuty renewal and Kestrel uptime report (msg-0022) are undated chat asks, so they are not placed in the window; the Brightwell and Pinecrest due times are day-only.",
+   "precision": 1.0,
+   "recall": 0.9310344827586207,
+   "scale": 1,
+   "seed": 2002,
+   "truth_events": 29
+  },
+  {
+   "answered": 20,
+   "case": "eval/results/lane_a_runs/2003_x1",
+   "false_claims_adopted": [],
+   "false_claims_planted": 2,
+   "hits": 20,
+   "model": "claude-haiku (via Claude Code subagent, paged Read, no code)",
+   "notes": "Read all of world.json (1200 lines, 4 paged reads), no code used; CAN records ignored per brief; excluded as not leaver-caused: d-dr-runbook-review ev-0021 (owner dev.tanaka departed earlier) and core-platform 2 Nov ev-0013 (holder noah.osei departed, ESCALATES_TO ravi.novak active); Datadog renewal and Oaktree uptime report have no dates so no failure time; job-log failures counted as conditional.",
+   "precision": 1.0,
+   "recall": 0.9523809523809523,
+   "scale": 1,
+   "seed": 2003,
+   "truth_events": 21
+  },
+  {
+   "answered": 3,
+   "case": "eval/results/lane_a_runs/2000_x8",
+   "false_claims_adopted": [],
+   "false_claims_planted": 17,
+   "hits": 3,
+   "model": "claude-haiku (via Claude Code subagent, paged Read, no code)",
+   "notes": "Read all of world.json (lines 1-15882) in paged chunks with no code. Not in owners: duties with no OWNER record (most job, churn, VAT and status-page duties) and chat-only ownership hints (e.g. billing-reconcile, canada-gdpr-sweep), which I did not treat as records. Eight departed-owner gaps not caused by the leaver (in-window events exist) are listed in owners with their left_at. The window ends at 1795305600000; d-apns-halden-pay's first event (ev-0857) falls after it.",
+   "precision": 1.0,
+   "recall": 0.061224489795918366,
+   "scale": 8,
+   "seed": 2000,
+   "truth_events": 49
+  },
+  {
+   "answered": 34,
+   "case": "eval/results/lane_a_runs/2001_x8",
+   "false_claims_adopted": [
+    "rafael.kowalski->d-job-latam-warehouse-snapshot"
+   ],
+   "false_claims_planted": 16,
+   "hits": 34,
+   "model": "claude-haiku (via Claude Code subagent, paged Read, no code)",
+   "notes": "Read all 12,559 lines of world.json by paging (no code). CAN records ignored per brief. Leaver's escalation edges come only from three departed people, so no on-call failure; the Twilio/Snowflake/Cloudflare/Datadog/PagerDuty renewal chatter names no duty id and no events, so it is not listed. Seven OWNER records point at departed people and are listed as-is.",
+   "precision": 1.0,
+   "recall": 0.8292682926829268,
+   "scale": 8,
+   "seed": 2001,
+   "truth_events": 41
+  }
+ ]
+}

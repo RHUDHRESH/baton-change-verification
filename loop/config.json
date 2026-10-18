@@ -1,6 +1,6 @@
 {
   "project": "baton",
-  "check_command": "/tmp/claude-0/-home-claude/9e986261-4c5d-5119-82fd-cce4a3dc1af5/scratchpad/venv/bin/python -m pytest checks/locked -q -p no:cacheprovider --junitxml=loop/junit.xml",
+  "check_command": "python -m pytest checks/locked -q -p no:cacheprovider --junitxml=loop/junit.xml",
   "junit_path": "loop/junit.xml",
   "locked_dir": "checks/locked",
   "pending_dir": "checks/pending",

@@ -1,0 +1,1253 @@
+{
+ "company": "Halden",
+ "day_ms": 86400000,
+ "duties": [
+  {
+   "id": "d-churn-dashboard",
+   "kind": "report",
+   "name": "Churn dashboard refresh"
+  },
+  {
+   "id": "d-codesign-windows",
+   "kind": "cert",
+   "name": "Windows code-signing certificate"
+  },
+  {
+   "id": "d-dr-runbook-review",
+   "kind": "review",
+   "name": "Disaster-recovery runbook review"
+  },
+  {
+   "id": "d-job-billing-reconcile",
+   "kind": "job",
+   "name": "Nightly billing reconciliation"
+  },
+  {
+   "id": "d-job-invoice-pdf-batch",
+   "kind": "job",
+   "name": "Invoice PDF batch"
+  },
+  {
+   "id": "d-oncall-payments-api",
+   "kind": "oncall",
+   "name": "Payments API on-call"
+  },
+  {
+   "id": "d-pg-failover-drill",
+   "kind": "drill",
+   "name": "Postgres failover drill"
+  },
+  {
+   "id": "d-soc2-evidence",
+   "kind": "compliance",
+   "name": "SOC 2 evidence upload"
+  },
+  {
+   "id": "d-tls-api",
+   "kind": "cert",
+   "name": "TLS certificate for api.haldenhq.net"
+  },
+  {
+   "id": "d-tls-status",
+   "kind": "cert",
+   "name": "TLS certificate for status.haldenhq.net"
+  }
+ ],
+ "events": [
+  {
+   "at": 1792400400000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0001",
+   "label": "Payments API on-call handover, week of Mon 19 Oct"
+  },
+  {
+   "at": 1792717200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0002",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1792720800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0003",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1792767600000,
+   "duty": "d-tls-api",
+   "id": "ev-0004",
+   "label": "Renewal ticket opened"
+  },
+  {
+   "at": 1792803600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0005",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1792807200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0006",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1792890000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0007",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1792893600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0008",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1792922400000,
+   "duty": "d-soc2-evidence",
+   "id": "ev-0009",
+   "label": "SOC 2 evidence upload"
+  },
+  {
+   "at": 1792976400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0010",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1792980000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0011",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793005200000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0012",
+   "label": "Payments API on-call handover, week of Mon 26 Oct"
+  },
+  {
+   "at": 1793062800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0013",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793066400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0014",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793149200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0015",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793152800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0016",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793235600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0017",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793239200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0018",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793322000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0019",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793325600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0020",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793408400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0021",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793412000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0022",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793494800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0023",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793498400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0024",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793527200000,
+   "duty": "d-churn-dashboard",
+   "id": "ev-0025",
+   "label": "Churn dashboard refresh"
+  },
+  {
+   "at": 1793541600000,
+   "duty": "d-pg-failover-drill",
+   "id": "ev-0026",
+   "label": "Postgres failover drill"
+  },
+  {
+   "at": 1793581200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0027",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793584800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0028",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793610000000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0029",
+   "label": "Payments API on-call handover, week of Mon 2 Nov"
+  },
+  {
+   "at": 1793667600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0030",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793671200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0031",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793714400000,
+   "duty": "d-tls-api",
+   "id": "ev-0032",
+   "label": "TLS certificate for api.haldenhq.net: renewal reminder"
+  },
+  {
+   "at": 1793754000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0033",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793757600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0034",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793840400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0035",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793844000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0036",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1793912400000,
+   "duty": "d-codesign-windows",
+   "id": "ev-0037",
+   "label": "Windows code-signing certificate expires"
+  },
+  {
+   "at": 1793926800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0038",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793930400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0039",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794013200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0040",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794016800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0041",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794099600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0042",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794103200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0043",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794186000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0044",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794189600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0045",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794214800000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0046",
+   "label": "Payments API on-call handover, week of Mon 9 Nov"
+  },
+  {
+   "at": 1794272400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0047",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794276000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0048",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794308400000,
+   "duty": "d-dr-runbook-review",
+   "id": "ev-0049",
+   "label": "Disaster-recovery runbook review"
+  },
+  {
+   "at": 1794358800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0050",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794362400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0051",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794445200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0052",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794448800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0053",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794531600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0054",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794535200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0055",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794618000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0056",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794621600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0057",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794704400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0058",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794708000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0059",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794790800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0060",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794794400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0061",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794819600000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0062",
+   "label": "Payments API on-call handover, week of Mon 16 Nov"
+  },
+  {
+   "at": 1794823200000,
+   "duty": "d-churn-dashboard",
+   "id": "ev-0063",
+   "label": "Churn dashboard refresh"
+  },
+  {
+   "at": 1794877200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0064",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794880800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0065",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1794924000000,
+   "duty": "d-tls-api",
+   "id": "ev-0066",
+   "label": "TLS certificate for api.haldenhq.net expires"
+  },
+  {
+   "at": 1794963600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0067",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794967200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0068",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795050000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0069",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795053600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0070",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795136400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0071",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795140000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0072",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795222800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0073",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795226400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0074",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795309200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0075",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795312800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0076",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795395600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0077",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795399200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0078",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795424400000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0079",
+   "label": "Payments API on-call handover, week of Mon 23 Nov"
+  },
+  {
+   "at": 1795482000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0080",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795485600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0081",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795514400000,
+   "duty": "d-soc2-evidence",
+   "id": "ev-0082",
+   "label": "SOC 2 evidence upload"
+  },
+  {
+   "at": 1795568400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0083",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795572000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0084",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795654800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0085",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795658400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0086",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795741200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0087",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795744800000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0088",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795827600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0089",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795831200000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0090",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1795914000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0091",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795917600000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0092",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1796000400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0093",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1796004000000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0094",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1796029200000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0095",
+   "label": "Payments API on-call handover, week of Mon 30 Nov"
+  },
+  {
+   "at": 1796086800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0096",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1796090400000,
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "ev-0097",
+   "label": "Invoice PDF batch run"
+  },
+  {
+   "at": 1796281200000,
+   "duty": "d-tls-status",
+   "id": "ev-0098",
+   "label": "TLS certificate for status.haldenhq.net: renewal reminder"
+  },
+  {
+   "at": 1796983200000,
+   "duty": "d-soc2-evidence",
+   "id": "ev-0099",
+   "label": "SOC 2 evidence upload"
+  },
+  {
+   "at": 1797242400000,
+   "duty": "d-churn-dashboard",
+   "id": "ev-0100",
+   "label": "Churn dashboard refresh"
+  },
+  {
+   "at": 1797490800000,
+   "duty": "d-tls-status",
+   "id": "ev-0101",
+   "label": "TLS certificate for status.haldenhq.net expires"
+  }
+ ],
+ "joblogs": [
+  {
+   "actor": "scheduler",
+   "at": 1790906400000,
+   "id": "log-0001",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "failed"
+  },
+  {
+   "actor": "lucia.varga",
+   "at": 1790920800000,
+   "id": "log-0002",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791338400000,
+   "id": "log-0003",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "failed"
+  },
+  {
+   "actor": "lucia.varga",
+   "at": 1791352800000,
+   "id": "log-0004",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792029600000,
+   "id": "log-0005",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "failed"
+  },
+  {
+   "actor": "lucia.varga",
+   "at": 1792040400000,
+   "id": "log-0006",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792112400000,
+   "id": "log-0007",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792116000000,
+   "id": "log-0008",
+   "job": "d-job-invoice-pdf-batch",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792198800000,
+   "id": "log-0009",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792285200000,
+   "id": "log-0010",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792371600000,
+   "id": "log-0011",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792458000000,
+   "id": "log-0012",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792544400000,
+   "id": "log-0013",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792630800000,
+   "id": "log-0014",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  }
+ ],
+ "label": "FIXTURE",
+ "leave_at": 1792800000000,
+ "leaver": "lucia.varga",
+ "messages": [
+  {
+   "at": 1786449600000,
+   "author": "bao.tanaka",
+   "channel": "#general",
+   "id": "msg-0001",
+   "text": "Signing off for good - thanks all, handover notes are in the wiki (mostly)"
+  },
+  {
+   "at": 1789414920000,
+   "author": "tomas.duarte",
+   "channel": "#platform",
+   "id": "msg-0002",
+   "text": "standup: finishing the partners migration, then reviews"
+  },
+  {
+   "at": 1789554960000,
+   "author": "tariq.abara",
+   "channel": "#support",
+   "id": "msg-0003",
+   "text": "standup: finishing the auth migration, then reviews"
+  },
+  {
+   "at": 1789892400000,
+   "author": "felix.iyer",
+   "channel": "#billing",
+   "id": "msg-0004",
+   "text": "standup: finishing the partners migration, then reviews"
+  },
+  {
+   "at": 1789915920000,
+   "author": "felix.iyer",
+   "channel": "#billing",
+   "id": "msg-0005",
+   "text": "anyone seen elevated 5xx on ledger? looks fine now"
+  },
+  {
+   "at": 1790323620000,
+   "author": "felix.iyer",
+   "channel": "#billing",
+   "id": "msg-0006",
+   "text": "standup: finishing the status migration, then reviews"
+  },
+  {
+   "at": 1790333760000,
+   "author": "tomas.duarte",
+   "channel": "#platform",
+   "id": "msg-0007",
+   "text": "PR for the payments rate limiter is up, would love a review"
+  },
+  {
+   "at": 1790797500000,
+   "author": "tariq.abara",
+   "channel": "#support",
+   "id": "msg-0008",
+   "text": "standup: finishing the partners migration, then reviews"
+  },
+  {
+   "at": 1790942400000,
+   "author": "noah.achebe",
+   "channel": "#general",
+   "id": "msg-0009",
+   "text": "Last day today. Thanks everyone, it's been a blast"
+  },
+  {
+   "at": 1791020280000,
+   "author": "anika.sharma",
+   "channel": "#platform",
+   "id": "msg-0010",
+   "text": "standup: finishing the webhooks migration, then reviews"
+  },
+  {
+   "at": 1791821880000,
+   "author": "lucia.varga",
+   "channel": "#support-escalations",
+   "id": "msg-0011",
+   "text": "Pinecrest Media call went ok. Committed to their move to the EU region by Tue 3 Nov; I'll ping Priya when it's out"
+  },
+  {
+   "at": 1792041600000,
+   "author": "lucia.varga",
+   "channel": "#ops",
+   "id": "msg-0012",
+   "text": "invoice-pdf-batch failed again, reran it myself. one day I'll fix a lock timeout properly"
+  },
+  {
+   "at": 1792073160000,
+   "author": "lucia.varga",
+   "channel": "#platform",
+   "id": "msg-0013",
+   "text": "anyone seen elevated 5xx on ledger? looks fine now"
+  },
+  {
+   "at": 1792073820000,
+   "author": "tomas.duarte",
+   "channel": "#platform",
+   "id": "msg-0014",
+   "text": "reminder: retro at 3pm"
+  },
+  {
+   "at": 1792165560000,
+   "author": "lucia.varga",
+   "channel": "#support-escalations",
+   "id": "msg-0015",
+   "text": "Tidemark Retail call went ok. Committed to a full audit-log export by Thu 29 Oct; I'll ping Ravi when it's out"
+  },
+  {
+   "at": 1792231200000,
+   "author": "tomas.duarte",
+   "channel": "#general",
+   "id": "msg-0016",
+   "text": "Heads up: Lucia Varga's last day is Fri 23 Oct. Grab them before then for anything they run."
+  },
+  {
+   "at": 1792317720000,
+   "author": "tariq.abara",
+   "channel": "#general",
+   "id": "msg-0017",
+   "text": "who renews Twilio? Lucia?"
+  },
+  {
+   "at": 1792318140000,
+   "author": "anika.sharma",
+   "channel": "#general",
+   "id": "msg-0018",
+   "text": "Lucia did it last year I believe"
+  },
+  {
+   "at": 1792337640000,
+   "author": "lucia.varga",
+   "channel": "#support-escalations",
+   "id": "msg-0019",
+   "text": "Brightwell Foods asked about the uptime report again, I'll look"
+  },
+  {
+   "at": 1792344900000,
+   "author": "anika.sharma",
+   "channel": "#ops",
+   "id": "msg-0020",
+   "text": "isn't invoice-pdf-batch Tomas's thing these days?"
+  },
+  {
+   "at": 1792500420000,
+   "author": "felix.iyer",
+   "channel": "#billing",
+   "id": "msg-0021",
+   "text": "anyone seen elevated 5xx on checkout? looks fine now"
+  },
+  {
+   "at": 1792594800000,
+   "author": "lucia.varga",
+   "channel": "#platform",
+   "id": "msg-0022",
+   "text": "writing up handover notes this week, shout if there's something I should cover"
+  }
+ ],
+ "now": 1792713600000,
+ "people": [
+  {
+   "capacity": 1,
+   "id": "anika.sharma",
+   "left_at": null,
+   "name": "Anika Sharma",
+   "role": "Senior SRE",
+   "team": "Platform"
+  },
+  {
+   "capacity": 1,
+   "id": "bao.tanaka",
+   "left_at": 1786467600000,
+   "name": "Bao Tanaka",
+   "role": "Security engineer",
+   "team": "Security"
+  },
+  {
+   "capacity": 2,
+   "id": "felix.iyer",
+   "left_at": null,
+   "name": "Felix Iyer",
+   "role": "Payments engineer",
+   "team": "Billing"
+  },
+  {
+   "capacity": 1,
+   "id": "lucia.varga",
+   "left_at": null,
+   "name": "Lucia Varga",
+   "role": "Senior SRE",
+   "team": "Platform"
+  },
+  {
+   "capacity": 1,
+   "id": "nadia.nakamura",
+   "left_at": null,
+   "name": "Nadia Nakamura",
+   "role": "Support lead",
+   "team": "Support"
+  },
+  {
+   "capacity": 1,
+   "id": "noah.achebe",
+   "left_at": 1790960400000,
+   "name": "Noah Achebe",
+   "role": "Support lead",
+   "team": "Support"
+  },
+  {
+   "capacity": 2,
+   "id": "tariq.abara",
+   "left_at": null,
+   "name": "Tariq Abara",
+   "role": "Customer success manager",
+   "team": "Support"
+  },
+  {
+   "capacity": 2,
+   "id": "tomas.duarte",
+   "left_at": null,
+   "name": "Tomas Duarte",
+   "role": "Senior SRE",
+   "team": "Platform"
+  }
+ ],
+ "records": [
+  {
+   "duty": "d-churn-dashboard",
+   "id": "rec-0001",
+   "person": "tariq.abara",
+   "since": 1781913600000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-codesign-windows",
+   "id": "rec-0002",
+   "person": "lucia.varga",
+   "since": 1781395200000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-dr-runbook-review",
+   "id": "rec-0003",
+   "person": "bao.tanaka",
+   "since": 1757894400000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-job-billing-reconcile",
+   "id": "rec-0004",
+   "person": "felix.iyer",
+   "since": 1748390400000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-oncall-payments-api",
+   "id": "rec-0005",
+   "rota": "rota-payments-api",
+   "type": "ROUTES_TO"
+  },
+  {
+   "duty": "d-pg-failover-drill",
+   "id": "rec-0006",
+   "person": "lucia.varga",
+   "since": 1772323200000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-pg-failover-drill",
+   "id": "rec-0007",
+   "person": "tomas.duarte",
+   "since": 1780444800000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-soc2-evidence",
+   "id": "rec-0008",
+   "person": "tariq.abara",
+   "since": 1768694400000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-tls-api",
+   "id": "rec-0009",
+   "person": "lucia.varga",
+   "since": 1739145600000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-tls-status",
+   "id": "rec-0010",
+   "person": "lucia.varga",
+   "since": 1771200000000,
+   "type": "OWNER"
+  },
+  {
+   "from": 1792400400000,
+   "id": "rec-0011",
+   "person": "felix.iyer",
+   "rota": "rota-payments-api",
+   "to": 1793005200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793005200000,
+   "id": "rec-0012",
+   "person": "noah.achebe",
+   "rota": "rota-payments-api",
+   "to": 1793610000000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793610000000,
+   "id": "rec-0013",
+   "person": "tariq.abara",
+   "rota": "rota-payments-api",
+   "to": 1794214800000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794214800000,
+   "id": "rec-0014",
+   "person": "felix.iyer",
+   "rota": "rota-payments-api",
+   "to": 1794819600000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794819600000,
+   "id": "rec-0015",
+   "person": "noah.achebe",
+   "rota": "rota-payments-api",
+   "to": 1795424400000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1795424400000,
+   "id": "rec-0016",
+   "person": "tariq.abara",
+   "rota": "rota-payments-api",
+   "to": 1796029200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1796029200000,
+   "id": "rec-0017",
+   "person": "felix.iyer",
+   "rota": "rota-payments-api",
+   "to": 1796634000000,
+   "type": "SHIFT"
+  },
+  {
+   "from_person": "felix.iyer",
+   "id": "rec-0018",
+   "to_person": "tomas.duarte",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "from_person": "noah.achebe",
+   "id": "rec-0019",
+   "to_person": "lucia.varga",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "duty": "d-churn-dashboard",
+   "id": "rec-0020",
+   "person": "anika.sharma",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-churn-dashboard",
+   "id": "rec-0021",
+   "person": "nadia.nakamura",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-codesign-windows",
+   "id": "rec-0022",
+   "person": "felix.iyer",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-codesign-windows",
+   "id": "rec-0023",
+   "person": "tariq.abara",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-dr-runbook-review",
+   "id": "rec-0024",
+   "person": "nadia.nakamura",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-billing-reconcile",
+   "id": "rec-0025",
+   "person": "anika.sharma",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-billing-reconcile",
+   "id": "rec-0026",
+   "person": "nadia.nakamura",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "rec-0027",
+   "person": "anika.sharma",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-invoice-pdf-batch",
+   "id": "rec-0028",
+   "person": "tariq.abara",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-pg-failover-drill",
+   "id": "rec-0029",
+   "person": "felix.iyer",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-soc2-evidence",
+   "id": "rec-0030",
+   "person": "felix.iyer",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-soc2-evidence",
+   "id": "rec-0031",
+   "person": "nadia.nakamura",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-soc2-evidence",
+   "id": "rec-0032",
+   "person": "tomas.duarte",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-tls-api",
+   "id": "rec-0033",
+   "person": "anika.sharma",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-tls-status",
+   "id": "rec-0034",
+   "person": "anika.sharma",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-tls-status",
+   "id": "rec-0035",
+   "person": "felix.iyer",
+   "type": "CAN"
+  }
+ ],
+ "seed": 2001,
+ "tickets": [
+  {
+   "at": 1790697480000,
+   "author": "Freya Haddad (Norvale Bank)",
+   "id": "tkt-0001",
+   "text": "Can't log in via SSO since this morning"
+  },
+  {
+   "at": 1791275580000,
+   "author": "Sofia Quinn (Pinecrest Media)",
+   "id": "tkt-0002",
+   "text": "Webhook deliveries delayed by ~10 minutes"
+  },
+  {
+   "at": 1791839880000,
+   "author": "Priya Brandt (Pinecrest Media)",
+   "id": "tkt-0003",
+   "text": "Hi team, Lucia promised us their move to the EU region by Tue 3 Nov. Our launch depends on it - any update?"
+  },
+  {
+   "at": 1792212360000,
+   "author": "Ravi Castillo (Tidemark Retail)",
+   "id": "tkt-0004",
+   "text": "Re: a full audit-log export. Lucia said Thu 29 Oct. Can someone confirm that date still holds?"
+  }
+ ],
+ "window_days": 30
+}

@@ -1,0 +1,1656 @@
+{
+ "company": "Halden",
+ "day_ms": 86400000,
+ "duties": [
+  {
+   "id": "d-apns-halden-pay",
+   "kind": "cert",
+   "name": "Apple push certificate for Halden Pay"
+  },
+  {
+   "id": "d-churn-dashboard",
+   "kind": "report",
+   "name": "Churn dashboard refresh"
+  },
+  {
+   "id": "d-job-billing-reconcile",
+   "kind": "job",
+   "name": "Nightly billing reconciliation"
+  },
+  {
+   "id": "d-job-payroll-export",
+   "kind": "job",
+   "name": "Payroll export to Ledgerly"
+  },
+  {
+   "id": "d-job-usage-rollup",
+   "kind": "job",
+   "name": "Usage metering rollup"
+  },
+  {
+   "id": "d-job-warehouse-snapshot",
+   "kind": "job",
+   "name": "Warehouse snapshot to cold storage"
+  },
+  {
+   "id": "d-oncall-core-platform",
+   "kind": "oncall",
+   "name": "Core platform on-call"
+  },
+  {
+   "id": "d-oncall-payments-api",
+   "kind": "oncall",
+   "name": "Payments API on-call"
+  },
+  {
+   "id": "d-pentest-scoping",
+   "kind": "review",
+   "name": "Annual pentest scoping call"
+  },
+  {
+   "id": "d-soc2-evidence",
+   "kind": "compliance",
+   "name": "SOC 2 evidence upload"
+  },
+  {
+   "id": "d-tls-search",
+   "kind": "cert",
+   "name": "TLS certificate for search.haldenhq.net"
+  }
+ ],
+ "events": [
+  {
+   "at": 1792400400000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0001",
+   "label": "Core platform on-call handover, week of Mon 19 Oct"
+  },
+  {
+   "at": 1792400400000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0002",
+   "label": "Payments API on-call handover, week of Mon 19 Oct"
+  },
+  {
+   "at": 1792717200000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0003",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1792728000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0004",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1792728000000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0005",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1792760400000,
+   "duty": "d-tls-search",
+   "id": "ev-0006",
+   "label": "Renewal ticket opened"
+  },
+  {
+   "at": 1792803600000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0007",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1792814400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0008",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1792890000000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0009",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1792890000000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0010",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1792900800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0011",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1792976400000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0012",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1792976400000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0013",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1792987200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0014",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793005200000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0015",
+   "label": "Core platform on-call handover, week of Mon 26 Oct"
+  },
+  {
+   "at": 1793005200000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0016",
+   "label": "Payments API on-call handover, week of Mon 26 Oct"
+  },
+  {
+   "at": 1793008800000,
+   "duty": "d-tls-search",
+   "id": "ev-0017",
+   "label": "TLS certificate for search.haldenhq.net expires"
+  },
+  {
+   "at": 1793062800000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0018",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793073600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0019",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793095200000,
+   "duty": "d-soc2-evidence",
+   "id": "ev-0020",
+   "label": "SOC 2 evidence upload"
+  },
+  {
+   "at": 1793149200000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0021",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793160000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0022",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793181600000,
+   "duty": "d-churn-dashboard",
+   "id": "ev-0023",
+   "label": "Churn dashboard refresh"
+  },
+  {
+   "at": 1793235600000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0024",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793246400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0025",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793246400000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0026",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1793322000000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0027",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793332800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0028",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793332800000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0029",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1793368800000,
+   "duty": "d-pentest-scoping",
+   "id": "ev-0030",
+   "label": "Annual pentest scoping call"
+  },
+  {
+   "at": 1793408400000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0031",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793419200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0032",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793494800000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0033",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793494800000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0034",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1793505600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0035",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793581200000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0036",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793581200000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0037",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1793592000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0038",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793610000000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0039",
+   "label": "Core platform on-call handover, week of Mon 2 Nov"
+  },
+  {
+   "at": 1793610000000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0040",
+   "label": "Payments API on-call handover, week of Mon 2 Nov"
+  },
+  {
+   "at": 1793667600000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0041",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793678400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0042",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793754000000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0043",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793764800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0044",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793840400000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0045",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793851200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0046",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793851200000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0047",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1793926800000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0048",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1793937600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0049",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1793937600000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0050",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1794013200000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0051",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794024000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0052",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794099600000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0053",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794099600000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0054",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1794110400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0055",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794186000000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0056",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794186000000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0057",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1794196800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0058",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794214800000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0059",
+   "label": "Core platform on-call handover, week of Mon 9 Nov"
+  },
+  {
+   "at": 1794214800000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0060",
+   "label": "Payments API on-call handover, week of Mon 9 Nov"
+  },
+  {
+   "at": 1794272400000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0061",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794283200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0062",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794358800000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0063",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794369600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0064",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794445200000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0065",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794456000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0066",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794456000000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0067",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1794531600000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0068",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794542400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0069",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794542400000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0070",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1794618000000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0071",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794628800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0072",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794704400000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0073",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794704400000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0074",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1794715200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0075",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794790800000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0076",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794790800000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0077",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1794801600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0078",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794819600000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0079",
+   "label": "Core platform on-call handover, week of Mon 16 Nov"
+  },
+  {
+   "at": 1794819600000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0080",
+   "label": "Payments API on-call handover, week of Mon 16 Nov"
+  },
+  {
+   "at": 1794877200000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0081",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794888000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0082",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1794963600000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0083",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1794974400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0084",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795050000000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0085",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795060800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0086",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795060800000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0087",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1795136400000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0088",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795147200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0089",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795147200000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0090",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1795222800000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0091",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795233600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0092",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795309200000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0093",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795309200000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0094",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1795320000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0095",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795348800000,
+   "duty": "d-apns-halden-pay",
+   "id": "ev-0096",
+   "label": "Apple push certificate for Halden Pay: renewal reminder"
+  },
+  {
+   "at": 1795395600000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0097",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795395600000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0098",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1795406400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0099",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795424400000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0100",
+   "label": "Core platform on-call handover, week of Mon 23 Nov"
+  },
+  {
+   "at": 1795424400000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0101",
+   "label": "Payments API on-call handover, week of Mon 23 Nov"
+  },
+  {
+   "at": 1795428000000,
+   "duty": "d-soc2-evidence",
+   "id": "ev-0102",
+   "label": "SOC 2 evidence upload"
+  },
+  {
+   "at": 1795482000000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0103",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795492800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0104",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795514400000,
+   "duty": "d-churn-dashboard",
+   "id": "ev-0105",
+   "label": "Churn dashboard refresh"
+  },
+  {
+   "at": 1795568400000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0106",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795579200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0107",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795654800000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0108",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795665600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0109",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795665600000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0110",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1795741200000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0111",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795752000000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0112",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795752000000,
+   "duty": "d-job-usage-rollup",
+   "id": "ev-0113",
+   "label": "Usage metering rollup run"
+  },
+  {
+   "at": 1795827600000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0114",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795838400000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0115",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1795914000000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0116",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1795914000000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0117",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1795924800000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0118",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1796000400000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0119",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1796000400000,
+   "duty": "d-job-warehouse-snapshot",
+   "id": "ev-0120",
+   "label": "Warehouse snapshot to cold storage run"
+  },
+  {
+   "at": 1796011200000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0121",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1796029200000,
+   "duty": "d-oncall-core-platform",
+   "id": "ev-0122",
+   "label": "Core platform on-call handover, week of Mon 30 Nov"
+  },
+  {
+   "at": 1796029200000,
+   "duty": "d-oncall-payments-api",
+   "id": "ev-0123",
+   "label": "Payments API on-call handover, week of Mon 30 Nov"
+  },
+  {
+   "at": 1796086800000,
+   "duty": "d-job-payroll-export",
+   "id": "ev-0124",
+   "label": "Payroll export to Ledgerly run"
+  },
+  {
+   "at": 1796097600000,
+   "duty": "d-job-billing-reconcile",
+   "id": "ev-0125",
+   "label": "Nightly billing reconciliation run"
+  },
+  {
+   "at": 1796558400000,
+   "duty": "d-apns-halden-pay",
+   "id": "ev-0126",
+   "label": "Apple push certificate for Halden Pay expires"
+  },
+  {
+   "at": 1797069600000,
+   "duty": "d-churn-dashboard",
+   "id": "ev-0127",
+   "label": "Churn dashboard refresh"
+  },
+  {
+   "at": 1797328800000,
+   "duty": "d-soc2-evidence",
+   "id": "ev-0128",
+   "label": "SOC 2 evidence upload"
+  }
+ ],
+ "joblogs": [
+  {
+   "actor": "scheduler",
+   "at": 1790913600000,
+   "id": "log-0001",
+   "job": "d-job-billing-reconcile",
+   "status": "failed"
+  },
+  {
+   "actor": "bao.okafor",
+   "at": 1790928000000,
+   "id": "log-0002",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791259200000,
+   "id": "log-0003",
+   "job": "d-job-usage-rollup",
+   "status": "failed"
+  },
+  {
+   "actor": "bao.okafor",
+   "at": 1791270000000,
+   "id": "log-0004",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791345600000,
+   "id": "log-0005",
+   "job": "d-job-usage-rollup",
+   "status": "failed"
+  },
+  {
+   "actor": "bao.okafor",
+   "at": 1791360000000,
+   "id": "log-0006",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791518400000,
+   "id": "log-0007",
+   "job": "d-job-billing-reconcile",
+   "status": "failed"
+  },
+  {
+   "actor": "bao.okafor",
+   "at": 1791536400000,
+   "id": "log-0008",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791604800000,
+   "id": "log-0009",
+   "job": "d-job-billing-reconcile",
+   "status": "failed"
+  },
+  {
+   "actor": "bao.okafor",
+   "at": 1791626400000,
+   "id": "log-0010",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791777600000,
+   "id": "log-0011",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791777600000,
+   "id": "log-0012",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1791864000000,
+   "id": "log-0013",
+   "job": "d-job-billing-reconcile",
+   "status": "failed"
+  },
+  {
+   "actor": "bao.okafor",
+   "at": 1791874800000,
+   "id": "log-0014",
+   "job": "d-job-billing-reconcile",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792112400000,
+   "id": "log-0015",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792112400000,
+   "id": "log-0016",
+   "job": "d-job-warehouse-snapshot",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792198800000,
+   "id": "log-0017",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792198800000,
+   "id": "log-0018",
+   "job": "d-job-warehouse-snapshot",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792285200000,
+   "id": "log-0019",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792285200000,
+   "id": "log-0020",
+   "job": "d-job-warehouse-snapshot",
+   "status": "failed"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792296000000,
+   "id": "log-0021",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792371600000,
+   "id": "log-0022",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792371600000,
+   "id": "log-0023",
+   "job": "d-job-warehouse-snapshot",
+   "status": "failed"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792382400000,
+   "id": "log-0024",
+   "job": "d-job-usage-rollup",
+   "status": "failed"
+  },
+  {
+   "actor": "bao.okafor",
+   "at": 1792404000000,
+   "id": "log-0025",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792458000000,
+   "id": "log-0026",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792458000000,
+   "id": "log-0027",
+   "job": "d-job-warehouse-snapshot",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792544400000,
+   "id": "log-0028",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792544400000,
+   "id": "log-0029",
+   "job": "d-job-warehouse-snapshot",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792555200000,
+   "id": "log-0030",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792630800000,
+   "id": "log-0031",
+   "job": "d-job-payroll-export",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792630800000,
+   "id": "log-0032",
+   "job": "d-job-warehouse-snapshot",
+   "status": "succeeded"
+  },
+  {
+   "actor": "scheduler",
+   "at": 1792641600000,
+   "id": "log-0033",
+   "job": "d-job-usage-rollup",
+   "status": "failed"
+  },
+  {
+   "actor": "bao.okafor",
+   "at": 1792656000000,
+   "id": "log-0034",
+   "job": "d-job-usage-rollup",
+   "status": "succeeded"
+  }
+ ],
+ "label": "FIXTURE",
+ "leave_at": 1792800000000,
+ "leaver": "bao.okafor",
+ "messages": [
+  {
+   "at": 1789128000000,
+   "author": "tariq.sharma",
+   "channel": "#general",
+   "id": "msg-0001",
+   "text": "Signing off for good - thanks all, handover notes are in the wiki (mostly)"
+  },
+  {
+   "at": 1789551540000,
+   "author": "bao.okafor",
+   "channel": "#platform",
+   "id": "msg-0002",
+   "text": "reminder: retro at 3pm"
+  },
+  {
+   "at": 1789651200000,
+   "author": "emeka.lund",
+   "channel": "#billing",
+   "id": "msg-0003",
+   "text": "anyone seen elevated 5xx on status? looks fine now"
+  },
+  {
+   "at": 1789736580000,
+   "author": "ingrid.varga",
+   "channel": "#billing",
+   "id": "msg-0004",
+   "text": "deploying auth v7.25 to prod"
+  },
+  {
+   "at": 1789932420000,
+   "author": "ingrid.varga",
+   "channel": "#billing",
+   "id": "msg-0005",
+   "text": "deploying payments v4.4 to prod"
+  },
+  {
+   "at": 1789985460000,
+   "author": "jonas.abara",
+   "channel": "#platform",
+   "id": "msg-0006",
+   "text": "anyone seen elevated 5xx on payments? looks fine now"
+  },
+  {
+   "at": 1790533200000,
+   "author": "jonas.abara",
+   "channel": "#platform",
+   "id": "msg-0007",
+   "text": "lunch order closes in 10"
+  },
+  {
+   "at": 1791111600000,
+   "author": "emeka.lund",
+   "channel": "#billing",
+   "id": "msg-0008",
+   "text": "deploying files v8.9 to prod"
+  },
+  {
+   "at": 1791210420000,
+   "author": "bao.okafor",
+   "channel": "#platform",
+   "id": "msg-0009",
+   "text": "reminder: retro at 3pm"
+  },
+  {
+   "at": 1791273660000,
+   "author": "omar.brandt",
+   "channel": "#platform",
+   "id": "msg-0010",
+   "text": "rolled back checkout v7.28, investigating"
+  },
+  {
+   "at": 1791285360000,
+   "author": "emeka.lund",
+   "channel": "#billing",
+   "id": "msg-0011",
+   "text": "rolled back ledger v7.28, investigating"
+  },
+  {
+   "at": 1791465300000,
+   "author": "bao.okafor",
+   "channel": "#cust-norvale-bank",
+   "id": "msg-0012",
+   "text": "Norvale Bank call went ok. Committed to the written RCA for last week's outage by Tue 27 Oct; I'll ping Elena when it's out"
+  },
+  {
+   "at": 1791628980000,
+   "author": "emeka.lund",
+   "channel": "#billing",
+   "id": "msg-0013",
+   "text": "PR for the webhooks rate limiter is up, would love a review"
+  },
+  {
+   "at": 1791876000000,
+   "author": "bao.okafor",
+   "channel": "#billing",
+   "id": "msg-0014",
+   "text": "billing-reconcile fell over overnight (the partner SFTP being flaky), kicked it manually. all green now"
+  },
+  {
+   "at": 1791885660000,
+   "author": "emeka.lund",
+   "channel": "#billing",
+   "id": "msg-0015",
+   "text": "rolled back payments v5.23, investigating"
+  },
+  {
+   "at": 1791909540000,
+   "author": "amara.quinn",
+   "channel": "#platform",
+   "id": "msg-0016",
+   "text": "rolled back search v3.3, investigating"
+  },
+  {
+   "at": 1791914700000,
+   "author": "bao.okafor",
+   "channel": "#support-escalations",
+   "id": "msg-0017",
+   "text": "Oaktree Clinics asked about the uptime report again, I'll look"
+  },
+  {
+   "at": 1791917880000,
+   "author": "ravi.halvorsen",
+   "channel": "#general",
+   "id": "msg-0018",
+   "text": "who renews PagerDuty? Bao?"
+  },
+  {
+   "at": 1791918300000,
+   "author": "ingrid.varga",
+   "channel": "#general",
+   "id": "msg-0019",
+   "text": "Bao did it last year I believe"
+  },
+  {
+   "at": 1791972000000,
+   "author": "omar.brandt",
+   "channel": "#general",
+   "id": "msg-0020",
+   "text": "Heads up: Bao Okafor's last day is Fri 23 Oct. Grab them before then for anything they run."
+  },
+  {
+   "at": 1792237560000,
+   "author": "ravi.halvorsen",
+   "channel": "#ops",
+   "id": "msg-0021",
+   "text": "Emeka owns billing-reconcile now I think, saw them poking at it"
+  },
+  {
+   "at": 1792594800000,
+   "author": "bao.okafor",
+   "channel": "#platform",
+   "id": "msg-0022",
+   "text": "writing up handover notes this week, shout if there's something I should cover"
+  },
+  {
+   "at": 1792657200000,
+   "author": "bao.okafor",
+   "channel": "#platform",
+   "id": "msg-0023",
+   "text": "re-ran usage-rollup by hand again, the partner SFTP being flaky bit it around 04:00. I'll keep an eye on it"
+  }
+ ],
+ "now": 1792713600000,
+ "people": [
+  {
+   "capacity": 2,
+   "id": "amara.quinn",
+   "left_at": null,
+   "name": "Amara Quinn",
+   "role": "SRE",
+   "team": "Platform"
+  },
+  {
+   "capacity": 1,
+   "id": "bao.okafor",
+   "left_at": null,
+   "name": "Bao Okafor",
+   "role": "Staff SRE",
+   "team": "Platform"
+  },
+  {
+   "capacity": 3,
+   "id": "emeka.lund",
+   "left_at": null,
+   "name": "Emeka Lund",
+   "role": "Senior backend engineer",
+   "team": "Billing"
+  },
+  {
+   "capacity": 2,
+   "id": "ingrid.varga",
+   "left_at": null,
+   "name": "Ingrid Varga",
+   "role": "Billing engineer",
+   "team": "Billing"
+  },
+  {
+   "capacity": 2,
+   "id": "jonas.abara",
+   "left_at": null,
+   "name": "Jonas Abara",
+   "role": "Staff SRE",
+   "team": "Platform"
+  },
+  {
+   "capacity": 1,
+   "id": "lucia.engel",
+   "left_at": null,
+   "name": "Lucia Engel",
+   "role": "Support engineer",
+   "team": "Support"
+  },
+  {
+   "capacity": 1,
+   "id": "omar.brandt",
+   "left_at": null,
+   "name": "Omar Brandt",
+   "role": "Senior SRE",
+   "team": "Platform"
+  },
+  {
+   "capacity": 1,
+   "id": "ravi.halvorsen",
+   "left_at": null,
+   "name": "Ravi Halvorsen",
+   "role": "Customer success manager",
+   "team": "Support"
+  },
+  {
+   "capacity": 2,
+   "id": "sofia.silva",
+   "left_at": null,
+   "name": "Sofia Silva",
+   "role": "Support lead",
+   "team": "Support"
+  },
+  {
+   "capacity": 2,
+   "id": "tariq.sharma",
+   "left_at": 1789146000000,
+   "name": "Tariq Sharma",
+   "role": "Payments engineer",
+   "team": "Billing"
+  }
+ ],
+ "records": [
+  {
+   "duty": "d-apns-halden-pay",
+   "id": "rec-0001",
+   "person": "bao.okafor",
+   "since": 1787270400000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-churn-dashboard",
+   "id": "rec-0002",
+   "person": "sofia.silva",
+   "since": 1758153600000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-job-payroll-export",
+   "id": "rec-0003",
+   "person": "ingrid.varga",
+   "since": 1779494400000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-job-warehouse-snapshot",
+   "id": "rec-0004",
+   "person": "ingrid.varga",
+   "since": 1762387200000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-oncall-core-platform",
+   "id": "rec-0005",
+   "rota": "rota-core-platform",
+   "type": "ROUTES_TO"
+  },
+  {
+   "duty": "d-oncall-payments-api",
+   "id": "rec-0006",
+   "rota": "rota-payments-api",
+   "type": "ROUTES_TO"
+  },
+  {
+   "duty": "d-pentest-scoping",
+   "id": "rec-0007",
+   "person": "bao.okafor",
+   "since": 1752624000000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-pentest-scoping",
+   "id": "rec-0008",
+   "person": "jonas.abara",
+   "since": 1753401600000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-soc2-evidence",
+   "id": "rec-0009",
+   "person": "omar.brandt",
+   "since": 1745712000000,
+   "type": "OWNER"
+  },
+  {
+   "duty": "d-tls-search",
+   "id": "rec-0010",
+   "person": "bao.okafor",
+   "since": 1760659200000,
+   "type": "OWNER"
+  },
+  {
+   "from": 1792400400000,
+   "id": "rec-0011",
+   "person": "emeka.lund",
+   "rota": "rota-payments-api",
+   "to": 1793005200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1792400400000,
+   "id": "rec-0012",
+   "person": "sofia.silva",
+   "rota": "rota-core-platform",
+   "to": 1793005200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793005200000,
+   "id": "rec-0013",
+   "person": "emeka.lund",
+   "rota": "rota-core-platform",
+   "to": 1793610000000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793005200000,
+   "id": "rec-0014",
+   "person": "omar.brandt",
+   "rota": "rota-payments-api",
+   "to": 1793610000000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793610000000,
+   "id": "rec-0015",
+   "person": "ingrid.varga",
+   "rota": "rota-payments-api",
+   "to": 1794214800000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1793610000000,
+   "id": "rec-0016",
+   "person": "lucia.engel",
+   "rota": "rota-core-platform",
+   "to": 1794214800000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794214800000,
+   "id": "rec-0017",
+   "person": "sofia.silva",
+   "rota": "rota-core-platform",
+   "to": 1794819600000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794214800000,
+   "id": "rec-0018",
+   "person": "tariq.sharma",
+   "rota": "rota-payments-api",
+   "to": 1794819600000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794819600000,
+   "id": "rec-0019",
+   "person": "emeka.lund",
+   "rota": "rota-core-platform",
+   "to": 1795424400000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1794819600000,
+   "id": "rec-0020",
+   "person": "omar.brandt",
+   "rota": "rota-payments-api",
+   "to": 1795424400000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1795424400000,
+   "id": "rec-0021",
+   "person": "ingrid.varga",
+   "rota": "rota-payments-api",
+   "to": 1796029200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1795424400000,
+   "id": "rec-0022",
+   "person": "lucia.engel",
+   "rota": "rota-core-platform",
+   "to": 1796029200000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1796029200000,
+   "id": "rec-0023",
+   "person": "emeka.lund",
+   "rota": "rota-payments-api",
+   "to": 1796634000000,
+   "type": "SHIFT"
+  },
+  {
+   "from": 1796029200000,
+   "id": "rec-0024",
+   "person": "sofia.silva",
+   "rota": "rota-core-platform",
+   "to": 1796634000000,
+   "type": "SHIFT"
+  },
+  {
+   "from_person": "emeka.lund",
+   "id": "rec-0025",
+   "to_person": "omar.brandt",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "from_person": "ingrid.varga",
+   "id": "rec-0026",
+   "to_person": "omar.brandt",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "from_person": "lucia.engel",
+   "id": "rec-0027",
+   "to_person": "bao.okafor",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "from_person": "tariq.sharma",
+   "id": "rec-0028",
+   "to_person": "bao.okafor",
+   "type": "ESCALATES_TO"
+  },
+  {
+   "duty": "d-apns-halden-pay",
+   "id": "rec-0029",
+   "person": "lucia.engel",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-apns-halden-pay",
+   "id": "rec-0030",
+   "person": "ravi.halvorsen",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-churn-dashboard",
+   "id": "rec-0031",
+   "person": "amara.quinn",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-churn-dashboard",
+   "id": "rec-0032",
+   "person": "lucia.engel",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-billing-reconcile",
+   "id": "rec-0033",
+   "person": "ravi.halvorsen",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-payroll-export",
+   "id": "rec-0034",
+   "person": "ingrid.varga",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-payroll-export",
+   "id": "rec-0035",
+   "person": "lucia.engel",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-usage-rollup",
+   "id": "rec-0036",
+   "person": "omar.brandt",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-usage-rollup",
+   "id": "rec-0037",
+   "person": "ravi.halvorsen",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-warehouse-snapshot",
+   "id": "rec-0038",
+   "person": "emeka.lund",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-job-warehouse-snapshot",
+   "id": "rec-0039",
+   "person": "ingrid.varga",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-oncall-core-platform",
+   "id": "rec-0040",
+   "person": "sofia.silva",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-oncall-payments-api",
+   "id": "rec-0041",
+   "person": "amara.quinn",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-pentest-scoping",
+   "id": "rec-0042",
+   "person": "ravi.halvorsen",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-tls-search",
+   "id": "rec-0043",
+   "person": "amara.quinn",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-tls-search",
+   "id": "rec-0044",
+   "person": "ingrid.varga",
+   "type": "CAN"
+  },
+  {
+   "duty": "d-tls-search",
+   "id": "rec-0045",
+   "person": "lucia.engel",
+   "type": "CAN"
+  }
+ ],
+ "seed": 2000,
+ "tickets": [
+  {
+   "at": 1790862120000,
+   "author": "Clara Kowalski (Tidemark Retail)",
+   "id": "tkt-0001",
+   "text": "Webhook deliveries delayed by ~10 minutes"
+  },
+  {
+   "at": 1791313020000,
+   "author": "Zara Achebe (Tidemark Retail)",
+   "id": "tkt-0002",
+   "text": "Invoice for last month shows the wrong VAT number"
+  },
+  {
+   "at": 1791598500000,
+   "author": "Elena Osei (Norvale Bank)",
+   "id": "tkt-0003",
+   "text": "Hi team, Bao promised us the written RCA for last week's outage by Tue 27 Oct. Our launch depends on it - any update?"
+  },
+  {
+   "at": 1792332420000,
+   "author": "Ines Duarte (Norvale Bank)",
+   "id": "tkt-0004",
+   "text": "Can't log in via SSO since this morning"
+  }
+ ],
+ "window_days": 30
+}

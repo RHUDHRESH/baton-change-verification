@@ -1,0 +1,15 @@
+FROM falkordb/falkordb:v4.22.1
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv git && rm -rf /var/lib/apt/lists/*
+RUN python3 -m venv /opt/batonvenv
+ENV PATH="/opt/batonvenv/bin:$PATH" \
+    BATON_TEST_REDIS=/usr/local/bin/redis-server \
+    BATON_TEST_MODULE=/var/lib/falkordb/bin/falkordb.so \
+    PYTHONDONTWRITEBYTECODE=1
+COPY deploy/requirements.txt /tmp/requirements.txt
+COPY requirements-dev.txt /tmp/requirements-dev.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt -r /tmp/requirements-dev.txt httpx
+RUN git config --global --add safe.directory /workspace
+WORKDIR /workspace
+ENTRYPOINT []
+CMD ["python", "loop/bin/run_checks.py"]
