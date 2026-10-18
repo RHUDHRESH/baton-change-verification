@@ -198,6 +198,43 @@ def check_repairs(record, report, files, original):
     return measured
 
 
+def check_graph(workspace, record, report, report_digest):
+    """Verify actual API-projected FalkorDB nodes and relationships for this run."""
+    identity = record["id"]
+    graph = workspace.get("graph")
+    require(isinstance(graph, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,120}", graph) and graph == record.get("graph"),
+            "Actual workspace graph differs from the recorded cloud execution graph")
+    nodes = [row["data"] for row in workspace.get("nodes", [])]
+    edges = [row["data"] for row in workspace.get("edges", [])]
+    runs = [node for node in nodes if node.get("id") == identity]
+    require(len(runs) == 1 and runs[0].get("kind") == "AutonomousRun", "Actual graph has no unique autonomous execution node")
+    props = runs[0].get("properties", {})
+    run_url = "https://github.com/" + REPO + "/actions/runs/" + str(record["runner"]["run_id"])
+    require(props.get("status") == "succeeded" and props.get("evidence_sha256") == report_digest and props.get("runner_url") == run_url,
+            "Actual graph execution properties differ from the verified runner and report")
+    agent = record.get("investigation", {}).get("id")
+    require(isinstance(agent, str) and agent and len([node for node in nodes if node.get("id") == agent and node.get("kind") == "AgentRun"]) == 1,
+            "Actual graph investigation agent is missing or duplicated")
+    relationships = (("HAS_AUTONOMOUS_RUN", TASK, identity), ("VALIDATES", identity, "FalkorDB/FalkorDB#3246"),
+                     ("INVESTIGATED_BY", identity, agent))
+    for kind, source, target in relationships:
+        matching = [edge for edge in edges if edge.get("kind") == kind and
+                    (edge.get("target") == identity if kind == "HAS_AUTONOMOUS_RUN" else edge.get("source") == identity)]
+        require(len(matching) == 1 and matching[0].get("source") == source and matching[0].get("target") == target,
+                "Actual graph task/source/agent execution relationship differs")
+    expected = {identity + ":" + str(index): check for index, check in enumerate(report["checks"])}
+    checks = [node for node in nodes if node.get("kind") == "AutonomousCheck" and node.get("id", "").startswith(identity + ":")]
+    require(len(checks) == len(expected) and {node.get("id") for node in checks} == set(expected), "Actual graph check node inventory differs from the runner artifact")
+    for node in checks:
+        actual, check = node.get("properties", {}), expected[node["id"]]
+        require(actual.get("name") == check["name"] and type(actual.get("exit_code")) is int and actual["exit_code"] == check["exit_code"] and
+                actual.get("log_sha256") == check["log_sha256"], "Actual graph check command outcome or raw log hash differs")
+    links = [edge for edge in edges if edge.get("kind") == "HAS_CHECK" and edge.get("source") == identity]
+    require(len(links) == len(expected) and {edge.get("target") for edge in links} == set(expected), "Actual graph execution-to-check relationships are incomplete or duplicated")
+    return {"source_graph": graph, "run_nodes": 1, "check_nodes": len(checks), "has_autonomous_run_links": 1,
+            "validates_links": 1, "investigated_by_links": 1, "has_check_links": len(links)}
+
+
 def verify(identity, reader):
     require(re.fullmatch(r"[a-f0-9]{32}", identity), "Invalid app workflow run ID")
     record = reader.json("/api/public/workflows/" + identity)
@@ -250,7 +287,9 @@ def verify(identity, reader):
         receipt = record.get("publication", {}).get(target, {})
         require(receipt.get("status") == "verified" and receipt.get("read_back_verified") is True and receipt.get("url") == url,
                 "Connected provider publication lacks a verified readback receipt")
-    tasks = reader.json("/api/public/workspace").get("tasks", [])
+    workspace = reader.json("/api/public/workspace")
+    graph_proof = check_graph(workspace, record, report, sha(public_raw))
+    tasks = workspace.get("tasks", [])
     identities = {TASK, record.get("investigation_task_id")}
     require(None not in identities and all(len([task for task in tasks if task.get("id") == identity and task.get("status") == "done"]) == 1
             for identity in identities), "Actual linked workspace tasks are not independently done")
@@ -258,11 +297,11 @@ def verify(identity, reader):
         "artifact_id": artifact["id"], "artifact_sha256": sha(raw), "report_sha256": sha(public_raw), "source_commit": SOURCE_COMMIT,
         "tracked_blobs": 957, "checks": len(report["checks"]), "final_checks": 6, "passed": total, "failed": 0, "ignored": 17,
         "raw_public_logs_verified": len(report["checks"]), "repairs": repairs, "provider_readbacks": {key: True for key in expected_urls},
-        "task_statuses": {task: "done" for task in sorted(identities)}, "limits": [
+        "task_statuses": {task: "done" for task in sorted(identities)}, "graph": graph_proof, "limits": [
             "GitHub job/artifact and public app evidence were independently re-read; no writes were issued.",
             "Provider publication proof is the app's saved independent readback receipt; this verifier did not query Jira or Slack directly.",
             "Groq receipt and raw edit output match the applied artifact; the Groq provider API was not independently queried.",
-            "Cloud graph database relationships require the separate direct graph audit.",
+            "Actual workspace API graph nodes and relationships were checked; the direct database/provider audit is separate.",
             "The edited source and immutable test region were independently reconstructed; the 957-file inventory count comes from the verified runner artifact.",
             "Seventeen ignored tests and RDB reload are outside this cloud profile; no upstream merge is claimed."]}
 

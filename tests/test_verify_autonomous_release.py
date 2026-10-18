@@ -40,6 +40,7 @@ def fixture():
         return stream.getvalue()
     package = archive()
     record = {"id": identity, "task_id": proof.TASK, "status": "completed", "graph_verified": True,
+        "graph": "baton_actual_graph", "investigation": {"id": "agent-new"},
         "runner": {"provider": "GitHub Actions", "run_id": run_id, "verified": True, "artifact_sha256": proof.sha(package)},
         "checks": {"verified": True, "passed": 534, "failed": 0, "ignored": 17}, "repairs": [],
         "evidence": [{"url": proof.ORIGIN + "/api/public/workflows/" + identity + "/evidence", "sha256": proof.sha(files["report.json"])}],
@@ -50,6 +51,16 @@ def fixture():
         "path": ".github/workflows/baton-execute.yml", "repository": {"full_name": proof.REPO}, "head_sha": head}
     base = "/repos/" + proof.REPO + "/actions/runs/" + run_id
     public_overrides = {}
+    def graph():
+        node = lambda identity, kind, props: {"data": {"id": identity, "kind": kind, "properties": props}}
+        edge = lambda kind, source, target: {"data": {"kind": kind, "source": source, "target": target}}
+        return {"graph": "baton_actual_graph", "nodes": [node(identity, "AutonomousRun", {"status": "succeeded",
+            "evidence_sha256": proof.sha(files["report.json"]), "runner_url": "https://github.com/" + proof.REPO + "/actions/runs/" + run_id}),
+            node("agent-new", "AgentRun", {})] + [node(identity + ":" + str(index), "AutonomousCheck", {"name": check["name"],
+                "exit_code": check["exit_code"], "log_sha256": check["log_sha256"]}) for index, check in enumerate(report["checks"])],
+            "edges": [edge("HAS_AUTONOMOUS_RUN", proof.TASK, identity), edge("VALIDATES", identity, "FalkorDB/FalkorDB#3246"),
+                edge("INVESTIGATED_BY", identity, "agent-new")] + [edge("HAS_CHECK", identity, identity + ":" + str(index)) for index in range(len(report["checks"]))],
+            "tasks": [{"id": task, "status": "done"} for task in (proof.TASK, "task-investigation")]}
     class Reader:
         def json(self, path, github=False):
             if path == "/api/public/workflows/" + identity: return copy.deepcopy(record)
@@ -58,14 +69,14 @@ def fixture():
             if path.endswith("/artifacts?per_page=30"): return {"artifacts": [{"id": 789, "name": "baton-run-" + identity,
                 "expired": False, "workflow_run": {"id": run_id}, "digest": "sha256:" + proof.sha(package)}]}
             if "/contents/" in path: return {"content": base64.b64encode(source.encode()).decode()}
-            if path == "/api/public/workspace": return {"tasks": [{"id": task, "status": "done"} for task in (proof.TASK, "task-investigation")]}
+            if path == "/api/public/workspace": return graph()
             raise AssertionError("unexpected read path")
         def raw(self, path, github=False, archive=False):
             if archive: return package
             if path in public_overrides: return public_overrides[path]
             if path.endswith("/evidence"): return files["report.json"]
             return files[path.rsplit("/", 1)[1].replace("checks_", "checks/", 1)]
-    return SimpleNamespace(id=identity, source=source, report=report, files=files, record=record, metadata=metadata, reader=Reader(), overrides=public_overrides)
+    return SimpleNamespace(id=identity, source=source, report=report, files=files, record=record, metadata=metadata, reader=Reader(), overrides=public_overrides, graph=graph)
 
 
 def test_completed_release_proof_rehashes_raw_artifact_and_public_bytes(fixture):
@@ -74,6 +85,24 @@ def test_completed_release_proof_rehashes_raw_artifact_and_public_bytes(fixture)
     assert result["tracked_blobs"] == 957 and result["repairs"] == []
     assert any("did not query Jira or Slack directly" in limit for limit in result["limits"])
     assert "fn cap" not in json.dumps(result)
+    assert result["graph"]["run_nodes"] == 1 and result["graph"]["check_nodes"] == 6
+
+
+@pytest.mark.parametrize("mutation", ["missing-run", "wrong-agent", "missing-validates", "wrong-task", "duplicate-check-link", "corrupt-check-name", "corrupt-check-exit", "corrupt-check-hash", "wrong-report-hash", "wrong-graph"])
+def test_actual_workspace_graph_divergence_cannot_pass_release(fixture, mutation):
+    graph = fixture.graph()
+    if mutation == "missing-run": graph["nodes"].pop(0)
+    elif mutation == "wrong-agent": graph["edges"][2]["data"]["target"] = "old-agent"
+    elif mutation == "missing-validates": graph["edges"].pop(1)
+    elif mutation == "wrong-task": graph["edges"][0]["data"]["source"] = "other-task"
+    elif mutation == "duplicate-check-link": graph["edges"].append(copy.deepcopy(graph["edges"][-1]))
+    elif mutation == "corrupt-check-name": graph["nodes"][2]["data"]["properties"]["name"] = "format"
+    elif mutation == "corrupt-check-exit": graph["nodes"][2]["data"]["properties"]["exit_code"] = 999
+    elif mutation == "corrupt-check-hash": graph["nodes"][2]["data"]["properties"]["log_sha256"] = "0" * 64
+    elif mutation == "wrong-report-hash": graph["nodes"][0]["data"]["properties"]["evidence_sha256"] = "0" * 64
+    else: graph["graph"] = "another_graph"
+    with pytest.raises(proof.ProofError, match="graph"):
+        proof.check_graph(graph, fixture.record, fixture.report, proof.sha(fixture.files["report.json"]))
 
 
 @pytest.mark.parametrize("mutation", ["not-complete", "fake-provider-readback", "wrong-provider-url", "wrong-evidence-bytes", "wrong-log-bytes", "zero-tests", "wrong-job"])

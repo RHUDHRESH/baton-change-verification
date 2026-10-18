@@ -3,6 +3,7 @@ from contextlib import nullcontext
 import copy
 import io
 import json
+import urllib.error
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -37,9 +38,11 @@ def repair_fixture(monkeypatch, tmp_path):
     monkeypatch.setenv("GROQ_MODEL", "openai/gpt-oss-20b")
     output = {"old": OLD, "new": NEW, "explanation": "Express the same upper and lower clamp explicitly."}
     calls = []
+    headers = []
 
     def provider(request, timeout):
         calls.append(json.loads(request.data))
+        headers.append(dict(request.header_items()))
         raw = {"id": "chatcmpl-measured-repair", "model": "openai/gpt-oss-20b",
                "usage": {"prompt_tokens": 200, "completion_tokens": 100, "total_tokens": 300},
                "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(output)}}]}
@@ -52,7 +55,7 @@ def repair_fixture(monkeypatch, tmp_path):
             "test_region_sha256": workflow.sha("#[cfg(test)]" + tail),
             "failed_check": {"name": "graph_library_initial", "argv": worker.LIBRARY_ARGV, "exit_code": 101,
                              "log_sha256": "d" * 64, "log_tail": "cap_at_or_above_batch_size_is_ignored left:1025 right:1024"}}
-    return SimpleNamespace(record=record, output=output, calls=calls, body=body, data=tmp_path)
+    return SimpleNamespace(record=record, output=output, calls=calls, headers=headers, body=body, data=tmp_path)
 
 
 def repair(fixture):
@@ -79,6 +82,22 @@ def test_runner_cannot_supply_an_invented_first_production_region(repair_fixture
     with pytest.raises(workflow.WorkflowError):
         repair(repair_fixture)
     assert repair_fixture.calls == []
+
+
+def test_repair_uses_the_same_identifying_transport_header_as_working_graph_agent(repair_fixture):
+    repair(repair_fixture)
+    assert repair_fixture.headers[0]["User-agent"] == "Baton-Agent/0.3"
+    assert repair_fixture.headers[0]["Content-type"] == "application/json"
+
+
+def test_provider_403_is_recordable_without_relaying_its_body_or_credentials(repair_fixture, monkeypatch):
+    def denied(request, timeout):
+        raise urllib.error.HTTPError(request.full_url, 403, "private error reason", {}, io.BytesIO(b"private-test-model-key"))
+    monkeypatch.setattr(workflow.urllib.request, "urlopen", denied)
+    with pytest.raises(workflow.WorkflowError, match="Groq repair returned HTTP 403") as caught:
+        repair(repair_fixture)
+    assert "private" not in str(caught.value)
+    assert repair_fixture.record["repair_responses"] == {}
 
 
 @pytest.mark.parametrize("old", ["does not exist", "", " "])
