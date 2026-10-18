@@ -14,6 +14,8 @@ Transport tests cover four cached companies, HTTP validation, unknown questions,
 
 The installable wheel was also rebuilt and installed into a separate environment. From outside the checkout it successfully ran the offline demo (37 G events, zero after preview), located all four extraction caches and served the packaged website assets. The benchmark MIT license is included in the wheel.
 
+The final local handoff includes a Git bundle, preserving the history needed by the supplied predictions-before-results test, as well as a source ZIP, wheel, test reports and recorded demo. Recreate it with `python scripts/package_build.py` from a clean committed checkout.
+
 Reproduce with `docker compose --profile checks run --build --rm checks`. Machine-readable results are in `loop/last_score.json`, `loop/junit.xml`, `artifacts/foundation-tests.xml`, `artifacts/transport-tests.xml` and `artifacts/check-run.json`.
 
 ## Fresh evaluation
