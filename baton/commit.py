@@ -18,6 +18,10 @@ import hashlib
 import json
 import subprocess
 import time
+import os
+import stat
+import secrets
+from contextlib import contextmanager
 from pathlib import Path
 
 from redis.exceptions import ResponseError
@@ -50,6 +54,71 @@ MERGE (d:Duty {id: $duty})
 Q_PERSON = "OPTIONAL MATCH (p:Person {id: $person}) RETURN p IS NOT NULL, p.left_at"
 
 FILE_DIR = "OWNERS.d"
+
+
+@contextmanager
+def _safe_parent(root, relative):
+    """RT-05: anchor all file operations to directory handles, never links.
+
+    The deployed Linux service supports openat/no-follow. Other platforms fail
+    closed rather than silently using a race-prone path-based fallback.
+    """
+    parts = Path(relative).parts
+    if not parts or Path(relative).is_absolute() or any(p in ("..", ".") for p in parts):
+        raise ValueError("unsafe repository destination")
+    if os.open not in os.supports_dir_fd or not hasattr(os, "O_NOFOLLOW"):
+        raise RuntimeError("Safe repository writes require Linux directory-handle support; use the Docker service")
+    handle = os.open(Path(root).resolve(strict=True), os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for part in parts[:-1]:
+            try:
+                os.mkdir(part, mode=0o700, dir_fd=handle)
+            except FileExistsError:
+                pass
+            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=handle)
+            os.close(handle)
+            handle = child
+        yield handle, parts[-1]
+    finally:
+        os.close(handle)
+
+
+def _safe_read(root, relative):
+    with _safe_parent(root, relative) as (parent, name):
+        try:
+            fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
+        except FileNotFoundError:
+            return None
+        with os.fdopen(fd, "r", encoding="utf-8") as stream:
+            info = os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                raise ValueError("repository destination must be a regular file with no extra links")
+            return stream.read()
+
+
+def _safe_write(root, relative, text):
+    # Validate existing links, then atomically replace the directory entry. Even
+    # a link swapped in afterward is replaced, never opened for writing.
+    _safe_read(root, relative)
+    with _safe_parent(root, relative) as (parent, name):
+        temporary = f".baton-{secrets.token_hex(16)}.tmp"
+        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=parent)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                stream.write(text)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, name, src_dir_fd=parent, dst_dir_fd=parent)
+            os.fsync(parent)
+        finally:
+            try:
+                os.unlink(temporary, dir_fd=parent)
+            except FileNotFoundError:
+                pass
+
+
+def _owners_rel(graph):
+    return f"{FILE_DIR}/{re.sub(r'[^A-Za-z0-9_.-]', '_', graph)}.yaml"
 
 
 def _git(repo, *args, check=True):
@@ -134,12 +203,10 @@ def _parse_owners(text):
 
 def _write_external(repo, graph, leaver, committed):
     root = _repo_root(repo)
-    rel = f"{FILE_DIR}/{re.sub(r'[^A-Za-z0-9_.-]', '_', graph)}.yaml"
-    path = root / rel
-    owners = _parse_owners(path.read_text()) if path.exists() else {}
+    rel = _owners_rel(graph)
+    owners = _parse_owners(_safe_read(root, rel) or "")
     owners.update({c["duty"]: c["person"] for c in committed})
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"# Accepted successors for graph {graph}, written by baton commit after FalkorDB accepted them.\n"
+    _safe_write(root, rel, f"# Accepted successors for graph {graph}, written by baton commit after FalkorDB accepted them.\n"
                     "# duty: person\n" + "".join(f"{d}: {p}\n" for d, p in sorted(owners.items())))
     msg = (f"baton: hand over {len(committed)} dut{'y' if len(committed) == 1 else 'ies'} from {leaver}\n\n"
            + "".join(f"{c['duty']} -> {c['person']}\n" for c in committed))
@@ -158,10 +225,13 @@ def run(world_dir, beliefs_file, leaver, assigns, repo, port):
     root = _repo_root(repo)  # a bad --repo is refused before anything is written
     identity = json.dumps([s["live"].name, leaver, s["leave_at"], sorted(assigns)])
     operation_id = hashlib.sha256(identity.encode()).hexdigest()[:24]
-    journal = root / ".baton" / "receipts" / f"{operation_id}.json"
+    journal = f".baton/receipts/{operation_id}.json"
+    # Refuse unsafe destinations before changing the live graph.
+    _safe_read(root, _owners_rel(s["live"].name))
     with s["db"].connection.lock(f"baton:commit:{s['live'].name}", timeout=300, blocking_timeout=30):
-        if journal.exists():
-            saved = json.loads(journal.read_text(encoding="utf-8"))
+        existing = _safe_read(root, journal)
+        if existing is not None:
+            saved = json.loads(existing)
             committed, refused, hash_before = saved["committed"], saved["refused"], saved["live_hash_before"]
         else:
             info, hash_before = _preview(s, {_parse_assign(a)[0] for a in assigns})
@@ -169,8 +239,7 @@ def run(world_dir, beliefs_file, leaver, assigns, repo, port):
             saved = {"committed": committed, "refused": refused, "live_hash_before": hash_before,
                      "operation_id": operation_id, "state": "graph_committed", "graph": s["live"].name,
                      "created_at": int(time.time() * 1000)}
-            journal.parent.mkdir(parents=True, exist_ok=True)
-            journal.write_text(json.dumps(saved, indent=2), encoding="utf-8")
+            _safe_write(root, journal, json.dumps(saved, indent=2))
         external = None
         if committed:
             try:
@@ -185,5 +254,5 @@ def run(world_dir, beliefs_file, leaver, assigns, repo, port):
                   "operation_id": operation_id,
                   "created_at": saved.get("created_at", int(time.time() * 1000)),
                   "state": "external_pending" if external and not external["verified"] else "verified"}
-        journal.write_text(json.dumps(result, indent=2), encoding="utf-8")
+        _safe_write(root, journal, json.dumps(result, indent=2))
         return result
