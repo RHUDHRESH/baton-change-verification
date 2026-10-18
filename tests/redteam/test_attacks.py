@@ -19,11 +19,10 @@ def company(api):
 def test_observe_commit_without_identity_preview_or_acceptance(service, observe):
     _, world, duty, person = company(service)
     response = TestClient(service.app).post("/api/commit", json={"assign": {duty: person}}, headers={"Origin": "https://attacker.invalid", "Host": "attacker.invalid"})
-    assert response.status_code == 200, response.text
-    result = response.json()
-    assert result["committed"] == [{"duty": duty, "person": person}]
-    assert result["external"]["verified"]
-    observe("unauthenticated_direct_commit", "vulnerable", http_status=200, graph_changed=result["live_hash_before"] != result["live_hash_after"], repository_verified=True, preview_required=False, arbitrary_host_accepted=True, arbitrary_origin_accepted=True)
+    assert response.status_code == 400, response.text
+    plain = TestClient(service.app).post("/api/commit", json={"assign": {duty: person}})
+    assert plain.status_code == 401
+    observe("unauthenticated_direct_commit", "blocked", http_status=plain.status_code, arbitrary_host_status=response.status_code)
 
 
 @pytest.mark.parametrize("content_type", ["text/plain", "application/x-www-form-urlencoded", "application/json"])
@@ -32,7 +31,7 @@ def test_observe_cross_origin_body_types(service, observe, content_type):
     response = TestClient(service.app).post("/api/commit", content=json.dumps({"assign": {duty: person}}), headers={"Content-Type": content_type, "Origin": "https://attacker.invalid"})
     accepted = response.status_code == 200 and bool(response.json().get("committed"))
     observe("cross_origin_body_" + content_type, "accepted" if accepted else "blocked", http_status=response.status_code, allow_origin=response.headers.get("access-control-allow-origin"))
-    assert response.status_code in (200, 415, 422)
+    assert response.status_code == 403
 
 
 def test_browser_preflight_does_not_grant_attacker_origin(service, observe):
@@ -48,10 +47,8 @@ def test_injected_assignment_does_not_execute_or_modify_graph(service, observe, 
     db = graph.connect(service.PORT)
     live, _ = load.ensure(db, world)
     before = graph.fingerprint(live)
-    response = TestClient(service.app).post("/api/commit", json={"assign": {payload: person}})
-    assert response.status_code in (200, 422), response.text
-    if response.status_code == 200:
-        assert not response.json()["committed"]
+    response = TestClient(service.app).post("/api/handover", json={"assign": {payload: person}})
+    assert response.status_code == 422, response.text
     assert before == graph.fingerprint(live)
     assert not Path("/tmp/baton-redteam-marker").exists()
     observe("assignment_injection_" + payload[:30], "blocked", http_status=response.status_code)
@@ -95,15 +92,16 @@ def test_observe_fabricated_claim_using_unrelated_message_and_ticket(service, ob
     path.write_text(json.dumps([fake]))
     result = rehearse.run(directory, path, world["leaver"], "G", "all", service.PORT)
     accepted = [row for row in result["failures"] if row["duty"] == fake["duty"]]
-    assert accepted and accepted[0]["status"] == "confirmed"
-    observe("unrelated_mixed_type_citations", "vulnerable", promoted=True, returned_status=accepted[0]["status"], prerequisite="control of proposed beliefs (CLI/model/cache), not an HTTP upload")
+    assert not accepted
+    assert any(row["belief"] == fake["id"] for row in result["unpromoted"])
+    observe("unrelated_mixed_type_citations", "blocked", promoted=False)
 
 
 def test_observe_oversized_assignment_identifier(service, observe):
     _, _, _, person = company(service)
     response = TestClient(service.app, raise_server_exceptions=False).post("/api/handover", json={"assign": {"X" * 150000: person}})
     observe("oversized_assignment_identifier", "vulnerable" if response.status_code == 500 else "blocked", bytes=150000, http_status=response.status_code)
-    assert response.status_code in (422, 413, 500)
+    assert response.status_code in (422, 413)
 
 
 def test_observe_missing_cache_get_creates_persistent_worlds(service, observe):
@@ -113,8 +111,8 @@ def test_observe_missing_cache_get_creates_persistent_worlds(service, observe):
         assert response.status_code == 409
     files = list(service.DATA.rglob("world.json"))
     size = sum(path.stat().st_size for path in service.DATA.rglob("*") if path.is_file())
-    assert len(files) == 6 and size > 0
-    observe("uncached_seed_disk_growth", "vulnerable", requests=6, persistent_worlds=len(files), bytes_written=size)
+    assert len(files) == 0 and size == 0
+    observe("uncached_seed_disk_growth", "blocked", requests=6, persistent_worlds=len(files), bytes_written=size)
 
 
 @pytest.mark.parametrize("body", [{"question": "a" * 2001}, {"question": "ok", "seed": -1}, {"question": "ok", "raw_query": "MATCH (n) RETURN n"}])
@@ -133,12 +131,14 @@ def test_observe_owner_file_symlink_escape_in_supplied_repo(service, tmp_path, o
     outside.write_text("SENTINEL")
     (repo / "OWNERS.d").mkdir()
     (repo / "OWNERS.d/halden_7.yaml").symlink_to(outside)
-    commit._write_external(repo, "halden_7", "leaver", [{"duty": "demo-duty", "person": "demo.person"}])
-    assert outside.read_text() != "SENTINEL"
-    observe("repository_symlink_escape", "vulnerable", outside_file_modified=True, prerequisite="attacker-controlled repo contents/local filesystem")
+    with pytest.raises((OSError, ValueError)):
+        commit._write_external(repo, "halden_7", "leaver", [{"duty": "demo-duty", "person": "demo.person"}])
+    assert outside.read_text() == "SENTINEL"
+    observe("repository_symlink_escape", "blocked", outside_file_modified=False)
 
 
 def test_observe_security_response_headers(service, observe):
     response = TestClient(service.app).get("/")
     missing = [name for name in ("content-security-policy", "x-content-type-options", "x-frame-options") if name not in response.headers]
+    assert not missing
     observe("browser_headers", "hardening_gap" if missing else "protected", missing=missing)

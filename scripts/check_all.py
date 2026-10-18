@@ -9,6 +9,7 @@ COMMANDS = [
     [sys.executable, "loop/bin/run_checks.py"],
     [sys.executable, "-m", "pytest", "tests/test_phase_one.py", "tests/locked/M01", "-q", "--junitxml=artifacts/foundation-tests.xml"],
     [sys.executable, "-m", "pytest", "tests/integration", "-q", "--junitxml=artifacts/transport-tests.xml"],
+    [sys.executable, "-m", "pytest", "tests/redteam", "-q", "--junitxml=artifacts/redteam-tests.xml"],
 ]
 
 

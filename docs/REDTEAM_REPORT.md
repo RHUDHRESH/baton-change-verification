@@ -1,5 +1,7 @@
 # Baton red-team test report
 
+**Current status: all five findings and the browser-header gap below are fixed.** See [fixes and current end-to-end results](SECURITY_FIXES.md). The following is the original pre-fix audit; its source line numbers and vulnerable behavior describe that revision.
+
 Tested 2026-10-18 against the local v0.2 application. No production security fixes were applied in this audit. Tests ran against an isolated, disposable FalkorDB; the browser payload was injected into an intercepted response and removed afterward. No third-party service was attacked. The later Acme demo has separate bounds/injection tests but was not part of this original audit.
 
 23 backend attack scenarios reproduced successfully; **this does not mean 23 security passes**. Five scenarios confirmed weaknesses, one identified missing defense headers. A separate real-browser DOM injection test was blocked. Evidence: `artifacts/redteam-observations.json`, `artifacts/redteam-tests.xml`, `artifacts/redteam-browser-results.txt`, `output/playwright/redteam-xss.png`.
