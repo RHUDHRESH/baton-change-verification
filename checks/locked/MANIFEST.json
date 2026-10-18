@@ -1,0 +1,152 @@
+{
+  "version": 9,
+  "files": {
+    "conftest.py": "2e196a7ceec898b4219246d9295d8de67d9dcdf6b4f375bb2ce683b97748a061",
+    "rehearsal_core/conftest.py": "dba857e951f6a0bfb29d3cb0ee43e46d6eb4daf745d5896c8dbad68b594931c6",
+    "rehearsal_core/oracle.py": "4225369f8ef84140bd8b42aba99b79a224092c64e4c982eb48ba1c6fa5ba95df",
+    "rehearsal_core/test_rehearsal_core.py": "ebd2635f824a7ba3447382a93f6fcc6292700595f8bcfca1e672359f4ba48c05",
+    "ask/conftest.py": "dba857e951f6a0bfb29d3cb0ee43e46d6eb4daf745d5896c8dbad68b594931c6",
+    "ask/oracle.py": "4225369f8ef84140bd8b42aba99b79a224092c64e4c982eb48ba1c6fa5ba95df",
+    "ask/test_ask.py": "86ea19c83b856b50aa75b62f72d5932b404b4b9bd268b80ac855e972de508ab6",
+    "ai_layer/conftest.py": "dba857e951f6a0bfb29d3cb0ee43e46d6eb4daf745d5896c8dbad68b594931c6",
+    "ai_layer/oracle.py": "4225369f8ef84140bd8b42aba99b79a224092c64e4c982eb48ba1c6fa5ba95df",
+    "ai_layer/test_ai_layer.py": "56977cb0340482db6054c29c7ac7dbb277dc5cd42842c7e559d62f79de697d63",
+    "ask/test_ask_ratchet.py": "2f14b3073eaf2dff0e74630494aa452237dabf8d4039f853b8b84fb95bf78ad5",
+    "cut/conftest.py": "dba857e951f6a0bfb29d3cb0ee43e46d6eb4daf745d5896c8dbad68b594931c6",
+    "cut/flow_oracle.py": "831943ec53c0dc12aa26adb476c77716581f0f43c3865a0108e0c66f07f4eba0",
+    "cut/oracle.py": "4225369f8ef84140bd8b42aba99b79a224092c64e4c982eb48ba1c6fa5ba95df",
+    "cut/test_cut.py": "9d68b4e6486659e921e6edd2a8d001ebe55e8d05df0483a09edc32e90f0742c4",
+    "commit_write/conftest.py": "dba857e951f6a0bfb29d3cb0ee43e46d6eb4daf745d5896c8dbad68b594931c6",
+    "commit_write/oracle.py": "4225369f8ef84140bd8b42aba99b79a224092c64e4c982eb48ba1c6fa5ba95df",
+    "commit_write/test_commit_write.py": "589f21cd4375e60589c6d88788f6d4f1a64cdffc10e087e4a0abdfd31fd4c0fe",
+    "rehearsal_core/test_gate_ratchet.py": "fdd46a19910613f7e25b6585f40d58fb31faa894e957e9012a34caf3227b9038",
+    "eval/conftest.py": "dba857e951f6a0bfb29d3cb0ee43e46d6eb4daf745d5896c8dbad68b594931c6",
+    "eval/oracle.py": "4225369f8ef84140bd8b42aba99b79a224092c64e4c982eb48ba1c6fa5ba95df",
+    "eval/test_eval.py": "89bcf341076a783b97fe3f93bde35c332f2a17c2e55b39b33a8a6a062f19c850"
+  },
+  "tools": {
+    "loop/bin/common.py": "c550fc062b81447c79a00c09b021541ef05be6a6b8922d728505216c7cdd4bc0",
+    "loop/bin/verify_locked.py": "74a498cdeae13a79beef2e6d84a4b7db284c48a44351ff5bab9d32cebb1e1ab8",
+    "loop/bin/run_checks.py": "2753bbe75b14f6392d6029d1e71ecaa0d91403a6323a37804d490923110d39e8",
+    "loop/bin/decide.py": "38ab1076db8222e0dad4b912c466df46f5d540cb29131fefa657589f66bc7a7e",
+    "loop/bin/log_round.py": "dcc60be9977ed2bd3baa3af7cad5df48d222af18e902d52497f031f80274013a",
+    "loop/bin/mine_habits.py": "ea84402d20f7539c6c50b4ea11d6178f14e8bbbd8013a91ef990d6f976419246",
+    "loop/bin/lock_checks.py": "fe05063a01914a9672261af7c8787303a85a99ca29fb9318424521c6daec1d8f",
+    "loop/bin/guard_locked.py": "a964acfab529948dceff712d22d283ca3d9289e519abb2c0ba761a214e657401",
+    "loop/bin/opt_step.py": "5aa41e285e538bc04a4b66b021dc7a4257c3c8111abedbc3377f22288a671584"
+  },
+  "program_fixed_sha256": "b3194aa4638f52b3963d4023aa482792f53d071a8c28346a272d7cd043409829",
+  "history": [
+    {
+      "action": "scaffold",
+      "approved_by": "scaffold.py",
+      "feature": "-",
+      "files": []
+    },
+    {
+      "ts": "2026-10-18T05:50:43",
+      "action": "lock",
+      "feature": "rehearsal_core",
+      "approved_by": "Rhudhresh (via Joyal's account): 'Approve and lock (Recommended)' (2026-10-18 ~11:55 IST)",
+      "files": [
+        "rehearsal_core/conftest.py",
+        "rehearsal_core/oracle.py",
+        "rehearsal_core/test_rehearsal_core.py"
+      ],
+      "manifest_version": 1
+    },
+    {
+      "ts": "2026-10-18T06:09:26",
+      "action": "lock",
+      "feature": "ask",
+      "approved_by": "Rhudhresh (via Joyal's account): 'Approve (Recommended)' for the 7-item ask list (2026-10-18 ~11:40 IST)",
+      "files": [
+        "ask/conftest.py",
+        "ask/oracle.py",
+        "ask/test_ask.py"
+      ],
+      "manifest_version": 2
+    },
+    {
+      "ts": "2026-10-18T06:14:57",
+      "action": "lock",
+      "feature": "ai_layer",
+      "approved_by": "Rhudhresh (via Joyal's account): 'Approve (Recommended)' for the 7-item AI layer list (2026-10-18 ~11:50 IST)",
+      "files": [
+        "ai_layer/conftest.py",
+        "ai_layer/oracle.py",
+        "ai_layer/test_ai_layer.py"
+      ],
+      "manifest_version": 3
+    },
+    {
+      "ts": "2026-10-18T06:23:13",
+      "action": "amend",
+      "feature": "ask",
+      "approved_by": "Rhudhresh (via Joyal's account): 'Add both (Recommended)' \u2014 who-owns + human names ratchet (2026-10-18 ~12:00 IST)",
+      "files": [
+        "ask/test_ask_ratchet.py"
+      ],
+      "manifest_version": 4
+    },
+    {
+      "ts": "2026-10-18T06:28:09",
+      "action": "fixed-rules-change",
+      "feature": null,
+      "approved_by": "Rhudhresh (via Joyal's account): 'Approve checks + eval/ folder (Recommended)' (2026-10-18 ~12:10 IST)",
+      "files": [
+        "loop/program.md (FIXED rule 2: add eval)",
+        "loop/config.json mutable_paths"
+      ],
+      "manifest_version": 5,
+      "previous_fixed_sha256": "7bd55d5f19f49d4463c066bf1fa0271f9c38261cd9211a6e4923e9c93c409c03"
+    },
+    {
+      "ts": "2026-10-18T06:28:49",
+      "action": "lock",
+      "feature": "cut",
+      "approved_by": "Rhudhresh (via Joyal's account): 'Approve (Recommended)' for the 7-item Cut list (2026-10-18 ~12:00 IST)",
+      "files": [
+        "cut/conftest.py",
+        "cut/flow_oracle.py",
+        "cut/oracle.py",
+        "cut/test_cut.py"
+      ],
+      "manifest_version": 6
+    },
+    {
+      "ts": "2026-10-18T06:35:51",
+      "action": "lock",
+      "feature": "commit_write",
+      "approved_by": "Rhudhresh (via Joyal's account): 'Approve (Recommended)' for the 5-item commit & write list (2026-10-18 ~12:05 IST)",
+      "files": [
+        "commit_write/conftest.py",
+        "commit_write/oracle.py",
+        "commit_write/test_commit_write.py"
+      ],
+      "manifest_version": 7
+    },
+    {
+      "ts": "2026-10-18T06:41:00",
+      "action": "amend",
+      "feature": "rehearsal_core",
+      "approved_by": "Rhudhresh (via Joyal's account): 'Approve (Recommended)' gate padding ratchet (2026-10-18 ~12:50 IST)",
+      "files": [
+        "rehearsal_core/test_gate_ratchet.py"
+      ],
+      "manifest_version": 8
+    },
+    {
+      "ts": "2026-10-18T06:45:53",
+      "action": "lock",
+      "feature": "eval",
+      "approved_by": "Rhudhresh (via Joyal's account): 'Approve checks + eval/ folder (Recommended)' (2026-10-18 ~12:10 IST)",
+      "files": [
+        "eval/conftest.py",
+        "eval/oracle.py",
+        "eval/test_eval.py"
+      ],
+      "manifest_version": 9
+    }
+  ]
+}
