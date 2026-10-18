@@ -1,6 +1,6 @@
 # KAN-2: grow-only tensor and restore verification
 
-**Local verification complete; evidence publication and provider updates pending.** All 20 recorded checks met their stated expectations, including two real RDB reloads. The post-run evidence audit was verified at **2026-10-18 15:26:47 UTC**. This report does not mark Jira or workspace work Done, close the upstream issue, claim an upstream fix or merge, or establish that the deployed Baton service runs this upstream source revision.
+**Verification complete; Jira and workspace Done; Slack updated.** All 20 recorded checks met their stated expectations, including two real RDB reloads. The post-run evidence audit was verified at **2026-10-18 15:26:47 UTC**. Provider updates passed separate read-backs. This does not close the upstream issue, claim an upstream fix or merge, or establish that the managed FalkorDB service runs this upstream source revision.
 
 Work tracked by [Jira KAN-2](https://rhudhresh3697.atlassian.net/browse/KAN-2), [the original Slack task message](https://raptorflow.slack.com/archives/C0CA7B1BYTT/p1792334785098199), and workspace task `task-agent-c108922c16a39ceaa82623d5748c4df0`. The public source is [FalkorDB issue #3246](https://github.com/FalkorDB/FalkorDB/issues/3246), which identifies the grow-only change in [PR #3250](https://github.com/FalkorDB/FalkorDB/pull/3250).
 
@@ -70,4 +70,4 @@ The review package includes [the exact execution manifest](execution.json) and [
 
 The [unit harness](../../scripts/verify_kan2.py) and [RDB harness](../../scripts/verify_kan2_rdb.py) define the checks; their cleanup and failure-reporting paths also have [mock failure tests](../../tests/test_kan2_runner.py). Those mocks verify reporting behavior and are separate from the actual Rust/Docker execution evidence above.
 
-The package still needs an immutable committed evidence URL before provider publication. Jira, Slack, and workspace status changes require their own successful provider writes and read-back; no such completion action is claimed in this document.
+The test package was published at immutable commit `1b76598a72bc1ac878dc46389851a995caef7379` before provider updates. Subsequent provider read-backs confirmed Jira KAN-2 Done with evidence comment `10000`, the updated original Slack message, and the workspace task done. The separate [completion receipt](completion.json) records these outcomes. No upstream issue or pull request was changed.

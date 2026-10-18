@@ -555,6 +555,37 @@ class PublishTask(BaseModel):
     target: Literal["jira","slack"]
 
 
+class ExecutionImport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    task_id: str = Field(min_length=1, max_length=100)
+    evidence_url: str = Field(min_length=1, max_length=500)
+    manifest_json: str = Field(min_length=1, max_length=50000)
+
+
+@app.get("/api/public/executions")
+def execution_receipts():
+    from .execution_evidence import list_executions, ExecutionError
+    try:
+        return list_executions(DATA, PORT)
+    except ExecutionError as error:
+        raise HTTPException(409, str(error))
+    except Exception:
+        raise HTTPException(503, "Execution evidence is unavailable; no substitute results are shown") from None
+
+
+@app.post("/api/public/executions", status_code=201)
+def import_execution_receipt(body: ExecutionImport, request: Request):
+    from .execution_evidence import import_execution, ExecutionError
+    security.session(request, auth_db(), DATA)
+    try:
+        with LOCK:
+            return import_execution(DATA, PORT, body.task_id, body.manifest_json, body.evidence_url)
+    except ExecutionError as error:
+        raise HTTPException(422, str(error))
+    except Exception:
+        raise HTTPException(503, "Execution evidence import was not confirmed; inspect its graph receipt before retrying") from None
+
+
 @app.post("/api/public/tasks/{task_id}/publish")
 def publish_company_task(task_id: str,body: PublishTask,request: Request):
     from .company_connections import publish_task,ConnectionError

@@ -38,8 +38,15 @@ The app's Jira and Slack buttons performed these actual writes on the main URL.
 Each artifact passed separate provider read-back and appeared in a subsequent public
 FalkorDB query through `LocalTask-[:PUBLISHED_AS]->ExternalArtifact`. Both artifacts
 retain the same source hash; their task identities match the agent-created task.
-The task remains To Do: its proposed code verification has not been executed by
-Baton, and no upstream issue or pull request was modified.
+The task is now **Done** in the workspace and Jira. Codex executed the actual
+upstream code in an isolated Docker runner, retained the initial failure, applied
+a disclosed constructor workaround, and verified 530 passing graph-library tests
+(17 upstream benchmarks/probes unrun), eight passing targeted checks, four
+expected counterfactual failures, and two real Redis RDB reloads. Groq and Lambda
+did not execute these code checks. No upstream issue or pull request was modified.
+The original Slack message was updated; separate provider read-backs confirmed
+the Jira evidence comment, Done status, Slack contents and workspace status.
+See [execution evidence](evidence/KAN-2.md) and [completion receipt](evidence/completion.json).
 
 Final Groq response receipt: `chatcmpl-1509ac29-1bc4-4bd6-8e44-9a67a9b946c7`.
 All four provider receipts and full tool arguments/results are persisted in the

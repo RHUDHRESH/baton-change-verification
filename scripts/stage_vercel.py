@@ -16,6 +16,10 @@ def stage(backend):
     target = ROOT / "artifacts/vercel-frontend"
     target.mkdir(parents=True, exist_ok=True)
     shutil.copytree(ROOT / "web", target, dirs_exist_ok=True)
+    # This directory is the explicitly public audit package: public upstream
+    # source, code-check outputs and receipts, with no provider credentials.
+    shutil.copytree(ROOT / "docs/evidence", target / "evidence", dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns(".gitattributes"))
     from server.security import POLICY
     config = {"$schema": "https://openapi.vercel.sh/vercel.json", "cleanUrls": False,
               "rewrites": [{"source": "/api/:path*", "destination": backend.rstrip("/") + "/api/:path*"}],

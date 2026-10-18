@@ -15,6 +15,9 @@ def main():
             for path in folder.rglob("*"):
                 if path.is_file() and "__pycache__" not in path.parts and not path.name.startswith(".env"):
                     archive.write(path,path.relative_to(base).as_posix())
+        for path in (ROOT / "docs/evidence").rglob("*"):
+            if path.is_file() and not path.name.startswith("."):
+                archive.write(path, "web/evidence/" + path.relative_to(ROOT / "docs/evidence").as_posix())
     if output.stat().st_size>49*1024*1024:
         raise RuntimeError("Deployment exceeds the direct Lambda upload bound")
     print(f"{output} ({output.stat().st_size:,} bytes)")

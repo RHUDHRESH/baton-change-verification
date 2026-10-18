@@ -18,7 +18,12 @@ def test_company_story_is_grounded_in_world_and_citations(service):
     assert 'Fictional company' in client.get('/sandbox.html').text
     assert 'Run available checks' not in client.get('/').text
     assert 'Hana’s handover' in client.get('/sandbox.html').text
-    assert 'PUBLIC COMPANY WORKSPACE' in client.get('/').text
+    homepage = client.get('/').text
+    assert 'PUBLIC ENGINEERING WORKBOARD' in homepage
+    assert 'Turn an issue into' in homepage and 'work you can verify.' in homepage
+    assert 'id="executions"' in homepage
+    assert 'code checks run by Codex in an isolated Docker environment' in homepage
+    assert 'it does not launch a Rust build' in homepage
 
 
 def test_follow_up_tasks_require_operator_and_persist(service):
