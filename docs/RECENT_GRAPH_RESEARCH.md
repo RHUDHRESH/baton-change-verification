@@ -48,6 +48,10 @@ The byte test includes the graph schema's `name`, `repo`, `number`, `updated_at`
 
 Additional tests cover duplicate rows, bot account types, wrong contributors, changed graph titles, wrong endpoint URLs, provenance intersection, missing reviews, row-cap reporting, and propagation of graph failure. Cypher map projections and server execution require the parent task's live FalkorDB smoke test; mocked tests do not validate database syntax or indexes.
 
+### Live compatibility correction
+
+The first deployed company query failed on FalkorDB Cloud **v4.22.0** with `ORDER BY cannot reference variables not projected or grouped in this scope`. It aggregated source IDs while returning the work ID inside a map, then tried to sort by `w.id`. The corrected query groups the author/work/repository scalar IDs in `WITH`, sorts by the grouped `work_id`, applies the row limit, and only then constructs the output maps. The response row shape and two-query contract are preserved. Unit checks cover the corrected scope; a successful deployment probe must establish live compatibility.
+
 ## Requirement status
 
 Three recent sources and three useful compatible adaptations are implemented and distinguished above. The stronger requirement of **three original, newly released SOTA techniques per agent** remains unproven for this specialist. Relabeling old engineering principles or a partial diagnostic as new SOTA research would misrepresent the result. No extra method is added solely to meet a numerical quota.

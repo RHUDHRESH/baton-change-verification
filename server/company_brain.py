@@ -12,8 +12,11 @@ from . import public_workspace as public
 CONTRIBUTION_QUERY = (
     "MATCH (a:Account)-[:AUTHORED]->(w:WorkItem)-[:IN_REPOSITORY]->(r:Repository) "
     "OPTIONAL MATCH (w)-[:EVIDENCED_BY]->(s:Source) "
-    "RETURN {id:a.id},{id:w.id},r.id,collect(DISTINCT s.id),"
-    "[] ORDER BY w.id LIMIT 100"
+    # Group and sort scalar IDs before creating output maps. FalkorDB rejects
+    # ORDER BY w.id after an aggregate RETURN that projects only {id:w.id}.
+    "WITH a.id AS author_id,w.id AS work_id,r.id AS repository_id,"
+    "collect(DISTINCT s.id) AS source_ids ORDER BY work_id LIMIT 100 "
+    "RETURN {id:author_id},{id:work_id},repository_id,source_ids,[]"
 )
 
 CONTRIBUTION_LIMIT = 100

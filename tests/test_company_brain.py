@@ -150,6 +150,11 @@ def test_projection_uses_only_consumed_fields_and_fixed_read_queries(captured):
     company.overview(path, 6379)
     assert "properties(" not in company.CONTRIBUTION_QUERY
     assert "LIMIT 100" in company.CONTRIBUTION_QUERY
+    # FalkorDB aggregate scope requires the ORDER BY key to be grouped or
+    # projected directly. Sorting w.id after projecting only its map fails live.
+    assert "AS work_id" in company.CONTRIBUTION_QUERY
+    assert "ORDER BY work_id LIMIT 100 RETURN" in company.CONTRIBUTION_QUERY
+    assert "ORDER BY w.id" not in company.CONTRIBUTION_QUERY
     assert "LIMIT 50" in company.SHARED_FILE_QUERY
     assert [call.args[0] for call in graph.ro_query.call_args_list] == [
         company.CONTRIBUTION_QUERY, company.SHARED_FILE_QUERY]
