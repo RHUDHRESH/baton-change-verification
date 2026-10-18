@@ -1,9 +1,12 @@
 """Baton HTTP API (thin wrapper over the `python -m baton` CLI contract). Every decision is made by the CLI in FalkorDB."""
 import json, os, subprocess, sys, threading, tempfile
 from typing import Annotated
+from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from . import security
 from pydantic import BaseModel, ConfigDict, Field
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -11,10 +14,39 @@ DATA = Path(os.environ.get("BATON_DATA", str(Path(tempfile.gettempdir()) / "bato
 PORT = int(os.environ.get("FALKORDB_PORT", "6379"))
 HOST = os.environ.get("FALKORDB_HOST", "localhost")
 LOCK = threading.RLock()
-app = FastAPI(title="Baton API")
+
+
+@asynccontextmanager
+async def lifespan(application):
+    security.credential(DATA)
+    yield
+
+
+app = FastAPI(title="Baton API", lifespan=lifespan, docs_url=None, redoc_url=None)
+app.add_middleware(security.RequestGuard)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=os.environ.get(
+    "BATON_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]").split(","))
 if os.environ.get("BATON_ALLOWED_ORIGIN"):
     app.add_middleware(CORSMiddleware, allow_origins=[os.environ["BATON_ALLOWED_ORIGIN"]],
                        allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
+app.add_middleware(security.BrowserHeaders)
+
+
+@app.get("/docs", include_in_schema=False)
+def api_documentation():
+    # Swagger's trusted inline initializer is hash-authorized without allowing
+    # arbitrary inline scripts in the product pages.
+    import re, base64, hashlib
+    from fastapi.openapi.docs import get_swagger_ui_html
+    response = get_swagger_ui_html(openapi_url="/openapi.json", title="Baton API",
+                                  swagger_favicon_url="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E",
+                                  swagger_ui_parameters={"validatorUrl": None})
+    scripts = re.findall(r"<script>(.*?)</script>", response.body.decode(), re.S)
+    hashes = " ".join("'sha256-" + base64.b64encode(hashlib.sha256(s.encode()).digest()).decode() + "'" for s in scripts)
+    response.headers["Content-Security-Policy"] = security.POLICY.replace(
+        "script-src 'self'", f"script-src 'self' https://cdn.jsdelivr.net {hashes}").replace(
+        "style-src 'self'", "style-src 'self' https://cdn.jsdelivr.net")
+    return response
 
 
 def cli(*args):
@@ -70,6 +102,43 @@ def enrich(d: Path, rows):
     return rows
 
 
+def auth_db():
+    from baton.graph import connect, Unreachable
+    try:
+        return connect(PORT).connection
+    except Unreachable as err:
+        raise HTTPException(503, str(err))
+
+
+class Login(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(min_length=1, max_length=256)
+
+
+@app.post("/api/auth/login")
+def operator_login(body: Login, request: Request, response: Response):
+    token = security.login(request, body.token, auth_db(), DATA)
+    response.set_cookie(security.COOKIE, token, max_age=security.SESSION_TTL, httponly=True, samesite="strict",
+                        secure=request.url.scheme == "https", path="/")
+    response.headers["Cache-Control"] = "no-store"
+    return {"authenticated": True, "role": "operator"}
+
+
+@app.get("/api/auth/status")
+def operator_status(request: Request, response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    return {"authenticated": bool(security.session(request, auth_db(), DATA, required=False))}
+
+
+@app.post("/api/auth/logout")
+def operator_logout(request: Request, response: Response):
+    token = request.cookies.get(security.COOKIE)
+    if token:
+        auth_db().delete("baton:session:" + security.digest(token))
+    response.delete_cookie(security.COOKIE, path="/")
+    return {"authenticated": False}
+
+
 @app.get("/api/health")
 def health():
     """Fails loudly when FalkorDB is down: the product does nothing without the graph."""
@@ -112,16 +181,32 @@ class Handover(BaseModel):
     assign: dict[Identifier, Identifier] = Field(max_length=100)
 
 
+def validate_assignments(directory, assignments):
+    world = json.loads((directory / "world.json").read_text())
+    beliefs = json.loads((directory / "beliefs.json").read_text())
+    duties = {d["id"] for d in world["duties"]} | {b["duty"] for b in beliefs}
+    people = {p["id"] for p in world["people"]}
+    if any(d not in duties or p not in people for d, p in assignments.items()):
+        raise HTTPException(422, "Assignments must name known company duties and people")
+
+
 @app.post("/api/handover")
-def handover(h: Handover):
+def handover(h: Handover, request: Request = None):
     with LOCK:
         d = world_dir(h.seed)
+        validate_assignments(d, h.assign)
         w = json.loads((d / "world.json").read_text())
         args = []
         for duty, person in h.assign.items():
             args += ["--assign", f"{duty}={person}"]
         out = cli("handover", "--world", d, "--beliefs", d / "beliefs.json", "--leaver", w["leaver"], *args, "--port", PORT)
         out["failures_after"] = enrich(d, out.get("failures_after", []))
+        if request is not None:
+            db = auth_db()
+            identity = security.session(request, db, DATA, required=False)
+            if identity:
+                plan = {row["duty"]: row["person"] for row in out["accepted"]}
+                out["preview_token"] = security.issue_preview(db, identity, h.seed, plan, out["live_hash_after"])
         return out
 
 
@@ -150,16 +235,32 @@ class Commit(BaseModel):
     model_config = ConfigDict(extra="forbid")
     seed: int = Field(default=7, ge=0, le=2_147_483_647)
     assign: dict[Identifier, Identifier] = Field(max_length=100)
+    preview_token: str = Field(default="", max_length=128)
+    consent_confirmed: bool = False
 
 
 @app.post("/api/commit")
-def commit(c: Commit):
+def commit(c: Commit, request: Request):
     """Writes accepted successors to the LIVE graph, then to a git repo file, and reads both back (a real write)."""
     with LOCK:
+        db = auth_db()
+        identity = security.session(request, db, DATA)
+        preview = security.check_preview(db, c.preview_token, identity, c.seed, c.assign)
+        if c.consent_confirmed is not True:
+            raise HTTPException(422, "Confirm successor agreement before saving the plan")
         import subprocess as sp
         d = world_dir(c.seed)
+        validate_assignments(d, c.assign)
         w = json.loads((d / "world.json").read_text())
         repo = DATA / "ops-repo"
+        from baton import graph as graph_helpers, load as loader, commit as commits
+        live, _ = loader.ensure(graph_helpers.connect(PORT), w)
+        if graph_helpers.fingerprint(live) != preview["fingerprint"]:
+            raw = sorted(f"{duty}={person}" for duty, person in c.assign.items())
+            op = security.digest(json.dumps([live.name, w["leaver"], w["leave_at"], raw]))[:24]
+            saved = commits._safe_read(repo, f".baton/receipts/{op}.json") if repo.exists() else None
+            if not saved or json.loads(saved).get("operation_id") != op:
+                raise HTTPException(409, "Company ownership changed; preview the plan again")
         if not (repo / ".git").exists():
             repo.mkdir(parents=True, exist_ok=True)
             sp.run(["git", "init", "-q", str(repo)], check=True)

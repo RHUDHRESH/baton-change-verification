@@ -2,6 +2,7 @@
 const $ = (id) => document.getElementById(id);
 const savedSeed = Number(localStorage.getItem("baton-seed"));
 const state = { data: null, seed: [7, 101, 202, 303].includes(savedSeed) ? savedSeed : 7, replay: false, catalogue: {}, preview: null, pending: false };
+state.operator = false;
 const laneNames = { W: "Checklist", R: "Connected records", G: "Baton" };
 function element(tag, text, className) {
   const item = document.createElement(tag);
@@ -14,7 +15,7 @@ function note(text) { $("notice").textContent = text; $("notice").hidden = !text
 async function request(path, payload) {
   const response = await fetch(path, { method: payload === undefined ? "GET" : "POST", headers: payload === undefined ? {} : { "Content-Type": "application/json" }, body: payload === undefined ? undefined : JSON.stringify(payload), signal: AbortSignal.timeout(60000) });
   const result = await response.json();
-  if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : `The request failed (${response.status}).`);
+  if (!response.ok) { const error = new Error(typeof result.detail === "string" ? result.detail : `The request failed (${response.status}).`); error.status = response.status; throw error; }
   return result;
 }
 function groups() {
@@ -106,7 +107,7 @@ function render() {
   for (const [label, question] of [["Who owes what?", `What does ${data.leaver_name} owe?`], ["What loses coverage?", `What breaks if ${data.leaver_name} leaves?`]]) {
     const chip = element("button", label); chip.type = "button"; chip.disabled = state.replay; chip.addEventListener("click", () => { $("question").value = question; $("ask-form").requestSubmit(); }); $("chips").append(chip);
   }
-  state.preview = null; $("write").hidden = true; $("receipt").hidden = true; $("hand-status").textContent = ""; $("capacity-result").replaceChildren(); $("answer").replaceChildren();
+  state.preview = null; $("write").hidden = true; $("consent-label").hidden = true; $("consent").checked = false; $("receipt").hidden = true; $("hand-status").textContent = ""; $("capacity-result").replaceChildren(); $("answer").replaceChildren();
   mode(); timeline(); dutyList();
   document.dispatchEvent(new Event("baton:company-loaded"));
 }
@@ -145,27 +146,48 @@ $("handover-form").addEventListener("submit", async (event) => {
     const result = await request("/api/handover", { seed: state.seed, assign });
     state.preview = { result, assign };
     $("hand-status").textContent = `${result.failures_after.length} uncovered events remain. Live ownership unchanged.`;
-    receipt(`${result.accepted.length} successors accepted in preview`, [...result.accepted.map((row) => `${row.duty} → ${row.person}`), ...result.refused.map((row) => `Refused ${row.duty}: ${row.reason}`)]);
+    receipt(`${result.accepted.length} eligible successors in preview`, [...result.accepted.map((row) => `${row.duty} → ${row.person}`), ...result.refused.map((row) => `Refused ${row.duty}: ${row.reason}`)]);
     $("write").hidden = !result.accepted.length;
+    $("consent-label").hidden = !result.accepted.length; $("consent").checked = false;
   } catch (error) { $("hand-status").textContent = error.message; }
   finally { $("replay").disabled = false; }
 });
 $("write").addEventListener("click", async () => {
   if (!state.preview || state.replay || state.pending) return;
+  if (!state.operator || !state.preview.result.preview_token) { $("operator-dialog").showModal(); $("operator-token").focus(); return; }
+  if (!$("consent").checked) { $("hand-status").textContent = "Confirm that the selected successors agreed before saving."; return; }
   $("write").disabled = true; $("replay").disabled = true; $("hand-status").textContent = "Writing accepted ownership and verifying the repository…";
   try {
     const accepted = Object.fromEntries(state.preview.result.accepted.map((row) => [row.duty, row.person]));
-    const result = await request("/api/commit", { seed: state.seed, assign: accepted });
+    const result = await request("/api/commit", { seed: state.seed, assign: accepted,
+      preview_token: state.preview.result.preview_token, consent_confirmed: $("consent").checked });
     document.dispatchEvent(new Event("baton:committed"));
     const external = result.external;
     receipt(`${result.committed.length} duties written · ${external?.verified ? "repository read-back verified" : "external write pending"}`, [`Still uncovered: ${result.still_uncovered.length} duties`, ...(external ? [`File: ${external.file}`, `Commit: ${external.commit}`] : []), ...result.refused.map((row) => `Refused ${row.duty}: ${row.reason}`)]);
     $("hand-status").textContent = result.ready_to_leave ? "All scheduled duties have coverage in this replay." : "Ownership saved. Some duties still need coverage.";
     if (external?.verified) { $("write").hidden = true; state.preview = null; }
     else { $("write").hidden = false; $("write").textContent = "Retry repository write"; $("hand-status").textContent = "Graph ownership saved. Repository write needs a retry."; }
-  } catch (error) { $("hand-status").textContent = error.message; }
+  } catch (error) { $("hand-status").textContent = error.message; if (error.status === 401) { state.operator = false; $("operator").textContent = "Operator sign in"; $("operator-dialog").showModal(); } }
   finally { $("write").disabled = false; $("replay").disabled = false; }
 });
 $("reset").addEventListener("click", () => { for (const select of $("assignments").querySelectorAll("select")) select.value = ""; state.preview = null; $("write").hidden = true; $("receipt").hidden = true; $("hand-status").textContent = "Plan cleared. Saved ownership is unaffected."; });
+
+$("operator").addEventListener("click", async () => {
+  if (!state.operator) { $("operator-dialog").showModal(); $("operator-token").focus(); return; }
+  try { await request("/api/auth/logout", {}); state.operator = false; $("operator").textContent = "Operator sign in"; state.preview = null; $("write").hidden = true; $("consent-label").hidden = true; }
+  catch (error) { note(error.message); }
+});
+$("close-operator").addEventListener("click", () => { $("operator-token").value = ""; $("operator-dialog").close(); });
+$("operator-dialog").addEventListener("close", () => { $("operator-token").value = ""; });
+$("operator-form").addEventListener("submit", async (event) => {
+  event.preventDefault(); const button = event.submitter; button.disabled = true;
+  try { await request("/api/auth/login", {token: $("operator-token").value}); state.operator = true;
+    $("operator").textContent = "Operator · sign out"; $("operator-dialog").close(); $("operator-message").textContent = "";
+    if (state.preview) $("handover-form").requestSubmit();
+  } catch (error) { $("operator-message").textContent = error.message; }
+  finally { $("operator-token").value = ""; button.disabled = false; }
+});
+request("/api/auth/status").then(result => { state.operator = result.authenticated; $("operator").textContent = state.operator ? "Operator · sign out" : "Operator sign in"; }).catch(() => {});
 $("capacity").addEventListener("click", async () => {
   if (state.replay || state.pending) return;
   const planSeed = state.seed;

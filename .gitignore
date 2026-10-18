@@ -13,3 +13,4 @@ output/
 loop/junit.xml
 loop/last_run.log
 loop/last_score.json
+.operator-token

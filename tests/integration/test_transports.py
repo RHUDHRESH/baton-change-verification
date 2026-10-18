@@ -16,6 +16,11 @@ def demo(client, seed=7):
     return response.json()
 
 
+def operator(client):
+    response = client.post("/api/auth/login", json={"token": os.environ["BATON_OPERATOR_TOKEN"]})
+    assert response.status_code == 200, response.text
+
+
 @pytest.mark.parametrize("seed", [7, 101, 202, 303])
 def test_http_rehearsal_cache_and_graph_integrity(service, seed):
     client = TestClient(service.app)
@@ -53,6 +58,7 @@ def test_http_validation_and_cache_miss_fail_visibly(service):
 
 def test_http_preview_then_real_git_write_and_read_back(service):
     client = TestClient(service.app)
+    operator(client)
     data = demo(client)
     duties = sorted({row["duty"] for row in data["lanes"]["G"]["failures"]})
     people = [p["id"] for p in data["people"] if p["id"] != data["leaver"] and p["left_at"] is None]
@@ -60,7 +66,8 @@ def test_http_preview_then_real_git_write_and_read_back(service):
     preview = client.post("/api/handover", json={"seed": 7, "assign": assign}).json()
     assert preview["failures_after"] == []
     assert preview["live_hash_before"] == preview["live_hash_after"]
-    result = client.post("/api/commit", json={"seed": 7, "assign": assign})
+    result = client.post("/api/commit", json={"seed": 7, "assign": assign,
+                         "preview_token": preview["preview_token"], "consent_confirmed": True})
     assert result.status_code == 200, result.text
     result = result.json()
     assert result["ready_to_leave"] and result["external"]["verified"]
@@ -233,12 +240,14 @@ def test_graph_explorer_is_time_valid_sourced_and_does_not_change_live_graph(ser
 
 def test_suggested_plan_commits_and_receipt_remains_available_after_reload(service):
     client = TestClient(service.app)
+    operator(client)
     assert client.get("/api/receipts?seed=7").json()["receipts"] == []
     plan = client.get("/api/cut?seed=7").json()
     assign = {row["duty"]: row["person"] for row in plan["assignments"]}
     preview = client.post("/api/handover", json={"seed": 7, "assign": assign}).json()
     assert preview["failures_after"] == []
-    committed = client.post("/api/commit", json={"seed": 7, "assign": assign}).json()
+    committed = client.post("/api/commit", json={"seed": 7, "assign": assign,
+                            "preview_token": preview["preview_token"], "consent_confirmed": True}).json()
     assert committed["state"] == "verified" and committed["external"]["verified"]
     refreshed = TestClient(service.app)
     history = refreshed.get("/api/receipts?seed=7").json()["receipts"]

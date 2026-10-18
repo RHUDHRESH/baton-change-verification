@@ -37,6 +37,8 @@ def engine(tmp_path_factory):
 
 @pytest.fixture
 def service(engine, monkeypatch, tmp_path):
+    monkeypatch.setenv("BATON_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
+    monkeypatch.setenv("BATON_OPERATOR_TOKEN", "test-only-operator-credential-" + "x" * 32)
     from server import app as api
     port, client = engine
     client.flushall()  # This fixture exclusively owns this freshly spawned engine.
