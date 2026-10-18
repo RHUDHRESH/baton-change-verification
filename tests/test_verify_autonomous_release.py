@@ -6,6 +6,7 @@ import io
 import json
 from types import SimpleNamespace
 import zipfile
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -116,3 +117,51 @@ def test_model_edit_is_reconstructed_from_actual_raw_output_and_source(fixture):
     model["raw_model_output"] = json.dumps({"old": old, "new": "999"})
     with pytest.raises(proof.ProofError, match="Raw model edit"):
         proof.check_repairs(fixture.record, fixture.report, fixture.files, fixture.source)
+
+
+def test_existing_gcm_credential_uses_explicit_helper_and_username_without_config_changes(monkeypatch):
+    command = MagicMock(return_value=SimpleNamespace(returncode=0, stdout="username=RHUDHRESH\npassword=private-test-token\n"))
+    monkeypatch.setattr(proof.subprocess, "run", command)
+    assert proof.credential() == "private-test-token"
+    assert command.call_args.args[0] == ["git", "-c", "credential.helper=", "-c", "credential.helper=manager", "credential", "fill"]
+    assert command.call_args.kwargs["input"] == "protocol=https\nhost=github.com\nusername=RHUDHRESH\n\n"
+    assert command.call_args.kwargs["capture_output"] is True
+
+
+def test_actual_failure_proof_is_distinct_from_success_and_rejects_done_transition(fixture):
+    check = fixture.report["checks"][0]
+    raw = b"running 547 tests\ntest result: FAILED. 529 passed; 1 failed; 17 ignored\n"
+    fixture.files[check["log_path"]] = raw
+    check.update(exit_code=101, passed=False, log_bytes=len(raw), log_sha256=proof.sha(raw), test_summaries=worker.summaries(raw))
+    fixture.report.update(status="failed", error="App callback failed; inspect this run's saved artifact", checks=[check])
+    fixture.files["report.json"] = json.dumps(fixture.report).encode()
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        archive.writestr("report.json", fixture.files["report.json"])
+        archive.writestr(check["log_path"], raw)
+    package = stream.getvalue()
+    fixture.record.update(status="failed", checks={"passed": 529, "failed": 1, "ignored": 17})
+    fixture.record["runner"].update(conclusion="failure", artifact_sha256=proof.sha(package))
+    fixture.record["evidence"][0]["sha256"] = proof.sha(fixture.files["report.json"])
+    fixture.record["publication"]["jira"]["comment"] = {"status": "verified", "id": "10001"}
+    fixture.metadata["conclusion"] = "failure"
+    original = fixture.reader
+    class FailureReader:
+        def json(self, path, github=False):
+            if "/jobs?" in path:
+                return {"jobs": [{"name": "execute", "status": "completed", "conclusion": "failure"},
+                    {"name": "finalization", "status": "completed", "conclusion": "success"}]}
+            if "/artifacts?" in path:
+                value = copy.deepcopy(original.json(path, github))
+                value["artifacts"][0]["digest"] = "sha256:" + proof.sha(package)
+                return value
+            return original.json(path, github)
+        def raw(self, path, github=False, archive=False):
+            return package if archive else original.raw(path, github)
+    reader = FailureReader()
+    result = proof.verify_failure(fixture.id, reader)
+    assert result["status"] == "verified_failure" and result["outcome"] == "failed" and result["passed"] == 529
+    assert result["applied_repairs"] == 0 and result["new_task_completion"] is False
+    fixture.record["publication"]["jira"]["transition"] = {"status": "verified"}
+    with pytest.raises(proof.ProofError, match="Done transition"):
+        proof.verify_failure(fixture.id, reader)

@@ -51,7 +51,8 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 def credential():
     environment = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
-    result = subprocess.run(["git", "credential", "fill"], input="protocol=https\nhost=github.com\n\n",
+    result = subprocess.run(["git", "-c", "credential.helper=", "-c", "credential.helper=manager", "credential", "fill"],
+        input="protocol=https\nhost=github.com\nusername=RHUDHRESH\n\n",
         capture_output=True, text=True, timeout=20, env=environment)
     values = dict(line.split("=", 1) for line in result.stdout.splitlines() if "=" in line)
     require(result.returncode == 0 and values.get("password"), "Existing GitHub credential is unavailable")
@@ -266,13 +267,92 @@ def verify(identity, reader):
             "Seventeen ignored tests and RDB reload are outside this cloud profile; no upstream merge is claimed."]}
 
 
+def verify_failure(identity, reader):
+    """Prove the first actual failed cloud execution without calling it success."""
+    require(re.fullmatch(r"[a-f0-9]{32}", identity), "Invalid app workflow run ID")
+    record = reader.json("/api/public/workflows/" + identity)
+    require(record.get("id") == identity and record.get("task_id") == TASK and record.get("status") == "failed" and
+            record.get("runner", {}).get("verified") is True and record.get("graph_verified") is True,
+            "App has not independently finalized this failed workflow")
+    runner = record["runner"]
+    run_id = str(runner.get("run_id", ""))
+    require(re.fullmatch(r"[0-9]{1,20}", run_id) and runner.get("provider") == "GitHub Actions" and runner.get("conclusion") == "failure",
+            "Failed runner identity is invalid")
+    base = "/repos/" + REPO + "/actions/runs/" + run_id
+    observed = reader.json(base, github=True)
+    require(observed.get("status") == "completed" and observed.get("conclusion") == "failure" and observed.get("run_attempt") == 1 and
+            observed.get("event") == "workflow_dispatch" and observed.get("display_title") == "Baton execution " + identity and
+            observed.get("repository", {}).get("full_name") == REPO and
+            observed.get("path", "").split("@", 1)[0] == ".github/workflows/baton-execute.yml", "Independent failed GitHub execution differs")
+    jobs = reader.json(base + "/jobs?per_page=30", github=True).get("jobs", [])
+    for name, conclusion in (("execute", "failure"), ("finalization", "success")):
+        matching = [job for job in jobs if job.get("name") == name]
+        require(len(matching) == 1 and matching[0].get("status") == "completed" and matching[0].get("conclusion") == conclusion,
+                "Failed execution or successful failure-finalization job is unverified")
+    artifacts = reader.json(base + "/artifacts?per_page=30", github=True).get("artifacts", [])
+    matching = [artifact for artifact in artifacts if artifact.get("name") == "baton-run-" + identity and artifact.get("expired") is False and
+                str(artifact.get("workflow_run", {}).get("id")) == run_id]
+    require(len(matching) == 1 and type(matching[0].get("id")) is int, "Failed-run artifact identity differs")
+    artifact = matching[0]
+    raw = reader.raw("/repos/" + REPO + "/actions/artifacts/" + str(artifact["id"]) + "/zip", github=True, archive=True)
+    require(artifact.get("digest") == "sha256:" + sha(raw) and runner.get("artifact_sha256") == sha(raw), "Failed-run artifact digest differs")
+    files = unpack(raw)
+    public = reader.raw("/api/public/workflows/" + identity + "/evidence")
+    evidence = record.get("evidence", [])
+    require(len(evidence) == 1 and evidence[0].get("url") == ORIGIN + "/api/public/workflows/" + identity + "/evidence" and
+            public == files["report.json"] and sha(public) == evidence[0].get("sha256"), "Failed-run public report bytes differ")
+    report = json.loads(public)
+    require(report.get("status") == "failed" and report.get("execution_id") == identity and
+            report.get("executor") == "GitHub Actions isolated Docker runner" and report.get("source", {}).get("commit") == SOURCE_COMMIT and
+            report["source"].get("image") == IMAGE and report.get("github", {}).get("workflow_sha") == observed.get("head_sha") and
+            str(report["github"].get("run_id")) == run_id, "Failed report provenance differs")
+    checks = report.get("checks", [])
+    expected_summary = [{"status": "FAILED", "passed": 529, "failed": 1, "ignored": 17}]
+    require(len(checks) == 1 and checks[0].get("name") == "graph_library_initial" and checks[0].get("argv") ==
+            ["cargo", "test", "--locked", "-p", "graph", "--lib", "--", "--test-threads=1"] and checks[0].get("exit_code") == 101 and
+            checks[0].get("passed") is False and checks[0].get("log_path") == "checks/graph_library_initial.log",
+            "First cloud failure did not execute the expected full-library command")
+    check = checks[0]
+    log = files[check["log_path"]]
+    public_log = reader.raw("/api/public/workflows/" + identity + "/logs/checks_graph_library_initial.log")
+    matches = re.findall(r"test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored", log.decode("utf-8"))
+    parsed = [{"status": state, "passed": int(passed), "failed": int(failed), "ignored": int(ignored)} for state, passed, failed, ignored in matches]
+    require(public_log == log and len(log) == check.get("log_bytes") and sha(log) == check.get("log_sha256") and
+            b"running 547 tests" in log and parsed == check.get("test_summaries") == expected_summary,
+            "Actual failed raw log bytes or 529/1/17 totals differ")
+    require(report.get("repairs") == [] and record.get("repairs") == [] and record.get("checks", {}).get("failed") == 1 and
+            record["checks"].get("passed") == 529 and record["checks"].get("ignored") == 17 and not record.get("task_completion"),
+            "Failed run claimed an unperformed repair or new task completion")
+    expected_urls = {"jira": "https://rhudhresh3697.atlassian.net/browse/KAN-2",
+        "slack": "https://raptorflow.slack.com/archives/C0CA7B1BYTT/p1792334785098199"}
+    for target, url in expected_urls.items():
+        receipt = record.get("publication", {}).get(target, {})
+        require(receipt.get("status") == "verified" and receipt.get("read_back_verified") is True and receipt.get("url") == url,
+                "Failed-run provider evidence has no verified saved readback")
+    jira = record["publication"]["jira"]
+    comment_id = jira.get("comment", {}).get("id")
+    require(isinstance(comment_id, str) and re.fullmatch(r"[0-9]{1,20}", comment_id) and jira["comment"].get("status") == "verified" and
+            not jira.get("transition"), "Failed-run Jira publication claimed a Done transition or lacks a verified comment")
+    return {"status": "verified_failure", "outcome": "failed", "run_id": identity, "github_run_id": run_id,
+        "artifact_id": artifact["id"], "artifact_sha256": sha(raw), "report_sha256": sha(public), "log_sha256": sha(log),
+        "source_commit": SOURCE_COMMIT, "passed": 529, "failed": 1, "ignored": 17, "exit_code": 101,
+        "applied_repairs": 0, "new_task_completion": False, "jira_comment_id": comment_id,
+        "provider_readbacks": {target: True for target in expected_urls}, "failure_class": "runner_callback_failed" if
+            report.get("error") == "App callback failed; inspect this run's saved artifact" else "runner_failed",
+        "limits": ["This proves an actual failed cloud run and automatic failure publication, not a completed fix.",
+            "Provider readbacks are the app's saved receipts; Jira and Slack were not queried by this verifier.",
+            "Direct Cloud graph relationship audit is separate; no API writes or provider messages were sent."]}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--output", default="artifacts/autonomous-release-proof.json")
+    parser.add_argument("--expect-failed", action="store_true", help="Verify the first actual 529/1/17 failure rather than a successful release")
     args = parser.parse_args()
     try:
-        result = verify(args.run_id, Reader(credential()))
+        reader = Reader(credential())
+        result = verify_failure(args.run_id, reader) if args.expect_failed else verify(args.run_id, reader)
     except ProofError as error:
         result = {"status": "failed", "error": str(error)}
     except Exception:
@@ -281,7 +361,7 @@ def main():
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result))
-    return 0 if result["status"] == "verified" else 1
+    return 0 if result["status"] in ("verified", "verified_failure") else 1
 
 
 if __name__ == "__main__":

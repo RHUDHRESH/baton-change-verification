@@ -332,3 +332,20 @@ def test_final_source_hash_is_bound_to_actual_unique_model_edits(fixture, mutati
         elif mutation == "nonunique-old": repair["model_edit"]["old"] = "not in immutable source"
     with pytest.raises(workflow.WorkflowError, match="reconstruct|Generated model edit"):
         workflow._validate_success(fixture.record, fixture.report, workflow._final_checks(fixture.report["checks"]))
+
+
+@pytest.mark.parametrize("message", ["App callback failed; inspect this run's saved artifact", "private-provider-token-body"])
+def test_real_failed_library_and_callback_error_cannot_look_like_completed_repair(fixture, message):
+    check = fixture.report["checks"][0]
+    raw = b"running 547 tests\ntest result: FAILED. 529 passed; 1 failed; 17 ignored\n"
+    fixture.files[check["log_path"]] = raw
+    check.update(exit_code=101, passed=False, log_bytes=len(raw), log_sha256=workflow.sha(raw), test_summaries=worker.summaries(raw))
+    fixture.report.update(status="failed", error=message, checks=[check])
+    fixture.management["conclusion"] = "failure"
+    result = complete(fixture)
+    assert result["status"] == "failed" and result["execution_error"] == result["error"]
+    assert next(stage for stage in result["stages"] if stage["id"] == "repair")["status"] == "failed"
+    if message.startswith("App callback"):
+        assert result["error"] == message
+    else:
+        assert "private-provider-token" not in json.dumps(result)

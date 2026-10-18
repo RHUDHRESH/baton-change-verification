@@ -668,6 +668,15 @@ def cloud_runner_callback(run_id: str, operation: Literal["events", "repair", "c
     try:
         return {"events": workflows.event, "repair": workflows.repair, "complete": workflows.complete}[operation](DATA, PORT, run_id, body)
     except workflows.WorkflowError as error:
+        if operation == "repair":
+            try:
+                record = workflows._read(PORT, run_id)
+                record["last_callback_error"] = str(error)
+                if record.get("repair_generations"):
+                    record["repair_generations"][-1]["validation"] = "rejected"
+                workflows._save(DATA, PORT, record)
+            except Exception:
+                pass
         raise HTTPException(409, str(error))
     except Exception:
         raise HTTPException(503, "Cloud callback was not verified; no success or provider update is implied") from None

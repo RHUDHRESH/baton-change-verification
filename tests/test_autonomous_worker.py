@@ -1,6 +1,9 @@
 """Pure contract and adversarial tests; no Docker/provider execution."""
 import json
+import io
 from pathlib import Path
+import urllib.error
+from types import SimpleNamespace
 
 import pytest
 
@@ -91,6 +94,47 @@ def test_no_unapproved_callback_origin_or_reused_output(monkeypatch, tmp_path):
     make_worker(monkeypatch, tmp_path)
     with pytest.raises(FileExistsError):
         make_worker(monkeypatch, tmp_path)
+
+
+def test_callback_preserves_only_bounded_application_diagnostic(monkeypatch, tmp_path):
+    run = make_worker(monkeypatch, tmp_path)
+    body = io.BytesIO(json.dumps({"detail": "Groq did not return a unique bounded production edit"}).encode())
+    error = urllib.error.HTTPError("https://fixed-app.invalid/?private-query", 422, "private reason", {}, body)
+    opener = SimpleNamespace(open=lambda *args, **kwargs: (_ for _ in ()).throw(error))
+    monkeypatch.setattr(worker.urllib.request, "build_opener", lambda *args: opener)
+    with pytest.raises(RuntimeError, match="HTTP 422: Groq did not return a unique bounded production edit") as raised:
+        run.callback("repair", {})
+    assert "private-query" not in str(raised.value) and "private reason" not in str(raised.value)
+    assert body.closed
+
+
+@pytest.mark.parametrize("detail", ["Groq repair returned HTTP 429; no substitute patch was supplied",
+                                   "Groq repair returned invalid JSON; no patch was applied"])
+def test_callback_preserves_exact_static_model_failure_diagnostics(detail):
+    error = urllib.error.HTTPError("https://private.invalid", 422, "private reason", {},
+                                   io.BytesIO(json.dumps({"detail": detail}).encode()))
+    assert worker.callback_http_diagnostic(error, "a" * 43) == "App callback returned HTTP 422: " + detail
+
+
+@pytest.mark.parametrize("payload", [{"detail": "private-provider-response https://provider.invalid?token=secret"},
+                                      {"detail": "a" * 43}, {"detail": ["private validation context"]},
+                                      {"detail": "Groq repair returned HTTP 429; no substitute patch was supplied private-token"},
+                                      "<html>private proxy response</html>"])
+def test_callback_diagnostic_does_not_relay_secrets_urls_or_raw_provider_text(payload):
+    raw = payload.encode() if isinstance(payload, str) else json.dumps(payload).encode()
+    error = urllib.error.HTTPError("https://private.invalid", 502, "secret reason", {}, io.BytesIO(raw))
+    assert worker.callback_http_diagnostic(error, "a" * 43) == "App callback returned HTTP 502"
+
+
+def test_callback_error_body_read_is_capped_at_four_kib():
+    class BoundedBody(io.BytesIO):
+        def read(self, size=-1):
+            assert size == 4096
+            return super().read(size)
+
+    body = BoundedBody(b'{"detail":"' + b"x" * 10000 + b'"}')
+    error = urllib.error.HTTPError("https://private.invalid", 413, "private reason", {}, body)
+    assert worker.callback_http_diagnostic(error, "a" * 43) == "App callback returned HTTP 413"
 
 
 @pytest.mark.parametrize("failures,expected_status,expected_repairs", [(0, "passed_no_fix", 0), (1, "passed", 1), (2, "passed", 2), (3, "failed", 2)])

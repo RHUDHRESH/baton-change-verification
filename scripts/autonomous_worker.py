@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 import subprocess
 import time
+import urllib.error
 import urllib.request
 
 
@@ -37,6 +38,45 @@ TESTS = {
     "release_restore": (True, "graph::graph::restore_tests::restore_never_shrinks_the_saved_matrices"),
 }
 LIBRARY_ARGV = ["cargo", "test", "--locked", "-p", "graph", "--lib", "--", "--test-threads=1"]
+# Only application-owned static diagnostics may cross into the public report.
+# Unknown JSON, provider text, HTML and request URLs stay out of artifacts.
+SAFE_CALLBACK_DETAILS = frozenset({
+    "Groq repair failed; no substitute patch was supplied",
+    "Groq repair response exceeds its bound",
+    "Groq repair has no provider generation receipt",
+    "Groq repair was incomplete",
+    "Groq did not return a unique bounded production edit",
+    "Groq repair returned invalid JSON",
+    "Groq repair returned invalid JSON; no patch was applied",
+    "Groq repair returned malformed JSON",
+    "Groq repair was truncated",
+    "Daily repair model allowance exhausted",
+    "Repair attempt limit reached",
+    "Repair attempts must be ordered",
+    "Repair source is outside the approved production file",
+    "Runner repair source differs from the pinned source and prior model edits",
+    "Repair requires an observed failed check",
+    "Upstream test region does not match the immutable source",
+    "Invalid or expired runner callback",
+    "Workflow already finalized",
+})
+
+
+def callback_http_diagnostic(error: urllib.error.HTTPError, token: str) -> str:
+    status = str(error.code) if type(error.code) is int and 100 <= error.code <= 599 else "unknown"
+    message = "App callback returned HTTP " + status
+    try:
+        payload = json.loads(error.read(4096))
+        detail = payload.get("detail") if isinstance(payload, dict) else None
+        allowed = isinstance(detail, str) and (detail in SAFE_CALLBACK_DETAILS or re.fullmatch(
+            r"Groq repair returned HTTP [1-5][0-9]{2}; no substitute patch was supplied", detail))
+        if allowed and (not token or token not in detail):
+            message += ": " + detail
+    except Exception:
+        pass
+    finally:
+        error.close()
+    return message
 
 
 def sha(value: bytes) -> str:
@@ -168,6 +208,8 @@ class Worker:
             if len(result) > 65536:
                 raise ValueError("Callback response exceeds the approved limit")
             return json.loads(result)
+        except urllib.error.HTTPError as error:
+            raise RuntimeError(callback_http_diagnostic(error, self.token)) from None
         except Exception:
             # HTTP errors may include request metadata. Never print credentials.
             raise RuntimeError("App callback failed; inspect this run's saved artifact") from None

@@ -63,7 +63,7 @@ function tree(node){return {tag:node.tag,text:node.own,href:node.href||null,chil
 def js(**payload):
     assert NODE, "Node.js is required to execute the actual browser workflow code"
     result = subprocess.run([NODE, "-e", HARNESS, str(ROOT / "web/workflows.js")],
-        input=json.dumps(payload), text=True, capture_output=True, check=True, timeout=15)
+        input=json.dumps(payload), text=True, encoding="utf-8", capture_output=True, check=True, timeout=15)
     return json.loads(result.stdout)
 
 
@@ -151,9 +151,9 @@ def test_unknown_submission_outcome_is_never_automatically_reposted():
 def test_poll_limit_pauses_without_fabricating_failure_or_reposting(completed):
     completed["status"] = "running"
     result = js(mode="poll", records=[completed])
-    assert len(result["calls"]) == 90
+    assert len(result["calls"]) == 240
     assert all("body" not in call for call in result["calls"])
-    assert result["delays"] == [5000] * 90
+    assert result["delays"] == [10000] * 240
     assert "may still be active" in result["progress"]
     assert "No new run was submitted".lower() in result["progress"].lower()
 
@@ -240,3 +240,17 @@ def test_counts_describe_executions_including_reruns_not_unique_tests(completed,
     assert f"{failed} failed" in result["text"]
     assert f"{ignored} ignored / not run" in result["text"]
     assert f"{passed} tests passed" not in result["text"]
+
+
+@pytest.mark.parametrize("check", ["graph_library_initial", {"name": "graph_library_initial", "exit_code": 0, "passed": True}])
+def test_live_progress_and_exit_zero_remain_unverified_text(completed, check):
+    completed.update(status="running", latest_event={"stage": "execute", "at": "2026-10-19T19:14:42Z",
+        "data": {"check": check, "log_tail": "<script>untrustedRunner()</script>"}})
+    completed["checks"]["verified"] = False
+    result = js(mode="render", record=completed)
+    assert "Live runner progress · unverified" in result["text"]
+    assert "graph_library_initial" in result["text"]
+    assert "<script>untrustedRunner()</script>" in result["text"]
+    assert "does not establish passing checks" in result["text"]
+    assert "Checks and requested publication verified" not in result["text"]
+    if isinstance(check, dict): assert "Observed check exit: 0 · unverified" in result["text"]

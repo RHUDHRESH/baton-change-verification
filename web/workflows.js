@@ -4,6 +4,7 @@
   const PROFILE_ITEM = 'FalkorDB/FalkorDB#3246';
   const TERMINAL = new Set(['completed', 'partial', 'failed']);
   const TARGETS = ['jira', 'slack'];
+  const POLL_ATTEMPTS = 240, POLL_INTERVAL_MS = 10000;
   let current, polling = false, creating = false, generation = 0, configured;
 
   function safeLink(value) {
@@ -76,6 +77,15 @@
     }
     if (stages.children.length) root.append(stages);
     if (record.error) root.append(el('p', record.error, 'workflow-error'));
+    if (record.latest_event && !state.terminal) {
+      const event = record.latest_event, data = event.data || {};
+      const check = typeof data.check === 'string' ? data.check : data.check?.name;
+      root.append(el('h4', 'Live runner progress · unverified'),
+        el('p', (event.stage || 'Runner event') + (check ? ' · ' + check : '') + (event.at ? ' · ' + event.at : '')),
+        el('p', 'Progress comes from the runner callback. It does not establish passing checks; final job, artifact and log verification is still required.', 'muted'));
+      if (Number.isInteger(data.check?.exit_code)) root.append(el('p', 'Observed check exit: ' + data.check.exit_code + ' · unverified'));
+      if (typeof data.log_tail === 'string') root.append(details('Live log tail · unverified', data.log_tail));
+    }
     const checks = record.checks || {};
     if (Object.keys(checks).length) {
       root.append(el('h4', 'Code-check evidence'), el('p', [
@@ -126,7 +136,7 @@
   async function poll(identity) {
     const token = ++generation; polling = true; $('workflow-refresh').hidden = false; controls();
     try {
-      for (let attempt = 0; attempt < 90; attempt++) {
+      for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
         if (token !== generation) return;
         const record = await api('/api/public/workflows/' + encodeURIComponent(identity));
         if (token !== generation) return;
@@ -138,7 +148,7 @@
           return;
         }
         $('workflow-progress').textContent = 'Cloud workflow continues · update ' + (attempt + 1) + '. Checks and publication are verified separately.';
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
       }
       $('workflow-progress').textContent = 'Automatic polling paused. The cloud run may still be active. Refresh this receipt to continue; no new run was submitted.';
     } catch (error) {
