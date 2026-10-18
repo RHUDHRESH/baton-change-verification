@@ -22,7 +22,8 @@ def main():
     files = [source, bundle, *ARTIFACTS.glob("dist/*.whl"), *ARTIFACTS.glob("*tests.xml"), ARTIFACTS / "check-run.json",
              ROOT / "loop/last_score.json", ROOT / "loop/junit.xml", ARTIFACTS / "clean-clone-verification.json", ROOT / "docs/BUILD_REPORT.md",
              ROOT / "output/playwright/baton-demo.webm", ROOT / "output/playwright/desktop.png",
-             ROOT / "output/playwright/mobile.png", ROOT / "output/playwright/mobile-dark.png"]
+             ROOT / "output/playwright/mobile.png", ROOT / "output/playwright/mobile-dark.png",
+             ROOT / "output/playwright/graph-explorer.png"]
     output = ARTIFACTS / "Baton_complete_build.zip"
     with ZipFile(output, "w", ZIP_DEFLATED) as archive:
         for path in files:

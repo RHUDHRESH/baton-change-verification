@@ -89,4 +89,6 @@ The backend reuses the user-supplied snapshot identified there as `980c2e2`; it 
 
 Extraction/cache/provider/fake-model and evaluation patterns adapt [agent-memory-bench by Liz Zhang](https://github.com/zhang-liz/agent-memory-bench), copyright 2026 Liz Zhang, MIT; its vendored world and full notice remain under `third_party/amb/`. The [FalkorDB client](https://github.com/FalkorDB/falkordb-py) and [official MCP SDK](https://github.com/modelcontextprotocol/python-sdk) are MIT dependencies. No competitor hackathon code was used. Codex assisted with architecture, implementation and verification.
 
+The interactive graph uses [Cytoscape.js 3.34.4](https://github.com/cytoscape/cytoscape.js/tree/v3.34.4), MIT, vendored with its full license and provenance manifest under `web/vendor/cytoscape/`.
+
 Synthetic corroboration is not independent real-world truth. Only scheduled work is checked. The single-worker local demo has no user authentication; public hosting needs HTTPS and access controls. Graph and repository writes are separate systems: external failures are retryable, but an abrupt crash between the graph write and first journal persistence remains a recovery gap. Public cloud hosting, fresh paid-model validation and event submission are not claimed as completed.
