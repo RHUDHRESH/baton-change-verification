@@ -10,6 +10,7 @@ COMMANDS = [
     [sys.executable, "-m", "pytest", "tests/test_phase_one.py", "tests/locked/M01", "-q", "--junitxml=artifacts/foundation-tests.xml"],
     [sys.executable, "-m", "pytest", "tests/integration", "-q", "--junitxml=artifacts/transport-tests.xml"],
     [sys.executable, "-m", "pytest", "tests/redteam", "-q", "--junitxml=artifacts/redteam-tests.xml"],
+    [sys.executable, "-m", "pytest", "tests/test_groq_transport.py", "tests/test_cloud_connection.py", "tests/test_lambda_control.py", "tests/test_graph_agent.py", "-q", "--junitxml=artifacts/groq-contract-tests.xml"],
 ]
 
 

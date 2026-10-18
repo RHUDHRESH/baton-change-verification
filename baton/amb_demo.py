@@ -118,7 +118,8 @@ def fixture():
 def connect(port):
     db = G.connect(port)
     g = db.select_graph(NAME)
-    with db.connection.lock(f"baton:load:{NAME}", timeout=120, blocking_timeout=30):
+    from server.control import connect as control_connect
+    with control_connect(port).lock(f"baton:load:{NAME}", timeout=120, blocking_timeout=30):
         if not G.exists(db, NAME):
             try:
                 w = fixture()

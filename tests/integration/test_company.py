@@ -15,9 +15,10 @@ def test_company_story_is_grounded_in_world_and_citations(service):
     assert any('Our launch depends on it' in s['text'] for s in company['sources'])
     for path in ('/', '/amb.html', '/rehearsal.html', '/benchmark.html'):
         assert client.get(path).status_code == 200
-    assert 'Fictional company' in client.get('/').text
+    assert 'Fictional company' in client.get('/sandbox.html').text
     assert 'Run available checks' not in client.get('/').text
-    assert 'Hana’s handover' in client.get('/').text
+    assert 'Hana’s handover' in client.get('/sandbox.html').text
+    assert 'PUBLIC COMPANY WORKSPACE' in client.get('/').text
 
 
 def test_follow_up_tasks_require_operator_and_persist(service):

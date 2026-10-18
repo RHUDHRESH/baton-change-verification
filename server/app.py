@@ -107,7 +107,8 @@ def enrich(d: Path, rows):
 def auth_db():
     from baton.graph import connect, Unreachable
     try:
-        return connect(PORT).connection
+        from .control import connect as control_connect
+        return control_connect(PORT)
     except Unreachable as err:
         raise HTTPException(503, str(err))
 
@@ -144,11 +145,11 @@ def operator_logout(request: Request, response: Response):
 @app.get("/api/health")
 def health():
     """Fails loudly when FalkorDB is down: the product does nothing without the graph."""
-    from falkordb import FalkorDB
     try:
-        FalkorDB(host=HOST, port=PORT, socket_connect_timeout=3, socket_timeout=3).connection.ping()
+        from baton.graph import connect
+        connect(PORT).connection.ping()
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(503, f"FalkorDB is not reachable at {HOST}:{PORT}: {e}")
+        raise HTTPException(503, f"FalkorDB is not reachable at {HOST}:{PORT}")
     return {"ok": True, "falkordb": f"{HOST}:{PORT}", "fixture": True, "offline": os.environ.get("BATON_OFFLINE", "1") == "1"}
 
 
@@ -411,6 +412,221 @@ def acme_question(qid: str):
 
 
 from fastapi.staticfiles import StaticFiles
+
+
+class PublicInference(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    item_id: str = Field(min_length=1,max_length=200)
+    question: str = Field(default="Summarize this work, identify uncertainties, and propose concrete verification steps using only the source record.",min_length=1,max_length=2000)
+
+
+class PublicTask(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    item_id: str = Field(min_length=1,max_length=200)
+    title: str = Field(min_length=1,max_length=160)
+    owner: str = Field(default="",max_length=100)
+    run_id: str | None = Field(default=None,max_length=32)
+
+
+@app.get("/api/public/status")
+def public_status():
+    from . import public_workspace as public
+    worker = auth_db().get("baton:public:worker")
+    if os.environ.get("BATON_INFERENCE_MODE")=="request":
+        worker=json.dumps({"provider":"Groq","state":"on request"})
+    pointer = public.read(DATA,"current.json")
+    return {"source":"GitHub public REST API", "repositories":public.REPOS,
+            "imported":bool(pointer),"snapshot_id":pointer["id"] if pointer else None,
+            "inference":{"provider":"Groq","model":os.environ.get("GROQ_MODEL","openai/gpt-oss-20b"),
+                         "configured":bool(os.environ.get("GROQ_API_KEY")),"worker":json.loads(worker) if worker else None},"fallback":False}
+
+
+@app.get("/api/public/workspace")
+def public_workspace():
+    from . import public_workspace as public
+    try:
+        return public.view(DATA,PORT)
+    except ValueError as error:
+        raise HTTPException(409,str(error))
+
+
+@app.post("/api/public/import")
+def public_import(request: Request):
+    from . import public_workspace as public
+    db=auth_db()
+    security.session(request,db,DATA)
+    if not db.set("baton:public:import-rate","1",nx=True,ex=300):
+        raise HTTPException(429,"Wait five minutes between GitHub refreshes to respect API limits")
+    with LOCK, db.lock("baton:public:import",timeout=300,blocking_timeout=5):
+        return public.import_public(DATA,PORT)
+
+
+@app.get("/api/public/sources/{source_id}")
+def public_source(source_id: str):
+    from . import public_workspace as public
+    source=public.evidence(DATA,source_id)
+    if not source:
+        raise HTTPException(404,"Imported source not found")
+    return source
+
+
+@app.post("/api/public/inference",status_code=202)
+def public_inference(body: PublicInference,request: Request):
+    from . import public_workspace as public
+    security.session(request,auth_db(),DATA)
+    with LOCK, auth_db().lock("baton:public:enqueue",timeout=180,blocking_timeout=5):
+        try:
+            return public.queue_inference(DATA,PORT,body.item_id,body.question)
+        except ValueError as error:
+            raise HTTPException(422,str(error))
+        except RuntimeError as error:
+            raise HTTPException(503,str(error))
+
+
+@app.get("/api/public/inference/{run_id}")
+def public_inference_result(run_id: str):
+    from . import public_workspace as public
+    with LOCK, auth_db().lock("baton:public:finalize",timeout=60,blocking_timeout=10):
+        try:
+            return public.poll_run(DATA,PORT,run_id)
+        except ValueError as error:
+            raise HTTPException(404,str(error))
+
+
+@app.post("/api/public/tasks",status_code=201)
+def public_task(body: PublicTask,request: Request):
+    from . import public_workspace as public
+    db=auth_db()
+    security.session(request,db,DATA)
+    with LOCK, db.lock("baton:public:tasks",timeout=60,blocking_timeout=10):
+        try:
+            return public.create_task(DATA,PORT,body.item_id,body.title.strip(),body.owner,body.run_id)
+        except ValueError as error:
+            raise HTTPException(422,str(error))
+
+
+@app.patch("/api/public/tasks/{task_id}")
+def public_task_status(task_id: str,body: TaskStatus,request: Request):
+    from . import public_workspace as public
+    db=auth_db()
+    security.session(request,db,DATA)
+    with LOCK, db.lock("baton:public:tasks",timeout=60,blocking_timeout=10):
+        try:
+            return public.complete_task(DATA,PORT,task_id,body.status)
+        except ValueError as error:
+            raise HTTPException(404,str(error))
+
+
+@app.get("/api/public/tasks.csv")
+def public_tasks_csv(request: Request):
+    import csv
+    import io
+    from . import public_workspace as public
+    security.session(request,auth_db(),DATA)
+    stream=io.StringIO(newline="")
+    writer=csv.writer(stream)
+    writer.writerow(["Summary","Description","Issue Type","Labels"])
+    for task in public.read(DATA,"tasks.json",[]):
+        # Spreadsheet/CSV import safety: text must not become a formula.
+        title=task["title"]
+        if title.lstrip().startswith(("=","+","-","@")):
+            title="'"+title
+        writer.writerow([title,"Baton task "+task["id"]+"\nSource work item: "+task["item_id"]+
+                         "\nWorkspace status: "+task["status"]+"\nNo Jira issue has been created by this export.","Task","baton"])
+    return Response(stream.getvalue(),media_type="text/csv",headers={"Content-Disposition":"attachment; filename=baton-jira-tasks.csv"})
+
+@app.get("/api/public/company")
+def company_brain_overview():
+    from .company_brain import overview
+    try:
+        return overview(DATA,PORT)
+    except ValueError as error:
+        raise HTTPException(409,str(error))
+
+
+@app.get("/api/public/connections")
+def company_connection_status():
+    from .company_connections import status
+    return status()
+
+
+class PublishTask(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    target: Literal["jira","slack"]
+
+
+@app.post("/api/public/tasks/{task_id}/publish")
+def publish_company_task(task_id: str,body: PublishTask,request: Request):
+    from .company_connections import publish_task,ConnectionError
+    security.session(request,auth_db(),DATA)
+    try:
+        return publish_task(DATA,PORT,task_id,body.target)
+    except ConnectionError as error:
+        raise HTTPException(503,str(error))
+    except ValueError as error:
+        raise HTTPException(422,str(error))
+
+
+class AgentInvestigation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    item_id: str = Field(min_length=1,max_length=200)
+
+
+@app.post("/api/public/agent",status_code=201)
+def run_graph_agent(body: AgentInvestigation,request: Request):
+    from . import graph_agent
+    security.session(request,auth_db(),DATA)
+    with LOCK, auth_db().lock("baton:public:enqueue",timeout=180,blocking_timeout=5):
+        try:
+            return graph_agent.run(DATA,PORT,body.item_id)
+        except ValueError as error:
+            raise HTTPException(422,str(error))
+        except RuntimeError as error:
+            raise HTTPException(503,str(error))
+
+
+@app.get("/api/public/agent/{run_id}")
+def graph_agent_result(run_id: str):
+    from . import graph_agent
+    try:
+        return graph_agent.read_run(DATA,run_id)
+    except ValueError as error:
+        raise HTTPException(404,str(error))
+
+
+@app.post("/api/mcp")
+def graph_mcp(body: dict,request: Request):
+    from .graph_agent import TOOLS,Investigation
+    security.session(request,auth_db(),DATA)
+    identity=body.get("id")
+    if body.get("jsonrpc")!="2.0":
+        return {"jsonrpc":"2.0","id":None,"error":{"code":-32600,"message":"Invalid Request"}}
+    method=body.get("method")
+    if method=="notifications/initialized":
+        return Response(status_code=202)
+    try:
+        if method=="initialize":
+            result={"protocolVersion":"2025-03-26","capabilities":{"tools":{}},"serverInfo":{"name":"baton-graph","version":"0.3.0"}}
+        elif method=="tools/list":
+            result={"tools":TOOLS}
+        elif method=="tools/call":
+            params=body.get("params",{})
+            name=params.get("name")
+            if name not in {t["name"] for t in TOOLS}:
+                raise ValueError("Unknown read tool; actions require an authorized agent run")
+            arguments=params.get("arguments",{})
+            item_id=arguments.get("item_id")
+            if name=="read_source":
+                from .public_workspace import snapshot
+                item=next((i for i in snapshot(DATA)["items"] if arguments.get("source_id") in i["source_ids"]),None)
+                item_id=item["id"] if item else ""
+            result=Investigation(DATA,PORT,item_id).call(name,arguments)
+        else:
+            return {"jsonrpc":"2.0","id":identity,"error":{"code":-32601,"message":"Method not found"}}
+    except (ValueError,KeyError,TypeError) as error:
+        return {"jsonrpc":"2.0","id":identity,"error":{"code":-32602,"message":str(error)}}
+    return {"jsonrpc":"2.0","id":identity,"result":result}
+
 
 WEB = ROOT / "web"
 if not WEB.is_dir():

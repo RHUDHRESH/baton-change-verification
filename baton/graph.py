@@ -23,10 +23,14 @@ def connect(port):
     from falkordb import FalkorDB
     host = os.environ.get("FALKORDB_HOST", "localhost")
     try:
-        db = FalkorDB(host=host, port=port, socket_connect_timeout=3)
+        db = FalkorDB(host=host, port=port, socket_connect_timeout=3,
+                      username=os.environ.get("FALKORDB_USERNAME") or None,
+                      password=os.environ.get("FALKORDB_PASSWORD") or None,
+                      ssl=os.environ.get("FALKORDB_TLS", "0").lower() in ("1", "true", "yes"),
+                      ssl_check_hostname=True, ssl_cert_reqs="required")
         db.connection.ping()
     except Exception as err:  # redis raises several connection error types; all mean the same thing here
-        raise Unreachable(f"FalkorDB is not reachable at {host}:{port}: {err}") from err
+        raise Unreachable(f"FalkorDB is not reachable at {host}:{port} ({type(err).__name__})") from None
     return db
 
 

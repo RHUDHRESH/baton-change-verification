@@ -4,7 +4,11 @@
 
 Baton connects ownership, rotas, escalation paths and informal commitments in FalkorDB. It rehearses departures on temporary graph copies, checks the next 30 days of scheduled events and shows the source evidence. Preview successors, check capacity, ask sourced questions and write accepted ownership to a real local git repository with read-back verification.
 
-**All companies are synthetic (FIXTURE).** Supplied Claude extraction caches make the demo work without a model key. Coverage is computed live in FalkorDB; recorded fallback data is explicitly labelled.
+**Live workspace:** [baton-workspace.vercel.app](https://baton-workspace.vercel.app) runs the frontend on Vercel and the API on AWS Lambda in Mumbai, backed by FalkorDB Cloud Free and Groq Free. The real public workspace imported 28 work items, 21 contributor accounts and 18 source responses from FalkorDB repositories. Live Groq inference, cited graph writes, task completion/reload, authenticated Jira CSV export and hostile-origin rejection passed cloud API verification. Direct Jira/Slack connections are still being configured; CSV export does not create Jira issues.
+
+**Graph agent:** a bounded Groq tool-calling loop investigates a work item, traverses connected work and file contributors, inspects source evidence, then creates one verification task with graph read-back. It exposes an MCP graph-tool catalog and records provider receipts, tool arguments/results and action evidence. Local safety contracts pass; live agent verification is in progress. This is an evidence-gated application workflow, not a claim to a new graph algorithm. [Deployment evidence and limits](docs/CLOUD_SETUP.md).
+
+The older departure and Acme benchmark companies are synthetic fixtures. Their extraction caches and scripted parser are explicitly labeled and are not evidence of live Groq inference. Acme from Liz Zhang's agent-memory-bench remains at `/benchmark.html`; the Halden fixture is isolated at `/sandbox.html`.
 
 ## Start
 
@@ -16,11 +20,11 @@ docker compose up -d --build
 
 Open [Baton](http://127.0.0.1:8000), [API docs](http://127.0.0.1:8000/docs) or [FalkorDB Browser](http://127.0.0.1:3000). Ports bind to this computer only. Data persists in named volumes; `docker compose down` stops services without erasing it.
 
-The company workspace opens Halden’s seed-7 scenario. Review the customer promise and operational work, suggest or choose successors, then preview and save a reviewed handover. Follow-up tasks have owners, due dates and completion states; the handover brief downloads as a text file. The original four scenarios (7, 101, 202 and 303) remain in [Departure analysis](http://127.0.0.1:8000/rehearsal.html). Saving ownership changes the live fixture graph and commits `OWNERS.d/<graph>.yaml` in the operations repository. Capacity suggestions respect skills and capacity; manually selected assignments are checked for coverage and active successors.
+The default workspace requires an authenticated real GitHub import. The deployed Lambda uses request-scoped Groq inference and DynamoDB for sessions and locks; no persistent worker or local model is needed. The original four fixture scenarios (7, 101, 202 and 303) remain in [Departure analysis](http://127.0.0.1:8000/rehearsal.html). Saving fixture ownership changes the live fixture graph and commits `OWNERS.d/<graph>.yaml` in the operations repository. Capacity suggestions respect skills and capacity; manually selected assignments are checked for coverage and active successors.
 
 **v0.2:** Explore the live relationship graph, inspect nodes/edges and their sources, use **suggested successors** from the capacity solver, then preview and commit the plan. Saved receipts remain available after reload. See [the end-to-end upgrade](docs/END_TO_END_UPGRADE.md).
 
-**Company workspace:** [Open Halden](http://127.0.0.1:8000/). Meet the team, follow Oaktree's customer promise, inspect the work Hana carries, plan and save a handover, track follow-up tasks and download the brief. See [the company experience](docs/COMPANY_WORKSPACE.md). Halden is a clearly labelled fictional company with working API-backed actions.
+**Legacy company fixture:** [Open Halden](http://127.0.0.1:8000/sandbox.html). Meet the team, follow Oaktree's customer promise, inspect the work Hana carries, plan and save a handover, track follow-up tasks and download the brief. See [the company experience](docs/COMPANY_WORKSPACE.md). Halden is a clearly labelled fictional company with working API-backed actions.
 
 **Acme benchmark:** [Open Liz Zhang's benchmark company](http://127.0.0.1:8000/benchmark.html). Replay the original 50-item inbox and run all 25 checkpoint questions against FalkorDB. Uses a labelled deterministic text parser; no model key required. See [benchmark details](docs/ACME_DEMO.md).
 
@@ -97,4 +101,4 @@ Extraction/cache/provider/fake-model and evaluation patterns adapt [agent-memory
 
 The interactive graph uses [Cytoscape.js 3.34.4](https://github.com/cytoscape/cytoscape.js/tree/v3.34.4), MIT, vendored with its full license and provenance manifest under `web/vendor/cytoscape/`.
 
-Synthetic corroboration is not independent real-world truth. Only scheduled work is checked. The single-worker local demo has no user authentication; public hosting needs HTTPS and access controls. Graph and repository writes are separate systems: external failures are retryable, but an abrupt crash between the graph write and first journal persistence remains a recovery gap. Public cloud hosting, fresh paid-model validation and event submission are not claimed as completed.
+Synthetic corroboration is not independent real-world truth. Only scheduled work is checked. Public writes require operator authentication, exact-origin checks and bounded requests; read-only public repository records are visible without sign-in. Graph and repository writes are separate systems: external failures are retryable, but an abrupt crash between the graph write and first journal persistence remains a recovery gap. Paid-model validation, direct Jira/Slack integration and event submission are not claimed as completed. The new public workspace has separate cloud evidence linked above.

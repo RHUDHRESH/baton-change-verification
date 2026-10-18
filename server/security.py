@@ -94,7 +94,14 @@ class RequestGuard:
         headers = dict(scope.get("headers", []))
         host = headers.get(b"host", b"").decode("latin1")
         origin = headers.get(b"origin", b"").decode("latin1")
-        if (origin and origin != f"{scope['scheme']}://{host}") or headers.get(b"sec-fetch-site") == b"cross-site":
+        allowed_origins = {f"{scope['scheme']}://{host}"}
+        frontend_origin = os.environ.get("BATON_ALLOWED_ORIGIN", "").rstrip("/")
+        if frontend_origin:
+            allowed_origins.add(frontend_origin)
+        preview_origin = os.environ.get("BATON_PREVIEW_ORIGIN", "").rstrip("/")
+        if preview_origin:
+            allowed_origins.add(preview_origin)
+        if (origin and origin not in allowed_origins) or headers.get(b"sec-fetch-site") == b"cross-site":
             return await JSONResponse({"detail": "Cross-site state changes are forbidden"}, 403)(scope, receive, send)
         length = headers.get(b"content-length")
         if length and (not length.isdigit() or int(length) > BODY_LIMIT):

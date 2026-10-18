@@ -1,2 +1,5 @@
 pytest==8.4.2
 httpx==0.28.1
+mangum==0.19.0
+boto3==1.43.114
+moto[dynamodb]==5.2.4
