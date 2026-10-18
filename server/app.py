@@ -1,5 +1,6 @@
 """Baton HTTP API (thin wrapper over the `python -m baton` CLI contract). Every decision is made by the CLI in FalkorDB."""
 import json, os, subprocess, sys, threading, tempfile
+from typing import Annotated
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,6 +34,10 @@ def cli(*args):
 def world_dir(seed: int) -> Path:
     if not 0 <= seed <= 2_147_483_647:
         raise HTTPException(422, "seed must be between 0 and 2147483647")
+    # RT-04: public demo reads must not allocate storage or spend model credits
+    # for arbitrary companies. Additional companies require local provisioning.
+    if seed not in (7, 101, 202, 303):
+        raise HTTPException(409, "no cached extraction for this demo company; choose 7, 101, 202 or 303")
     d = DATA / f"seed_{seed}"
     with LOCK:
         if not (d / "world.json").exists():
@@ -98,10 +103,13 @@ def demo(seed: int = 7):
                 "live_hash_before": out["live_hash_before"], "live_hash_after": out["live_hash_after"]}
 
 
+Identifier = Annotated[str, Field(min_length=1, max_length=120, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")]
+
+
 class Handover(BaseModel):
     model_config = ConfigDict(extra="forbid")
     seed: int = Field(default=7, ge=0, le=2_147_483_647)
-    assign: dict[str, str] = Field(max_length=100)
+    assign: dict[Identifier, Identifier] = Field(max_length=100)
 
 
 @app.post("/api/handover")
@@ -141,7 +149,7 @@ def cut(seed: int = 7):
 class Commit(BaseModel):
     model_config = ConfigDict(extra="forbid")
     seed: int = Field(default=7, ge=0, le=2_147_483_647)
-    assign: dict[str, str] = Field(max_length=100)
+    assign: dict[Identifier, Identifier] = Field(max_length=100)
 
 
 @app.post("/api/commit")
