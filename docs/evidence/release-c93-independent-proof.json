@@ -1,0 +1,92 @@
+{
+  "status": "verified_failure",
+  "read_only": true,
+  "run_id": "c93a2d6a99390dabc3eb3816834726a4",
+  "plan_id": "358043b754c6e408b3ac9c1e7cfebfb9",
+  "plan_hash": "98ab5e66fb38ac2145d35a40d1f659595ef6ede3dfcd8bdb203f7c5bf7bc1542",
+  "source_commit": "207000da70ca183ab02990a98bdd97d0a3e3bb1b",
+  "release_decision": "blocked",
+  "publication_status": "completed",
+  "source_unchanged": true,
+  "version_roles": {
+    "matrix_redis_versions": "Python redis client dependency versions",
+    "isolated_test_falkordb_server_image": "falkordb/falkordb@sha256:b0bdcac2cbaff989e77cb0610439b7a9289e86de033ccbbd4368b66fb680ae7a"
+  },
+  "total": 8,
+  "passed": 6,
+  "failed": 2,
+  "errors": 0,
+  "skipped": 0,
+  "environments": [
+    {
+      "python_redis_client_version": "8.0.0",
+      "id": "redis-8.0.0",
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "python_redis_client_version": "8.1.0",
+      "id": "redis-8.1.0",
+      "total": 4,
+      "passed": 2,
+      "failed": 2,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "github": {
+    "run_id": "39189033882",
+    "workflow_sha": "f30801c28298036dbe6a59b51970edfb2541c025",
+    "conclusion": "success",
+    "execute_conclusion": "success",
+    "finalization_conclusion": "success",
+    "artifact_id": 12159128028,
+    "artifact_sha256": "fb54712d10f1631a401f5b6c5cedef20a401f57caad0a57113898c6840f0a833"
+  },
+  "report_sha256": "e558500436f3fd646286681b03204c027aebec3e2fb1d53362cb700e4884acec",
+  "public_raw_hashes": {
+    "redis-8.0.0/junit.xml": "229dfa2192b28f10da6ddb287c7db8096871a8f6e8c35cdeb1f8a588dc74a1ab",
+    "redis-8.0.0/pytest.log": "a90b1669de30789a410afa54c23ca3c2135bf041ef6564cb6f39a3c97f20f26b",
+    "redis-8.0.0/requirements.lock": "2e637111b2f39731b5bb0b46a3cb7c2084e77a060780dfa7869540319a01e93d",
+    "redis-8.0.0/setup.log": "e91d52b1d9f81294429a56f8130a935ac417b1716c1f8bd4eda5c011ea66dc21",
+    "redis-8.1.0/junit.xml": "15a3183ae638971e13e9e5d5954f8261c5e8c9e9dac1368859243efd38c8bab3",
+    "redis-8.1.0/pytest.log": "cc8a27d1438b4dba5b996f551166ac4a947e3843c2eeed91c66cdd4efdaab4e5",
+    "redis-8.1.0/requirements.lock": "f01ad310a93486e8e513538585ba40260029e2c82d57ec829320a9d99b206d4b",
+    "redis-8.1.0/setup.log": "ea8a002f60361b0db4d4d817eed463ed0d3a76e62792b78d84cae0cfc97102b2",
+    "source.zip": "cb2057288440cfc977da4bcfbf3770a3a577511f6ef5d3b5b79cf4006ea1a499"
+  },
+  "graph_receipt": {
+    "evidence_sha256": "e558500436f3fd646286681b03204c027aebec3e2fb1d53362cb700e4884acec",
+    "results_sha256": "9367c50f15e9ea00568c288c461cb8bdec4812d646fbcd0151f72481bccf162b",
+    "binding_fingerprint": "950544d708d001d537562e261365976dac51f8ab9a51549878b0b613e7ff627a",
+    "checks": 8,
+    "release_passed": false,
+    "direct_graph_get_performed": false
+  },
+  "publication": {
+    "jira": {
+      "status": "verified",
+      "app_saved_readback_claim": true,
+      "provider_get_performed": false,
+      "graph_linked": true,
+      "remote_id": "KAN-3",
+      "contract_sha256": "7ef41a9ede45fbac44dcf9acc775426cf9a70f8d39f5dbecc777b5b26b75d83a"
+    },
+    "slack": {
+      "status": "verified",
+      "app_saved_readback_claim": true,
+      "provider_get_performed": false,
+      "graph_linked": true,
+      "remote_id": "1792376150.947499",
+      "contract_sha256": "b26b5b65d524ba1b18f0992d6ae062441a8ada2607af66e8d112fd22b238d6da"
+    }
+  },
+  "limits": [
+    "Jira and Slack provider GETs were not performed; publication checks inspect the app's saved read-back receipts.",
+    "The graph certificate was checked against evidence hashes; no independent direct graph GET was performed.",
+    "This verifies an existing merged source commit; no source repair, provider write, or upstream merge was performed."
+  ]
+}

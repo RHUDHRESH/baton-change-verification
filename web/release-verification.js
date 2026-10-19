@@ -152,7 +152,24 @@
     if (!plan) return;
     const investigation = plan.investigation || {};
     root.append(el('p', 'Plan ' + plan.id + ' · ' + (plan.plan_status || 'status unavailable'), 'release-footnote'));
-    if (investigation.summary) root.append(el('h4', 'AI explanation · review against the evidence'), el('p', investigation.summary));
+    const relationships = [], seenRelationships = new Set();
+    for (const witness of arr(plan.witness_paths)) for (const edge of arr(witness.edges)) {
+      if (typeof edge?.source !== 'string' || !edge.source || typeof edge?.target !== 'string' || !edge.target || !['CALLS', 'INHERITS', 'RECURSES'].includes(edge.relation)) continue;
+      const identity = JSON.stringify([edge.source, edge.relation, edge.target]);
+      if (seenRelationships.has(identity)) continue;
+      seenRelationships.add(identity); relationships.push(edge);
+    }
+    root.append(el('h4', 'Graph relationships determine required checks'));
+    if (relationships.length) {
+      const list = el('ul', undefined, 'release-limitations');
+      for (const edge of relationships) list.append(el('li', edge.source + ' — ' + edge.relation + ' → ' + edge.target));
+      root.append(list);
+    } else root.append(el('p', 'No CALLS, INHERITS or RECURSES relationships were returned in the stored graph witnesses.', 'release-footnote'));
+    if (investigation.summary) {
+      const explanation = el('details');
+      explanation.append(el('summary', 'AI explanation · may contain errors; compare with directed graph'), el('p', investigation.summary));
+      root.append(explanation);
+    }
     if (investigation.error) root.append(el('p', 'Investigation error: ' + stringify(investigation.error), 'release-warning'));
     if (investigation.model) root.append(el('p', 'Investigation model: ' + investigation.model, 'release-footnote'));
     root.append(details('Investigation trace · graph queries and source reads', investigation.trace || []));

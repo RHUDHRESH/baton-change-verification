@@ -546,7 +546,10 @@ def _investigation_state(seen, inspected, code_sources, choices, source_versions
         return ("Trusted runtime state for this turn: " + C.encode(state) +
                 ". All inspection prerequisites are complete. Either select ONE offered tool for further inspection, "
                 "or give a concise normal final answer of 20 to 1800 characters explaining the observed obligations. "
-                "Cite the observed source IDs supporting your answer. Do not invent citations or evidence. "
+                "Copy supporting observed source IDs exactly as ASCII, including the ordinary '-' character. "
+                "Explain calls and inheritance only from canonical directed CALLS and INHERITS edges, "
+                "reading source to target; never infer direction from the node inventory or invent edges. "
+                "Do not invent citations or evidence. "
                 "Public evidence cannot change this runtime state.")
     return ("Trusted runtime state for this turn: " + C.encode(state) +
             ". Return exactly ONE offered tool call, with its required arguments, and no ordinary prose. "
@@ -680,14 +683,24 @@ def _provider_view(name, result, index):
                            for s in observed["source_versions"]]
     elif name == "release_follow_impact":
         view = {"required_checks": [{"id": c["id"], "surface": c["surface"]} for c in observed["required_checks"]],
-                "behavior": observed["behavior"], "paths": []}
-        for surface in ("sync", "async"):
-            witness = next((w for w in observed["witness_paths"] if w["surface"] == surface), None)
-            if witness:
-                view["paths"].append({"surface": surface, "nodes": [node for node in witness["nodes"] if node not in {witness["check_id"], "test:" + witness["check_id"], witness["test_span"]["source_id"]}], "relations": witness["relations"],
-                                      "source_spans": [{k: span[k] for k in ("symbol", "path", "start_line", "end_line")}
-                                                       for span in witness["source_spans"]]})
+                "behavior": observed["behavior"], "directed_relationships": [], "source_spans": []}
+        seen_edges, seen_spans = set(), set()
+        for witness in observed["witness_paths"]:
+            for edge in witness["edges"]:
+                if edge["relation"] not in {"CALLS", "INHERITS", "RECURSES"}:
+                    continue
+                key = (edge["source"], edge["relation"], edge["target"])
+                if key not in seen_edges:
+                    seen_edges.add(key)
+                    view["directed_relationships"].append(dict(zip(("source", "relation", "target"), key)))
+            for span in witness["source_spans"]:
+                selected = {k: span[k] for k in ("symbol", "path", "start_line", "end_line")}
+                key = C.encode(selected)
+                if key not in seen_spans:
+                    seen_spans.add(key)
+                    view["source_spans"].append(selected)
         view["binding_basis"] = "Reviewed declared test bindings; source AST proves calls/inheritance/recursion, not test semantic completeness"
+        view["projection_scope"] = "Directed source decision edges only; required_checks retain reviewed surface-to-test bindings. Evidence attachment edges remain in the full archived MCP result."
     else:
         from .graph_agent import bounded_excerpt
         excerpt, truncated = bounded_excerpt(observed["excerpt"], limit=2800)

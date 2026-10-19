@@ -30,7 +30,7 @@ if(input.graph)context.window.cytoscape=options=>{graphs.push(options);return {o
 context.api=async(path,body)=>{calls.push(body===undefined?{path}:{path,body});if(input.failAt===calls.length-1)throw Error('mock unavailable');return JSON.parse(JSON.stringify(input.records[Math.min(index++,input.records.length-1)]));};
 vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),context);
 for(const id of ['release-start','release-refresh','release-auth-note','release-progress','release-plan-title','release-source-commit','release-stage-investigate','release-stage-verify','release-stage-decide','release-stage-publish','release-matrix','release-witnesses','release-graph','release-source-selection','release-investigation','release-decision','release-evidence','release-publication'])nodes.set(id,new Element('div'));
-function tree(node){return {tag:node.tag,text:node.own,href:node.href||null,className:node.className,children:node.children.map(x=>typeof x==='string'?x:tree(x))};}
+function tree(node){return {tag:node.tag,text:node.own,href:node.href||null,className:node.className,open:node.open===true,children:node.children.map(x=>typeof x==='string'?x:tree(x))};}
 (async()=>{
  const ui=context.window.BatonRelease;
  if(input.mode==='review')return console.log(JSON.stringify(ui.reviewState(input.record)));
@@ -220,13 +220,13 @@ def test_node_inventory_without_edges_uses_readable_json_without_inventing_lines
 def test_native_assistant_explanation_keeps_only_actual_reads_and_context_provenance(plan):
     reads = [{'tool': name, 'result': {'source_ids': ['source-inspected']}} for name in ('release_read_change', 'release_follow_impact', 'release_read_source')]
     receipts = [{'id': 'provider-' + str(i), 'finish_reason': 'stop' if i == 4 else 'tool_calls'} for i in range(1, 5)]
-    final_response = {'id': 'provider-4', 'finish_reason': 'stop', 'content': 'Verify both client surfaces against the declared policy.'}
-    plan['investigation'].update(summary=final_response['content'], trace=reads, receipts=receipts,
+    final_response = {'message': {'role': 'assistant', 'content': 'Verify both client surfaces against the declared policy.'}, 'receipt': receipts[-1]}
+    plan['investigation'].update(summary=final_response['message']['content'], trace=reads, receipts=receipts,
         final_protocol='native_assistant_stop', actual_final_response=final_response,
         observed_source_ids=['source-inspected'], source_binding={'kind': 'inspected_context', 'model_selected_citations': False})
     value = js(mode='hydrate', authenticated=False, records=[plan])
     panel = value['release-investigation']
-    assert 'AI explanation · review against the evidence' in panel['text']
+    assert 'AI explanation · may contain errors; compare with directed graph' in panel['text']
     assert 'Source links show what the agent inspected.' in panel['text']
     detail_values = {node['children'][0]['text']: node['children'][1]['text'] for node in panel['tree']['children'] if node['tag'] == 'details'}
     trace = json.loads(detail_values['Investigation trace · graph queries and source reads'])
@@ -246,3 +246,50 @@ def test_native_final_response_renders_untrusted_provider_content_as_literal_tex
     plan['investigation']['actual_final_response'] = {'content': '<script>not executable</script>'}
     value = js(mode='hydrate', authenticated=False, records=[plan])
     assert '<script>not executable</script>' in value['release-investigation']['text']
+
+
+def test_canonical_directed_rows_precede_collapsed_unchanged_erroneous_ai_prose(plan):
+    edges = [{'source': 'Graph._query', 'relation': 'CALLS', 'target': 'Graph._build_params_header'},
+             {'source': 'AsyncGraph._query', 'relation': 'CALLS', 'target': 'Graph._build_params_header'},
+             {'source': 'Graph._build_params_header', 'relation': 'CALLS', 'target': 'stringify_param_value'},
+             {'source': 'AsyncGraph', 'relation': 'INHERITS', 'target': 'Graph'},
+             {'source': 'stringify_param_value', 'relation': 'RECURSES', 'target': 'stringify_param_value'}]
+    plan['witness_paths'] = [{'nodes': ['wrong', 'inventory', 'order'], 'edges': edges},
+                             {'nodes': ['extra'], 'edges': edges + [{'source': 'change', 'relation': 'MODIFIES', 'target': 'header'}]}]
+    summary = 'Graph._build_params_header calls Graph._query. This model prose reverses the source relationship.'
+    plan['investigation']['summary'] = summary
+    value = js(mode='hydrate', authenticated=False, records=[plan])
+    children = value['release-investigation']['tree']['children']
+    heading_index = next(i for i, node in enumerate(children) if node['text'] == 'Graph relationships determine required checks')
+    rows = children[heading_index + 1]['children']
+    assert [node['text'] for node in rows] == [edge['source'] + ' — ' + edge['relation'] + ' → ' + edge['target'] for edge in edges]
+    explanation_index = next(i for i, node in enumerate(children) if node['tag'] == 'details' and node['children'][0]['text'] == 'AI explanation · may contain errors; compare with directed graph')
+    assert heading_index < explanation_index
+    explanation = children[explanation_index]
+    assert explanation['open'] is False
+    assert explanation['children'][1]['tag'] == 'p' and explanation['children'][1]['text'] == summary
+    assert not any('wrong' in node['text'] or 'inventory' in node['text'] for node in rows)
+
+
+def test_no_canonical_rows_are_inferred_from_node_inventory_or_model_summary(plan):
+    plan['witness_paths'] = [{'nodes': ['A', 'B'], 'relations': ['CALLS']}]
+    plan['investigation']['summary'] = 'A calls B'
+    value = js(mode='hydrate', authenticated=False, records=[plan])
+    panel = value['release-investigation']
+    assert 'No CALLS, INHERITS or RECURSES relationships were returned' in panel['text']
+    assert not any(node['tag'] == 'ul' for node in panel['tree']['children'][:3])
+
+
+def test_canonical_edge_identifiers_are_literal_text_and_not_unicode_normalized(plan):
+    source_a, source_b = 'source-\u212b', 'source-\u00c5'
+    hostile = '<img src=x onerror=alert(1)>'
+    edges = [{'source': source_a, 'relation': 'CALLS', 'target': hostile},
+             {'source': source_b, 'relation': 'CALLS', 'target': hostile}]
+    plan['witness_paths'] = [{'edges': edges}]
+    value = js(mode='hydrate', authenticated=False, records=[plan])
+    children = value['release-investigation']['tree']['children']
+    heading_index = next(i for i, node in enumerate(children) if node['text'] == 'Graph relationships determine required checks')
+    rows = children[heading_index + 1]['children']
+    assert len(rows) == 2
+    assert rows[0]['text'] == source_a + ' — CALLS → ' + hostile
+    assert rows[1]['text'] == source_b + ' — CALLS → ' + hostile

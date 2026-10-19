@@ -336,10 +336,40 @@ def test_provider_projection_preserves_all_obligations_and_archives_full_graph(l
     result = R.call_tool(live.data, live.port, "release_follow_impact", {"change_id": C.CHANGE_ID}, plan=live.plan)
     projection = R._provider_view("release_follow_impact", result, 2)
     assert [c["id"] for c in projection["observation"]["required_checks"]] == list(C.CHECK_IDS)
-    assert {p["surface"] for p in projection["observation"]["paths"]} == {"sync", "async"}
-    assert "INHERITS" in next(p for p in projection["observation"]["paths"] if p["surface"] == "async")["relations"]
+    assert {c["surface"] for c in projection["observation"]["required_checks"]} == {"sync", "async"}
+    assert {"source": "AsyncGraph", "relation": "INHERITS", "target": "Graph"} in projection["observation"]["directed_relationships"]
     assert projection["archive"]["result_sha256"] == C.sha(C.encode(result))
     assert len(C.encode(projection)) < len(C.encode(result)) / 2
+
+
+def test_provider_projection_keeps_exact_directed_edges_not_node_inventory_order(live):
+    result = R.call_tool(live.data, live.port, "release_follow_impact", {"change_id": C.CHANGE_ID}, plan=live.plan)
+    original = R._provider_view("release_follow_impact", result, 0)
+    observed = json.loads(result["content"][0]["text"])
+    for witness in observed["witness_paths"]:
+        witness["nodes"] = list(reversed(witness["nodes"]))
+        witness["edges"].append(copy.deepcopy(next(e for e in witness["edges"] if e["relation"] == "CALLS")))
+    result["content"][0]["text"] = C.encode(observed)
+    projection = R._provider_view("release_follow_impact", result, 0)
+    assert projection["observation"] == original["observation"]
+    assert not {"nodes", "relations", "paths"}.intersection(projection["observation"])
+    edges = projection["observation"]["directed_relationships"]
+    actual = [(e["source"], e["relation"], e["target"]) for e in edges]
+    expected = {(e["source"], e["relation"], e["target"])
+                for w in observed["witness_paths"] for e in w["edges"] if e["relation"] in {"CALLS", "INHERITS", "RECURSES"}}
+    assert len(actual) == len(set(actual)) and set(actual) == expected
+    assert all(set(edge) == {"source", "relation", "target"} for edge in edges)
+    assert len({C.encode(span) for span in projection["observation"]["source_spans"]}) == len(projection["observation"]["source_spans"])
+    for query in ("Graph._query", "AsyncGraph._query"):
+        assert (query, "CALLS", "Graph._build_params_header") in actual
+        assert ("Graph._build_params_header", "CALLS", "stringify_param_value") in actual
+        assert ("Graph._build_params_header", "CALLS", query) not in actual
+        assert (query, "CALLS", "stringify_param_value") not in actual
+    assert ("AsyncGraph", "INHERITS", "Graph") in actual
+    assert ("Graph", "INHERITS", "AsyncGraph") not in actual
+    assert "Evidence attachment edges remain in the full archived MCP result" in projection["observation"]["projection_scope"]
+    assert "Reviewed declared test bindings" in projection["observation"]["binding_basis"]
+    assert projection["archive"]["result_sha256"] == C.sha(C.encode(result))
 
 
 @pytest.mark.parametrize("prefix", [(), ("change", "impact"), ("change", "source"), ("impact", "source")])
@@ -576,6 +606,9 @@ def test_ready_native_final_preserves_actual_text_receipt_and_context_provenance
         assert tool_choice == ("auto" if turn >= 3 else "required")
         if turn >= 3:
             assert "normal final answer" in messages[1]["content"] and source_id in messages[1]["content"]
+            assert "exactly as ASCII" in messages[1]["content"]
+            assert "canonical directed CALLS and INHERITS edges" in messages[1]["content"]
+            assert "never infer direction from the node inventory" in messages[1]["content"]
         if turn == len(inspections):
             return final_message, final_receipt
         name, arguments = inspections[turn]
