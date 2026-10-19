@@ -49,6 +49,46 @@ def test_transport_rejects_unknown_tool_choice_before_provider_request():
         request.assert_not_called()
 
 
+@pytest.mark.parametrize("finish,message,accepted", [
+    ("stop", {"content": "Actual provider final answer, preserved verbatim."}, True),
+    ("length", {"content": "Truncated provider final answer"}, False),
+    ("content_filter", {"content": "Filtered provider answer"}, False),
+    ("stop", {"content": "Refused", "refusal": "blocked"}, False),
+    ("stop", {"content": None}, False),
+    ("stop", {"role": "tool", "content": "This is not an assistant answer"}, False),
+    ("stop", {"content": "Text with inconsistent tool call", "tool_calls": [{"id": "bad"}]}, False),
+])
+def test_explicit_native_final_transport_remains_receipted_and_fail_closed(finish, message, accepted):
+    message = {"role": "assistant", **message}
+    payload = {"id": "provider-final", "model": "test-model", "usage": {"prompt_tokens": 20, "completion_tokens": 5, "total_tokens": 25},
+               "choices": [{"finish_reason": finish, "message": message}]}
+    response = MagicMock()
+    raw = json.dumps(payload).encode()
+    response.__enter__.return_value.read.return_value = raw
+    with patch.dict("os.environ", {"GROQ_API_KEY": "provider-test-only"}), patch.object(agent.urllib.request, "urlopen", return_value=response) as network:
+        if accepted:
+            actual, receipt = agent.completion([], [], tool_choice="auto", allow_final=True)
+            assert actual == message and receipt["finish_reason"] == "stop"
+            assert receipt["response_sha256"] == agent.public.sha(raw)
+            assert "provider-test-only" not in network.call_args.args[0].data.decode()
+        else:
+            with pytest.raises(agent.ProviderProtocolError):
+                agent.completion([], [], tool_choice="auto", allow_final=True)
+        assert network.call_count == 1
+
+
+def test_native_final_still_requires_generation_receipt_and_explicit_auto():
+    payload = {"choices": [{"finish_reason": "stop", "message": {"content": "Unreceipted final answer"}}]}
+    response = MagicMock()
+    response.__enter__.return_value.read.return_value = json.dumps(payload).encode()
+    with patch.dict("os.environ", {"GROQ_API_KEY": "provider-test-only"}), patch.object(agent.urllib.request, "urlopen", return_value=response) as network:
+        with pytest.raises(ValueError, match="generation receipt"):
+            agent.completion([], [], allow_final=True)
+        with pytest.raises(ValueError, match="explicit auto"):
+            agent.completion([], [], tool_choice="required", allow_final=True)
+        assert network.call_count == 1
+
+
 def test_http_failure_preserves_only_bounded_sanitized_diagnostic_fields():
     secret = "gsk_" + "Ab9Cdf45" * 5
     raw = json.dumps({"error": {"type": "invalid_request_error", "code": "tool_use_failed", "param": "tool_choice",

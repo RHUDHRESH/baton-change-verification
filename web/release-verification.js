@@ -152,11 +152,18 @@
     if (!plan) return;
     const investigation = plan.investigation || {};
     root.append(el('p', 'Plan ' + plan.id + ' · ' + (plan.plan_status || 'status unavailable'), 'release-footnote'));
-    if (investigation.summary) root.append(el('p', investigation.summary));
+    if (investigation.summary) root.append(el('h4', 'AI explanation · review against the evidence'), el('p', investigation.summary));
     if (investigation.error) root.append(el('p', 'Investigation error: ' + stringify(investigation.error), 'release-warning'));
     if (investigation.model) root.append(el('p', 'Investigation model: ' + investigation.model, 'release-footnote'));
     root.append(details('Investigation trace · graph queries and source reads', investigation.trace || []));
     root.append(details('Model provider receipts · inference evidence', investigation.receipts || []));
+    if (investigation.source_binding || arr(investigation.observed_source_ids).length) {
+      root.append(el('p', 'Source links show what the agent inspected.', 'release-footnote'));
+      root.append(details('Inspected source context · provenance', {source_binding: investigation.source_binding, observed_source_ids: investigation.observed_source_ids || []}));
+    }
+    if (investigation.actual_final_response !== undefined && investigation.actual_final_response !== null) {
+      root.append(details('Actual final model response · native protocol', investigation.actual_final_response));
+    }
     if (plan.plan_status !== 'ready') root.append(el('p', 'This plan is incomplete. Execution has not been authorized by a ready plan.', 'release-warning'));
     const limitations = arr(plan.limitations);
     if (limitations.length) { const list = el('ul', undefined, 'release-limitations'); for (const item of limitations) list.append(el('li', stringify(item))); root.append(el('h4', 'Knowledge and coverage limits'), list); }

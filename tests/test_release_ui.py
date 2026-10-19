@@ -215,3 +215,34 @@ def test_node_inventory_without_edges_uses_readable_json_without_inventing_lines
     value = js(mode='hydrate', graph=True, records=[plan])
     assert value['graphs'] == []
     assert 'change' in value['release-witnesses']['text'] and 'query' in value['release-witnesses']['text']
+
+
+def test_native_assistant_explanation_keeps_only_actual_reads_and_context_provenance(plan):
+    reads = [{'tool': name, 'result': {'source_ids': ['source-inspected']}} for name in ('release_read_change', 'release_follow_impact', 'release_read_source')]
+    receipts = [{'id': 'provider-' + str(i), 'finish_reason': 'stop' if i == 4 else 'tool_calls'} for i in range(1, 5)]
+    final_response = {'id': 'provider-4', 'finish_reason': 'stop', 'content': 'Verify both client surfaces against the declared policy.'}
+    plan['investigation'].update(summary=final_response['content'], trace=reads, receipts=receipts,
+        final_protocol='native_assistant_stop', actual_final_response=final_response,
+        observed_source_ids=['source-inspected'], source_binding={'kind': 'inspected_context', 'model_selected_citations': False})
+    value = js(mode='hydrate', authenticated=False, records=[plan])
+    panel = value['release-investigation']
+    assert 'AI explanation · review against the evidence' in panel['text']
+    assert 'Source links show what the agent inspected.' in panel['text']
+    detail_values = {node['children'][0]['text']: node['children'][1]['text'] for node in panel['tree']['children'] if node['tag'] == 'details'}
+    trace = json.loads(detail_values['Investigation trace · graph queries and source reads'])
+    provider = json.loads(detail_values['Model provider receipts · inference evidence'])
+    assert trace == reads and len(trace) == 3
+    assert provider == receipts and len(provider) == 4
+    assert [row['tool'] for row in trace] == ['release_read_change', 'release_follow_impact', 'release_read_source']
+    assert json.loads(detail_values['Actual final model response · native protocol']) == final_response
+    context = json.loads(detail_values['Inspected source context · provenance'])
+    assert context['observed_source_ids'] == ['source-inspected']
+    assert context['source_binding']['model_selected_citations'] is False
+    assert value['calls'] == [{'path': '/api/public/release-plans/latest'}]
+    assert 'not run' in value['release-matrix']['text']
+
+
+def test_native_final_response_renders_untrusted_provider_content_as_literal_text(plan):
+    plan['investigation']['actual_final_response'] = {'content': '<script>not executable</script>'}
+    value = js(mode='hydrate', authenticated=False, records=[plan])
+    assert '<script>not executable</script>' in value['release-investigation']['text']

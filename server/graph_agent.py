@@ -396,9 +396,11 @@ class Investigation:
         return {"content":[{"type":"text","text":json.dumps(result,ensure_ascii=False)}],"isError":False}
 
 
-def completion(messages,tools,timeout=22,tool_choice="auto"):
+def completion(messages,tools,timeout=22,tool_choice="auto",allow_final=False):
     if tool_choice not in {"auto","required"}:
         raise ValueError("Unsupported graph tool selection policy")
+    if type(allow_final) is not bool or (allow_final and tool_choice!="auto"):
+        raise ValueError("Native final answers require explicit auto selection policy")
     key=os.environ.get("GROQ_API_KEY","")
     if not key:
         raise RuntimeError("Groq is not configured")
@@ -423,9 +425,11 @@ def completion(messages,tools,timeout=22,tool_choice="auto"):
     finish=choices[0].get("finish_reason") if isinstance(choices,list) and len(choices)==1 and isinstance(choices[0],dict) else None
     receipt={"id":result["id"],"model":result["model"],"usage":result["usage"],"response_sha256":public.sha(raw),
              "finish_reason":finish if finish in ("tool_calls","stop","length","content_filter","function_call") else "unknown"}
-    if finish!="tool_calls":
+    if finish!="tool_calls" and not (allow_final and finish=="stop"):
         raise ProviderProtocolError("Provider did not finish a complete tool selection",receipt)
-    message=result["choices"][0]["message"]
+    message=result["choices"][0].get("message")
+    if not isinstance(message,dict) or (finish=="stop" and (message.get("role")!="assistant" or not isinstance(message.get("content"),str) or not message["content"].strip() or message.get("tool_calls") or message.get("refusal"))):
+        raise ProviderProtocolError("Provider did not return a complete native final answer",receipt)
     return message,receipt
 
 

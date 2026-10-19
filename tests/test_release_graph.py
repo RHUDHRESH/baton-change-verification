@@ -280,19 +280,20 @@ def test_actual_tool_loop_uses_adaptive_provider_selections(live, monkeypatch, o
     selections = [inspections[name] for name in order] + [
         ("release_explain", {"summary": "Both public surfaces invoke the inherited header and recursive map serializer; empty and backtick keys are rejected.", "source_ids": [source_id]})]
     calls = []
-    def provider(messages, tools, timeout, tool_choice):
-        assert tool_choice == "required"
+    def provider(messages, tools, timeout, tool_choice, allow_final):
+        assert allow_final == (len(calls) >= 3)
+        assert tool_choice == ("auto" if allow_final else "required")
         assert "release_explain" not in messages[0]["content"]
         assert "rejects literal backticks" not in messages[0]["content"]
         runtime = messages[1]["content"]
-        state = json.loads(runtime.split(": ", 1)[1].split(". Return exactly", 1)[0])
+        state = json.JSONDecoder().raw_decode(runtime.split(": ", 1)[1])[0]
         expected_seen = set(order[:len(calls)])
         assert state["observed"] == {"change": "change" in expected_seen, "impact": "impact" in expected_seen,
                                      "production-source": "source" in expected_seen}
         assert state["missing"] == [name for name, seen in state["observed"].items() if not seen]
         assert state["offered_tools"] == [tool["function"]["name"] for tool in tools]
         assert ("release_explain" in runtime) == (len(calls) == 3)
-        assert "no ordinary prose" in runtime
+        assert ("no ordinary prose" in runtime) == (len(calls) < 3)
         name, args = selections[len(calls)]
         calls.append((name, tools))
         return {"content": None, "tool_calls": [{"id": str(len(calls)), "function": {"name": name, "arguments": json.dumps(args)}}]}, {
@@ -439,8 +440,9 @@ def test_provider_timeout_uses_remaining_budget_and_late_tool_is_rejected(live, 
     monkeypatch.setenv("GROQ_API_KEY", "provider-test-only")
     monkeypatch.setattr(control, "connect", lambda port: SimpleNamespace(set=lambda *a, **k: True, lock=lambda *a, **k: nullcontext()))
     timeouts = []
-    def late_provider(messages, tools, timeout, tool_choice):
+    def late_provider(messages, tools, timeout, tool_choice, allow_final):
         assert tool_choice == "required"
+        assert allow_final is False
         timeouts.append(timeout)
         clock[0] += 5
         return {"tool_calls": [{"id": "1", "function": {"name": "release_read_change", "arguments": C.encode({"change_id": C.CHANGE_ID})}}]}, {"id": "test", "model": "test", "usage": {"total_tokens": 100}}
@@ -461,8 +463,9 @@ def test_actual_second_turn_no_tool_diagnostic_stays_failed_with_updated_runtime
     diagnostics = {"provider": "Groq", "http_status": 400, "error": {"type": "invalid_request_error", "code": "tool_use_failed", "param": "tool_choice", "message": "Tool choice is required, but model did not call a tool"},
                    "response_sha256": "b" * 64, "failed_generation_tool_names": []}
     calls = []
-    def provider(messages, tools, timeout, tool_choice):
+    def provider(messages, tools, timeout, tool_choice, allow_final):
         calls.append(tool_choice)
+        assert allow_final is False
         if len(calls) == 2:
             runtime = messages[1]["content"]
             state = json.loads(runtime.split(": ", 1)[1].split(". Return exactly", 1)[0])
@@ -493,3 +496,81 @@ def test_runtime_state_is_included_in_provider_input_budget(live, monkeypatch):
         provider.assert_not_called()
     assert result["status"] == "failed" and "token budget" in result["error"]
     assert result["provider_calls"] == 0 and not result["receipts"]
+
+
+@pytest.mark.parametrize("extra_inspection", [False, True])
+def test_ready_native_final_preserves_actual_text_receipt_and_context_provenance(live, monkeypatch, extra_inspection):
+    from contextlib import nullcontext
+    from server import graph_agent, control
+    monkeypatch.setenv("GROQ_API_KEY", "provider-test-only")
+    monkeypatch.setattr(control, "connect", lambda port: SimpleNamespace(set=lambda *a, **k: True, lock=lambda *a, **k: nullcontext()))
+    source_id = next(s["id"] for s in live.sources if s.get("path") == "falkordb/helpers.py")
+    inspections = [("release_read_change", {"change_id": C.CHANGE_ID}),
+                   ("release_follow_impact", {"change_id": C.CHANGE_ID}),
+                   ("release_read_source", {"source_id": source_id})]
+    if extra_inspection:
+        inspections.append(("release_read_source", {"source_id": source_id}))
+    text = "The inspected graph links both query surfaces to the inherited parameter header and recursive serializer, requiring both regression pairs."
+    final_message = {"role": "assistant", "content": text}
+    final_receipt = {"id": "actual-final-test", "model": "mock-provider-only", "finish_reason": "stop",
+                     "response_sha256": "a" * 64, "usage": {"total_tokens": 120}}
+    requests = []
+    def provider(messages, tools, timeout, tool_choice, allow_final):
+        turn = len(requests)
+        requests.append(messages)
+        assert allow_final == (turn >= 3)
+        assert tool_choice == ("auto" if turn >= 3 else "required")
+        if turn >= 3:
+            assert "normal final answer" in messages[1]["content"] and source_id in messages[1]["content"]
+        if turn == len(inspections):
+            return final_message, final_receipt
+        name, arguments = inspections[turn]
+        return {"tool_calls": [{"id": str(turn), "function": {"name": name, "arguments": C.encode(arguments)}}]}, {
+            "id": "inspected-" + str(turn), "model": "mock-provider-only", "finish_reason": "tool_calls", "usage": {"total_tokens": 100}}
+    monkeypatch.setattr(graph_agent, "completion", provider)
+    result = R._investigate(live.data, live.port, live.plan)
+    assert result["status"] == "succeeded" and result["summary"] == text
+    assert result["final_protocol"] == "native_assistant_stop"
+    assert result["actual_final_response"] == {"message": final_message, "receipt": final_receipt}
+    assert result["receipts"][-1] == final_receipt
+    assert result["observed_source_ids"] == result["source_ids"] == [source_id]
+    assert result["source_binding"] == "runtime-observed context; not model-selected citations"
+    assert len(result["trace"]) == len(inspections)  # No invented terminal MCP call.
+    assert all(row["request"]["params"]["name"] != "release_explain" for row in result["trace"])
+    assert result["provider_calls"] == len(inspections) + 1
+    assert C.selected_ids(live.plan) == list(C.CHECK_IDS)
+
+
+@pytest.mark.parametrize("fault", ["premature", "short", "oversize", "refusal", "length", "missing_receipt", "nonassistant"])
+def test_native_final_cannot_bypass_inspections_bounds_or_receipt(live, monkeypatch, fault):
+    from contextlib import nullcontext
+    from server import graph_agent, control
+    monkeypatch.setenv("GROQ_API_KEY", "provider-test-only")
+    monkeypatch.setattr(control, "connect", lambda port: SimpleNamespace(set=lambda *a, **k: True, lock=lambda *a, **k: nullcontext()))
+    source_id = next(s["id"] for s in live.sources if s.get("path") == "falkordb/helpers.py")
+    inspections = [("release_read_change", {"change_id": C.CHANGE_ID}),
+                   ("release_follow_impact", {"change_id": C.CHANGE_ID}),
+                   ("release_read_source", {"source_id": source_id})]
+    calls = []
+    def provider(messages, tools, timeout, tool_choice, allow_final):
+        turn = len(calls)
+        calls.append(turn)
+        receipt = {"id": "provider-test", "model": "test", "finish_reason": "tool_calls", "response_sha256": "a" * 64, "usage": {"total_tokens": 100}}
+        if fault != "premature" and turn < 3:
+            name, args = inspections[turn]
+            return {"tool_calls": [{"id": str(turn), "function": {"name": name, "arguments": C.encode(args)}}]}, receipt
+        message = {"role": "assistant", "content": "Provider final answer must stay bounded and backed by completed observations."}
+        receipt["finish_reason"] = "stop"
+        if fault == "short": message["content"] = "Too short"
+        if fault == "oversize": message["content"] = "x" * 1801
+        if fault == "refusal": message["refusal"] = "Refused"
+        if fault == "length": receipt["finish_reason"] = "length"
+        if fault == "missing_receipt": receipt.pop("response_sha256")
+        if fault == "nonassistant": message["role"] = "tool"
+        return message, receipt
+    monkeypatch.setattr(graph_agent, "completion", provider)
+    result = R._investigate(live.data, live.port, live.plan)
+    assert result["status"] == "failed" and result["summary"] == ""
+    assert "actual_final_response" not in result
+    assert len(calls) == (1 if fault == "premature" else 4)
+    assert C.selected_ids(live.plan) == list(C.CHECK_IDS)
