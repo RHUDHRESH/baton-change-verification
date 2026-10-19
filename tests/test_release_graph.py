@@ -425,3 +425,26 @@ def test_provider_timeout_uses_remaining_budget_and_late_tool_is_rejected(live, 
         assert result["status"] == "failed" and "deadline" in result["error"]
         assert timeouts == [3]
         tool.assert_not_called()
+
+
+def test_http_provider_failure_retains_diagnostics_without_retry_or_extra_tool(live, monkeypatch):
+    from contextlib import nullcontext
+    from server import graph_agent, control
+    monkeypatch.setenv("GROQ_API_KEY", "provider-test-only")
+    monkeypatch.setattr(control, "connect", lambda port: SimpleNamespace(set=lambda *a, **k: True, lock=lambda *a, **k: nullcontext()))
+    diagnostics = {"provider": "Groq", "http_status": 400, "error": {"type": "invalid_request_error", "code": "tool_use_failed", "param": "tool_choice", "message": "Tool generation was rejected"},
+                   "response_sha256": "b" * 64, "failed_generation_tool_names": ["release_explain"]}
+    calls = []
+    def provider(messages, tools, timeout, tool_choice):
+        calls.append(tool_choice)
+        if len(calls) == 2:
+            raise graph_agent.ProviderHTTPError("Groq tool selection returned HTTP 400; diagnostics recorded", diagnostics)
+        return {"tool_calls": [{"id": "1", "function": {"name": "release_read_change", "arguments": C.encode({"change_id": C.CHANGE_ID})}}]}, {
+            "id": "provider-test", "model": "test", "finish_reason": "tool_calls", "usage": {"total_tokens": 564}}
+    monkeypatch.setattr(graph_agent, "completion", provider)
+    result = R._investigate(live.data, live.port, live.plan)
+    assert result["status"] == "failed" and result["summary"] == ""
+    assert calls == ["required", "required"] and result["provider_calls"] == 2
+    assert len(result["trace"]) == 1 and result["trace"][0]["request"]["params"]["name"] == "release_read_change"
+    assert result["receipts"][-1] == diagnostics and result["used_tokens"] == 564
+    assert result["model"] == "test"  # HTTP errors do not invent a generation model/usage.

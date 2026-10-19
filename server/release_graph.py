@@ -618,6 +618,8 @@ def _investigate(data, port, plan, deadline=None):
             record["receipts"].append(error.receipt)
             record["model"] = error.receipt.get("model")
             tokens += error.receipt.get("usage", {}).get("total_tokens", 0)
+        elif isinstance(error, agent.ProviderHTTPError):
+            record["receipts"].append(error.receipt)
         if pending_request is not None:
             denied = {"isError": True, "error": str(error) if isinstance(error, (ValueError, RuntimeError)) else "Tool selection was rejected"}
             record["trace"].append({"request": pending_request, "result": denied, "result_sha256": C.sha(C.encode(denied))})

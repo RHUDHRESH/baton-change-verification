@@ -1,5 +1,6 @@
 """Agent safety and tool protocol contracts; provider responses are mocked."""
 import json
+import io
 from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import MagicMock,patch
@@ -46,6 +47,63 @@ def test_transport_rejects_unknown_tool_choice_before_provider_request():
         with pytest.raises(ValueError, match="selection policy"):
             agent.completion([], [], tool_choice="disabled")
         request.assert_not_called()
+
+
+def test_http_failure_preserves_only_bounded_sanitized_diagnostic_fields():
+    secret = "gsk_" + "Ab9Cdf45" * 5
+    raw = json.dumps({"error": {"type": "invalid_request_error", "code": "tool_use_failed", "param": "tool_choice",
+        "message": "Failed tool request: API key=" + secret + "; Bearer " + secret + "; https://user:password@example.test/path",
+        "failed_generation": '<function=release_explain>{"api_key":"' + secret + '","private_arg":"never store raw generation"}</function>',
+        "unapproved_field": "must not be retained"}}).encode()
+    failure = agent.urllib.error.HTTPError(agent.ENDPOINT, 400, "bad", {"x-request-id": "req_safe-123", "authorization": "Bearer " + secret}, io.BytesIO(raw))
+    with patch.dict("os.environ", {"GROQ_API_KEY": secret}), patch.object(agent.urllib.request, "urlopen", side_effect=failure):
+        with pytest.raises(agent.ProviderHTTPError) as error:
+            agent.completion([], [], tool_choice="required")
+    receipt = error.value.receipt
+    assert receipt["http_status"] == 400 and receipt["response_sha256"] == agent.public.sha(raw)
+    assert receipt["request_id"] == "req_safe-123" and receipt["response_truncated"] is False
+    assert receipt["error"]["code"] == "tool_use_failed" and receipt["error"]["param"] == "tool_choice"
+    assert receipt["failed_generation_tool_names"] == ["release_explain"]
+    serialized = json.dumps(receipt)
+    assert secret not in serialized and "password" not in serialized
+    assert "never store raw generation" not in serialized and "unapproved_field" not in serialized
+    assert "authorization" not in receipt and len(receipt["error"]["message"]) <= 300
+
+
+def test_http_diagnostics_redact_hostile_identifiers_and_clamp_message():
+    secret = "gsk_" + "Q7AbcDef" * 5
+    raw = json.dumps({"error": {"type": secret, "code": secret, "param": secret,
+                "message": secret + " " + "long detail " * 1000,
+                "failed_generation": '{"name":"' + secret + '","arguments":{"name":"release_explain"}}'}}).encode()
+    failure = agent.urllib.error.HTTPError(agent.ENDPOINT, 400, "bad", {"x-request-id": secret}, io.BytesIO(raw))
+    receipt = agent.provider_http_receipt(failure)
+    assert all(receipt["error"][key] == "unknown" for key in ("type", "code", "param"))
+    assert "request_id" not in receipt and secret not in json.dumps(receipt)
+    assert len(receipt["error"]["message"]) == 300
+    assert all(name in agent.DIAGNOSTIC_TOOL_NAMES for name in receipt["failed_generation_tool_names"])
+
+
+def test_oversized_or_unreadable_http_error_never_persists_body_or_unbounded_fields():
+    class BoundedInput(io.BytesIO):
+        def read(self, size=-1):
+            assert 0 <= size <= agent.MAX_PROVIDER_ERROR_BYTES + 1
+            return super().read(size)
+    raw = json.dumps({"error": {"message": "private unbounded body " * 10000}}).encode()
+    failure = agent.urllib.error.HTTPError(agent.ENDPOINT, 400, "bad", {"x-request-id": "x" * 1000}, BoundedInput(raw))
+    receipt = agent.provider_http_receipt(failure)
+    assert receipt["response_truncated"] is True and receipt["response_sha256"] is None
+    assert len(receipt["response_prefix_sha256"]) == 64
+    assert "request_id" not in receipt and len(json.dumps(receipt)) < 1200
+    assert "private unbounded body" not in json.dumps(receipt)
+    assert receipt["failed_generation_tool_names"] == []
+
+
+@pytest.mark.parametrize("raw", [b"not JSON", b"\xff\xfe", b"[]"])
+def test_invalid_error_body_is_hash_only_with_static_message(raw):
+    failure = agent.urllib.error.HTTPError(agent.ENDPOINT, 429, "rate", {}, io.BytesIO(raw))
+    receipt = agent.provider_http_receipt(failure)
+    assert receipt["http_status"] == 429 and receipt["response_sha256"] == agent.public.sha(raw)
+    assert receipt["error"]["type"] == "unknown" and receipt["failed_generation_tool_names"] == []
 
 
 @pytest.fixture
@@ -455,3 +513,15 @@ def test_middle_fix_outranks_expected_section_and_long_measurement_tail():
     assert fix in description and len(description)<=1000
     assert fix in json.loads(excerpt)["body"] and len(excerpt)<=1400 and truncated
     assert json.loads(excerpt)["body"].endswith("Reload measurements.\n")
+
+
+def test_legacy_http_failure_keeps_sanitized_receipt_without_retry_or_invented_usage(investigation, monkeypatch):
+    run, _, _ = run_harness(investigation, monkeypatch)
+    receipt = {"provider": "Groq", "http_status": 400, "error": {"type": "invalid_request_error", "code": "tool_use_failed", "param": "tool_choice", "message": "Tool generation rejected"},
+               "response_sha256": "a" * 64, "failed_generation_tool_names": []}
+    with patch.object(agent, "completion", side_effect=agent.ProviderHTTPError("Groq HTTP 400; sanitized diagnostics recorded", receipt)) as provider:
+        result = agent.run(run.data, run.port, run.item_id)
+    provider.assert_called_once()
+    assert result["status"] == "failed" and result["failure"]["phase"] == "provider"
+    assert result["receipts"] == [receipt] and result["budget"]["provider_calls"] == 1
+    assert result["budget"]["used_tokens"] == 0 and not result["trace"] and result["action"] is None

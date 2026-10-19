@@ -14,6 +14,9 @@ from .groq_inference import ENDPOINT, DEFAULT_MODEL
 MAX_AGENT_SECONDS = 88
 MAX_TOTAL_TOKENS = 7600
 MAX_COMPLETION_TOKENS = 650
+MAX_PROVIDER_ERROR_BYTES = 32768
+DIAGNOSTIC_TOOL_NAMES = frozenset({"read_work_item", "follow_connections", "read_source", "save_verification_task",
+                                 "release_read_change", "release_follow_impact", "release_read_source", "release_explain"})
 
 ITEM_QUERY = "MATCH (w:WorkItem {id:$id})-[:IN_REPOSITORY]->(r:Repository) RETURN properties(w),r.id"
 PATH_QUERY = ("MATCH (w:WorkItem {id:$id})-[:IN_REPOSITORY]->(r:Repository)<-[:IN_REPOSITORY]-(n:WorkItem) "
@@ -113,6 +116,71 @@ class ProviderProtocolError(ValueError):
     def __init__(self,message,receipt):
         super().__init__(message)
         self.receipt=receipt
+
+
+class ProviderHTTPError(RuntimeError):
+    def __init__(self,message,receipt):
+        super().__init__(message)
+        self.receipt=receipt
+
+
+def _redact_provider_message(value):
+    if not isinstance(value,str):
+        return "Provider did not supply a readable error message"
+    # Exact configured secrets are removed before truncation, so a long value
+    # cannot survive as a partial prefix at the diagnostic boundary.
+    for name,secret in os.environ.items():
+        if len(secret)>=8 and any(term in name.upper() for term in ("TOKEN","SECRET","PASSWORD","API_KEY","ACCESS_KEY")):
+            value=value.replace(secret,"[redacted]")
+    patterns=(r"\b(?:gsk_[A-Za-z0-9_-]{8,}|sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9_]{8,}|github_pat_[A-Za-z0-9_]{8,}|xox[baprs]-[A-Za-z0-9-]{8,}|ATATT[A-Za-z0-9_-]{8,}|(?:AKIA|ASIA)[A-Z0-9]{16})\b",
+              r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b",
+              r"(?i)\b(?:bearer|basic)\s+[^\s,;\"']+",
+              r"(?i)\b(?:api[_ -]?key|access[_ -]?token|token|password|secret|authorization)\s*[:=]\s*[\"']?[^\s,;\"']+")
+    for pattern in patterns:
+        value=re.sub(pattern,"[redacted]",value)
+    value=re.sub(r"(?i)(https?|rediss?|postgres(?:ql)?|mongodb(?:\+srv)?)://[^\s/@]+:[^\s/@]+@",r"\1://[redacted]@",value)
+    value=re.sub(r"-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?(?:-----END [^-]*PRIVATE KEY-----|$)","[redacted]",value)
+    return re.sub(r"[\x00-\x1f\x7f]"," ",value)[:300]
+
+
+def _provider_identifier(value):
+    if not isinstance(value,str) or not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.:\[\]-]{0,79}",value):
+        return "unknown"
+    return value if _redact_provider_message(value)==value else "unknown"
+
+
+def provider_http_receipt(error):
+    """Whitelist diagnostics only; never persist raw error/generation/headers."""
+    try:
+        raw=error.read(MAX_PROVIDER_ERROR_BYTES+1)
+    except Exception:
+        raw=b""
+    truncated=len(raw)>MAX_PROVIDER_ERROR_BYTES
+    captured=raw[:MAX_PROVIDER_ERROR_BYTES]
+    receipt={"provider":"Groq","http_status":int(error.code),"requested_model":os.environ.get("GROQ_MODEL",DEFAULT_MODEL),
+             "response_sha256":public.sha(captured) if not truncated else None,"response_truncated":truncated,
+             "error":{"type":"unknown","code":"unknown","param":"unknown","message":"Provider error response was not readable within the diagnostic bound"},
+             "failed_generation_tool_names":[]}
+    if truncated:
+        receipt["response_prefix_sha256"]=public.sha(captured)
+    headers=error.headers or {}
+    request_id=headers.get("x-request-id") or headers.get("x-groq-request-id")
+    safe_id=_provider_identifier(request_id)
+    if safe_id!="unknown":
+        receipt["request_id"]=safe_id
+    try:
+        payload=json.loads(captured) if not truncated else None
+    except (ValueError,UnicodeError):
+        payload=None
+    detail=payload.get("error") if isinstance(payload,dict) else None
+    if isinstance(detail,dict):
+        receipt["error"]={name:_provider_identifier(detail.get(name)) for name in ("type","code","param")}
+        receipt["error"]["message"]=_redact_provider_message(detail.get("message"))
+        generation=detail.get("failed_generation")
+        if isinstance(generation,str):
+            names=re.findall(r'(?:"name"\s*:\s*"([A-Za-z_][A-Za-z0-9_]{0,63})"|<function=([A-Za-z_][A-Za-z0-9_]{0,63})>)',generation)
+            receipt["failed_generation_tool_names"]=sorted({name for pair in names for name in pair if name in DIAGNOSTIC_TOOL_NAMES})
+    return receipt
 
 
 def validate(tool, arguments):
@@ -341,7 +409,8 @@ def completion(messages,tools,timeout=22,tool_choice="auto"):
         with urllib.request.urlopen(request,timeout=timeout) as response:
             raw=response.read(200001)
     except urllib.error.HTTPError as error:
-        raise RuntimeError("Groq tool selection returned HTTP "+str(error.code)+"; no result was substituted") from None
+        raise ProviderHTTPError("Groq tool selection returned HTTP "+str(error.code)+"; sanitized provider diagnostics recorded; no result was substituted",
+                                provider_http_receipt(error)) from None
     except (urllib.error.URLError,TimeoutError):
         raise RuntimeError("Groq tool selection timed out or failed") from None
     if len(raw)>200000:
@@ -456,6 +525,9 @@ def run(data,port,item_id):
             except ProviderProtocolError as error:
                 record["receipts"].append(error.receipt)
                 record["budget"]["used_tokens"]+=error.receipt["usage"]["total_tokens"]
+                raise
+            except ProviderHTTPError as error:
+                record["receipts"].append(error.receipt)
                 raise
             record["receipts"].append(receipt)
             record["budget"]["used_tokens"]+=receipt["usage"]["total_tokens"]
