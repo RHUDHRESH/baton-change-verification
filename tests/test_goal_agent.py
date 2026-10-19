@@ -250,7 +250,7 @@ def test_token_budget_stops_before_spending_provider_quota(boundary, monkeypatch
     monkeypatch.setattr(A, "MAX_TOKENS", 1)
     model = Mock();monkeypatch.setattr(A, "completion", model)
     r = A.investigate(None, 0, "Investigate a concrete condition", "budget-limit")
-    assert r["status"] == "needs_continuation" and r["proposal"] is None
+    assert r["status"] == "blocked" and "cannot fit" in r["blocked_reason"] and r["proposal"] is None
     model.assert_not_called();boundary.quota.assert_not_called()
 
 
@@ -855,3 +855,36 @@ def test_unsealed_freshness_non_value_integrity_failure_blocks_before_model(boun
     model.assert_not_called()
     assert out['status']=='blocked' and out['evidence']==evidence and out['events'][:len(history)]==history
     assert not any(e['type']=='replan_required' for e in out['events'])
+
+
+def test_replan_omits_obsolete_details_retains_locator_ids_and_fresh_observations_across_requests(boundary,monkeypatch):
+    monkeypatch.setattr(A,'MAX_CALLS',1)
+    monkeypatch.setattr(A,'completion',Mock(return_value=call('read_company_source',{'source_id':'source-A'},0)))
+    r=A.investigate(None,0,'Investigate the actual graph source before proposing work','replan-history-budget')
+    for n in range(3):
+        A._event(r,'tool_result',tool_name='search_company_graph',args={'query':'actual old query'},status='succeeded',result={
+            'observation':{'entities':[{'id':'actual-old-'+str(i)+'x'*80,'source_ids':['captured-'+str(i)],
+              'properties':{'title':'t'*220,'name':'n'*220,'path':'p'*220,'url':'https://github.com/'+'u'*200}} for i in range(8)]},'evidence':[],'binding':{}})
+    A._event(r,'blocked',error='Actual prior stale error');r['blocked_reason']='Actual prior stale error'
+    A._event(r,'replan_required',error='Actual relevant source snapshot changed');r.update(evidence=[],replan_required=True)
+    original=copy.deepcopy(r['events']);boundary.graph.save_goal(None,0,r)
+    monkeypatch.setenv('BATON_GOAL_PROTOCOL','json_decision')
+    def model(messages,tools,timeout):
+        context=json.loads(messages[1]['content'])
+        assert context['observations']==[] and context['evidence_ids']==[] and context['prior_block_feedback']['historical_only'] is True
+        assert len(context['prior_observation_locators']['entity_capabilities'])==8
+        assert context['prior_observation_locators']['stale_not_current_evidence'] is True
+        assert A._estimate(messages,tools)<=7500
+        assert boundary.graph.get_goal(None,0,r['id'])['blocked_reason'] is None
+        return call('read_company_source',{'source_id':'source-A'},1)
+    next_model=Mock(side_effect=model);monkeypatch.setattr(A,'completion',next_model)
+    fresh=A.continue_goal(None,0,r['id'],'')
+    assert next_model.call_count==1 and fresh['events'][:len(original)]==original and fresh['evidence']
+    before=copy.deepcopy(fresh['evidence'])
+    def next_turn(messages,tools,timeout):
+        context=json.loads(messages[1]['content'])
+        assert context['evidence_ids']==[e['id'] for e in before] and len(context['observations'])==1
+        return call('read_company_source',{'source_id':'source-A'},2)
+    monkeypatch.setattr(A,'completion',Mock(side_effect=next_turn))
+    out=A.continue_goal(None,0,r['id'],'')
+    assert len([e for e in out['events'] if e['type']=='replan_required'])==1 and out['blocked_reason'] is None

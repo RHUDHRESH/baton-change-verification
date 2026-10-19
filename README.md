@@ -1,5 +1,10 @@
 # Baton
 
+[Watch the 90-second captioned demo](https://youtu.be/16P-i_Akzgk): a screenshot
+walkthrough of stored c93 verification evidence — six checks passed, two failed,
+and the release was blocked. It is not a fresh free-text planner demonstration.
+[Video scope and provenance](docs/evidence/VIDEO_DEMO.md).
+
 ## Give the agent a goal
 
 An engineer can see a merged pull request, a failed check and an old discussion,

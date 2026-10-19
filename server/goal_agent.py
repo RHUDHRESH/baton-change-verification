@@ -412,7 +412,18 @@ def _plan_view(proposal):
 
 
 def _messages(record, ready, replan):
-    events = [e for e in record["events"] if e["type"] == "tool_result"][-3:]
+    last_replan = max((e.get("seq", -1) for e in record["events"] if e["type"] == "replan_required"), default=-1)
+    all_observations = [(index, e) for index, e in enumerate(record["events"]) if e["type"] == "tool_result"]
+    events = [e for index, e in all_observations if e.get("seq", index) > last_replan][-3:]
+    obsolete = [e for index, e in all_observations if e.get("seq", index) < last_replan]
+    locators, read_sources = {}, []
+    for event in obsolete[-3:]:
+        old = event.get("result", {}).get("observation", {})
+        for entity in old.get("entities", []):
+            if isinstance(entity, dict) and entity.get("id"):
+                locators[entity["id"]] = {"id": entity["id"], "captured_source_ids": copy.deepcopy(entity.get("source_ids", []))}
+        if event.get("tool_name") == "read_company_source" and old.get("source_id"):
+            read_sources.append(old["source_id"])
     observations = [{"tool": e.get("tool_name"), "args": copy.deepcopy(e.get("args")), "status": e.get("status"),
                      "result": _observation_view(e, i == len(events)-1), "step_id": e.get("step_id")}
                     for i, e in enumerate(events)]
@@ -450,6 +461,8 @@ def _messages(record, ready, replan):
                "replan_required": replan, "approved_actions": record["approved_actions"],
                "prior_block_feedback": block_feedback,
                "prior_provider_error": provider_feedback,
+               "prior_observation_locators": {"stale_not_current_evidence": True, "entity_capabilities": list(locators.values()),
+                   "read_source_ids": sorted(set(read_sources)), "archived_observation_count": len(obsolete), "truncated": len(obsolete) > 3} if obsolete else None,
                "observations": observations, "evidence_ids": [e["id"] for e in record["evidence"]],
                "observation_feedback": list(_empty_searches(record).values())[-6:],
                "selection_feedback": [{key: e.get(key) for key in ("tool_name", "args", "error", "receipt_id", "tool_call_id")}
@@ -541,6 +554,8 @@ def _loop(data, port, record, deadline, acting=False, executor=None, replan=Fals
             messages = _compact_messages(messages, level)
             estimate = _estimate(messages, choices)
         if spent + estimate > MAX_TOKENS:
+            if not spent:
+                raise ValueError("Current authority and source context cannot fit the unchanged provider budget; no model call was made")
             break
         _quota(data, port, deadline)
         record["provider_calls"] = record.get("provider_calls", 0) + 1
@@ -729,23 +744,27 @@ def continue_goal(data, port, id, expected_plan_hash, approved_actions=None, act
             record["approved_actions"] = sorted(set(record["approved_actions"]) | set(approved_actions))
         try:
             replan = bool(record.get("replan_required"))
+            new_staleness = False
             if record.get("proposal") and not replan:
                 try:
                     replan = graph.evidence_binding(data, port, record.get("plan_evidence", record["evidence"])) != record.get("evidence_binding")
                     graph.evidence_binding(data, port, record["evidence"])
                 except ValueError:
                     replan = True
-            elif record.get("evidence") and not replan:
+                    new_staleness = True
+            elif record.get("evidence"):
                 try:
                     # Unsealed investigations still contain actual observations;
                     # require their current source/graph snapshots before reuse.
                     graph.evidence_binding(data, port, record["evidence"])
                 except ValueError:
                     replan = True
-            if replan:
+                    new_staleness = True
+            if replan and (not record.get("replan_required") or new_staleness):
                 _event(record, "replan_required", error="Relevant graph or source observations changed; prior effects blocked")
                 record.update(replan_required=True, evidence=[])
             record["status"] = "acting" if action_executor and not replan else "investigating"
+            record["blocked_reason"] = None
             _save(data, port, record)
             return _loop(data, port, record, deadline,
                          acting=bool(record.get("proposal")) and not replan, executor=action_executor, replan=replan)
