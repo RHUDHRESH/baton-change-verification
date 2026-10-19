@@ -264,3 +264,26 @@ def test_rejected_selection_cannot_fabricate_observation_or_lose_actual_protocol
                             "tool_name":"search_company_graph","args":rejected["args"],"status":"succeeded","evidence_ids":[],
                             "result":{"observation":{"entities":[]},"evidence":[],"binding":{"fingerprint":P.binding([])}}})
     with pytest.raises(P.ProofError):P.verify_record(r,P.catalog_from_source()[0])
+
+
+@pytest.mark.parametrize("category,args",[("unknown_captured_source",{"source_id":"environment-entity-id"}),
+                                           ("invalid_read_arguments",{"source_id":12})])
+def test_actual_invalid_read_rejection_preserves_native_selection_without_inventing_source_observation(category,args):
+    r=record_with_rejected_search()
+    selected=next(e for e in r["events"] if e.get("tool_call_id")=="actual-search-1" and e["type"]=="tool_call")
+    rejected=next(e for e in r["events"] if e["type"]=="tool_rejected")
+    selected.update(tool_name="read_company_source",args=args)
+    rejected.update(tool_name="read_company_source",args=args,category=category,error="Read was rejected before any observation")
+    rejected.pop("previous_observation_seq")
+    result=P.verify_record(r,P.catalog_from_source()[0])
+    assert result["native_selections_rejected_without_execution"]==1
+    assert result["actual_read_observations"]==2 and result["model_selected_read_tools"]==["search_company_graph","read_company_source"]
+    rejected["category"]="unknown_graph_entity"
+    with pytest.raises(P.ProofError):P.verify_record(r,P.catalog_from_source()[0])
+
+
+def test_unknown_effect_error_category_cannot_be_retried_as_a_safe_read_rejection():
+    r=record_with_rejected_search()
+    rejected=next(e for e in r["events"] if e["type"]=="tool_rejected")
+    rejected["category"]="provider_write_failed"
+    with pytest.raises(P.ProofError):P.verify_record(r,P.catalog_from_source()[0])

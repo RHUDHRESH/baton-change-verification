@@ -244,6 +244,21 @@ def test_structured_source_excerpt_is_readable_json(goal):
     assert '[object Object]' not in result['goal-evidence']['text']
 
 
+@pytest.mark.parametrize('kind,label,id_label,link_label', [('entity', 'Graph observation', 'ENTITY ID', 'Open linked record'), ('source', 'Captured source read', 'SOURCE ID', 'Open captured source'), ('model_proposal', 'Prior model proposal', 'ENTITY ID', 'Open proposal record')])
+def test_evidence_kind_distinguishes_graph_model_and_captured_source(goal, kind, label, id_label, link_label):
+    goal['evidence'][0].update(kind=kind, source_id='literal:env:redis-8.1.0')
+    result = js(mode='hydrate', graph=True, records=[goal])
+    rendered = result['goal-evidence']['text']
+    assert label in rendered
+    assert id_label + ' · literal:env:redis-8.1.0' in rendered
+    assert link_label in rendered
+    node = next(row['data'] for row in result['graphs'][0]['elements'] if row['data']['id'] == 'evidence:ev/A')
+    assert label in node['label']
+    if kind != 'source':
+        assert 'Captured source read' not in rendered
+        assert 'Open captured source' not in rendered
+
+
 @pytest.mark.parametrize('url', ['/api/public/goals/a-real-goal', '/api/public/release-runs/run-1', 'https://baton-workspace.vercel.app/api/public/release-runs/run-1'])
 def test_same_origin_actual_goal_or_run_receipt_links_allowed(url):
     expected = 'https://baton-workspace.vercel.app' + url if url.startswith('/') else url

@@ -188,6 +188,7 @@ def _verify_record(record, catalog):
             "Goal call counts or measured token totals differ from receipts")
     events = record.get("events")
     require(isinstance(events, list) and events and [e.get("seq") for e in events] == list(range(len(events))), "Goal observation sequence is incomplete")
+    rejected_events = {(e.get("receipt_id"), e.get("tool_call_id")): e for e in events if e.get("type") == "tool_rejected"}
     calls, active_evidence, plans, done, reconstructed_actions = {}, {}, {}, {}, []
     pending_proposal, current, reflections = None, None, []
     revision_count, called_receipts, response_events, rejected_calls = 0, set(), set(), set()
@@ -213,7 +214,11 @@ def _verify_record(record, catalog):
             name = event.get("tool_name")
             require(name in READ_NAMES | {"propose_goal_plan", "select_plan_step", "finish_goal"}, "Unknown tool was executed")
             if name in reads:
-                C.validate_arguments(event.get("args"), reads[name]["inputSchema"])
+                try:
+                    C.validate_arguments(event.get("args"), reads[name]["inputSchema"])
+                except ValueError:
+                    rejected = rejected_events.get(key, {})
+                    require(rejected.get("category") == "invalid_read_arguments" and rejected.get("args") == event.get("args"), "Invalid native read arguments have no actual rejected-selection event")
             elif name == "propose_goal_plan":
                 pending_proposal = event.get("args")
             elif name == "select_plan_step":
@@ -247,15 +252,30 @@ def _verify_record(record, catalog):
         elif kind == "tool_rejected":
             key = (event.get("receipt_id"), event.get("tool_call_id"));call = calls.get(key)
             prior_seq = event.get("previous_observation_seq")
-            require(call and key not in rejected_calls and call.get("tool_name") == event.get("tool_name") == "search_company_graph" and
-                    call.get("args") == event.get("args") and isinstance(event.get("error"), str) and event["error"] and "result" not in event,
-                    "Rejected selection was not an actual native search or forged an execution result")
-            require(type(prior_seq) is int and 0 <= prior_seq < event["seq"], "Rejected search has no preceding actual empty observation")
-            prior = events[prior_seq]
-            require(prior.get("type") == "tool_result" and prior.get("status") == "succeeded" and prior.get("tool_name") == "search_company_graph" and
-                    prior.get("result", {}).get("observation", {}).get("entities") == [] and
-                    prior.get("args", {}).get("query", "").lower() == event["args"].get("query", "").lower(),
-                    "Search rejection differs from its actual exhausted query")
+            require(call and key not in rejected_calls and isinstance(event.get("error"), str) and event["error"] and "result" not in event,
+                    "Rejected selection has no actual native selection or forged an execution result")
+            category = event.get("category")
+            if category in {"invalid_read_arguments", "unknown_captured_source", "unknown_graph_entity"}:
+                require(event.get("tool_name") in reads, "Recoverable rejection was not a read-only capability")
+                if event.get("step_id"):
+                    require(current == event.get("plan_hash") and call.get("tool_name") == "select_plan_step" and call.get("args", {}).get("step_id") == event["step_id"], "Rejected planned read lost its actual selected step")
+                    step = next(s for s in plans[current]["steps"] if s["id"] == event["step_id"])
+                    require(step["tool_name"] == event["tool_name"] and step["args"] == event.get("args"), "Rejected planned read differs from the sealed read")
+                else:
+                    require(call.get("tool_name") == event.get("tool_name") and call.get("args") == event.get("args"), "Rejected read differs from the actual selected arguments")
+                if category == "unknown_captured_source":
+                    require(event["tool_name"] == "read_company_source", "Unknown-source rejection was attached to another capability")
+                if category == "unknown_graph_entity":
+                    require(event["tool_name"] in {"inspect_graph_entity", "traverse_company_graph"}, "Unknown-entity rejection was attached to another capability")
+            else:
+                require(category is None and call.get("tool_name") == event.get("tool_name") == "search_company_graph" and call.get("args") == event.get("args"), "Unknown or substituted rejection category")
+                require(type(prior_seq) is int and 0 <= prior_seq < event["seq"], "Rejected search has no preceding actual empty observation")
+                prior = events[prior_seq]
+                require(prior.get("type") == "tool_result" and prior.get("status") == "succeeded" and prior.get("tool_name") == "search_company_graph" and
+                        prior.get("result", {}).get("observation", {}).get("entities") == [] and
+                        prior.get("args", {}).get("query", "").lower() == event["args"].get("query", "").lower() and
+                        prior.get("result", {}).get("observation", {}).get("search_version") == event.get("search_version"),
+                        "Search rejection differs from its actual exhausted query or retrieval version")
             require(not any(e.get("type") == "tool_result" and (e.get("receipt_id"), e.get("tool_call_id")) == key for e in events),
                     "Rejected search was falsely counted as an actual read")
             rejected_calls.add(key)

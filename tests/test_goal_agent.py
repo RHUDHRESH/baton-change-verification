@@ -553,7 +553,7 @@ def test_large_entity_observation_retains_exact_identity_sources_edges_and_verif
     last=context["observations"][-1]
     assert last["args"]==event["args"]
     observation=last["result"]["observation"]
-    assert observation["entities"][0]["id"]=="actual-entity-id" and observation["entities"][0]["source_ids"]==["src-real-captured"]
+    assert observation["entities"][0]["id"]=="actual-entity-id" and observation["entities"][0]["declared_source_references"]==["src-real-captured"]
     assert observation["entities"][0]["labels"]==["ReleaseExecution"]
     details=observation["details"][0]
     assert details["directed_relationships"]==[relationship]
@@ -585,3 +585,60 @@ def test_plan_projection_preserves_all_step_ids_and_dependencies_instead_of_omit
     assert [s["id"] for s in context["proposal"]["steps"]]==[s["id"] for s in r["proposal"]["steps"]]
     assert context["proposal"]["steps"][-1]["depends_on"]==["step4"]
     assert context["proposal"]["steps"][-1]["args"]=={"source_id":"source-A"}
+
+
+def test_entity_evidence_ids_cannot_masquerade_as_raw_sources_in_model_projection(boundary):
+    raw={"observation":{"entities":[{"id":"release:redis-8.1.0","labels":["Environment"],"source_ids":["src-real-captured"],"properties":{"source_id":"release:redis-8.1.0"}}]},
+         "evidence":[{"id":"gev-entity","kind":"entity","source_id":"release:redis-8.1.0","sha256":"a"*64}],"binding":{}}
+    original=copy.deepcopy(raw)
+    view=A._observation_view({"result":raw},True)
+    assert view["evidence"]==[{"id":"gev-entity","kind":"entity","entity_id":"release:redis-8.1.0"}]
+    assert view["observation"]["entities"][0]["captured_source_ids"]==["src-real-captured"]
+    assert "source_id" not in view["observation"]["entities"][0] and raw==original
+    raw["evidence"][0].update(kind="source",source_id="src-real-captured")
+    assert A._observation_view({"result":raw},True)["evidence"][0]["source_id"]=="src-real-captured"
+
+
+@pytest.mark.parametrize("fault",["unknown_source","invalid_schema"])
+def test_predictable_invalid_read_selection_can_recover_without_fabricated_observation(boundary,monkeypatch,fault):
+    original=boundary.graph.call_tool
+    def read(*args,**kwargs):
+        if args[3].get("source_id")=="environment-entity-id":raise ValueError("Source is not in the real captured workspace")
+        return original(*args,**kwargs)
+    boundary.graph.call_tool=read
+    invalid={"source_id":"environment-entity-id"} if fault=="unknown_source" else {"source_id":12}
+    queue=[call("read_company_source",invalid,0),call("read_company_source",{"source_id":"source-A"},1),call("propose_goal_plan",proposal(),2)]
+    def model(messages,tools,timeout):
+        if len(queue)==2:
+            context=json.loads(messages[1]["content"])
+            assert context["selection_feedback"][-1]["args"]==invalid and context["observations"]==[]
+        return queue.pop(0)
+    monkeypatch.setattr(A,"completion",model)
+    r=A.investigate(None,0,"Investigate an actual captured source condition","read-recovery")
+    assert r["status"]=="proposed" and r["provider_calls"]==3
+    rejected=next(e for e in r["events"] if e["type"]=="tool_rejected")
+    assert rejected["category"]==("unknown_captured_source" if fault=="unknown_source" else "invalid_read_arguments")
+    assert rejected["receipt_id"]==receipt(0)["id"] and "result" not in rejected
+    assert len([e for e in r["events"] if e["type"]=="tool_result"])==1 and len(boundary.graph.calls)==1
+
+
+def test_integrity_value_error_is_not_retried_as_a_recoverable_read_failure(boundary,monkeypatch):
+    boundary.graph.call_tool=Mock(side_effect=ValueError("Relevant inspected evidence changed"))
+    model=Mock(return_value=call("read_company_source",{"source_id":"source-A"},0));monkeypatch.setattr(A,"completion",model)
+    r=A.investigate(None,0,"Investigate an actual captured source condition","integrity-stop")
+    assert r["status"]=="blocked" and model.call_count==1 and not any(e["type"]=="tool_rejected" for e in r["events"])
+
+
+def test_resume_context_preserves_redacted_prior_rejection_as_history_not_current_failure(boundary,monkeypatch):
+    r,_=plan_goal(monkeypatch,boundary)
+    monkeypatch.setenv("PRIVATE_TEST_API_KEY","private-secret-value")
+    r["blocked_reason"]="Prior model proposal failed private-secret-value"
+    A._event(r,"blocked",error=r["blocked_reason"])
+    original=copy.deepcopy(r["events"])
+    before=json.loads(A._messages(r,[],False)[1]["content"])["prior_block_feedback"]
+    assert before["historical_only"] is True and before["actual_observations_since"]==0
+    assert "private-secret-value" not in before["error"] and "Prior model proposal failed" in before["error"]
+    A._event(r,"tool_result",tool_name="read_company_source",args={"source_id":"source-A"},status="succeeded",result={"observation":{},"evidence":[]})
+    after=json.loads(A._messages(r,[],False)[1]["content"])["prior_block_feedback"]
+    assert after["historical_only"] is True and after["actual_observations_since"]==1
+    assert r["events"][:-1]==original

@@ -20,6 +20,7 @@
   const authenticatedNow = () => typeof authenticated !== 'undefined' && authenticated;
   const canContinue = () => ['needs_continuation', 'blocked'].includes(record?.status) || (record?.status === 'proposed' && Boolean(record?.proposal?.hash));
   const text = value => typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+  const evidenceLabel = item => ({entity: 'Graph observation', source: 'Captured source read', model_proposal: 'Prior model proposal'}[item.kind] || 'Evidence record · kind not specified');
   const progress = value => { if ($('goal-progress')) $('goal-progress').textContent = value; };
   function requestedGoalId() {
     const hash = window.location?.hash || '';
@@ -76,7 +77,7 @@
       }
       for (const id of list(step.evidence_ids)) if (sources.has(id)) {
         const source = sources.get(id);
-        nodes.set('evidence:' + id, {data: {id: 'evidence:' + id, label: id + '\nInspected evidence', kind: 'evidence', state: 'evidence', anchor: 'goal-source-' + encodeURIComponent(id), source_id: source.source_id}});
+        nodes.set('evidence:' + id, {data: {id: 'evidence:' + id, label: id + '\n' + evidenceLabel(source), kind: 'evidence', state: 'evidence', anchor: 'goal-source-' + encodeURIComponent(id), source_id: source.source_id}});
         const edgeId = JSON.stringify(['cites', step.id, id]);
         edges.set(edgeId, {data: {id: edgeId, source: 'step:' + step.id, target: 'evidence:' + id, relation: 'CITES', label: 'cites', kind: 'citation'}});
       }
@@ -109,7 +110,7 @@
     $('goal-continue').textContent = record?.status === 'blocked' ? 'Resume investigation' : 'Continue investigation';
     const selected = Object.keys(EFFECTS).filter(kind => $('goal-approve-' + kind)?.checked);
     $('goal-act').disabled = !authenticatedNow() || locked || !record?.proposal?.hash || !['proposed', 'needs_continuation'].includes(record?.status) || !selected.length;
-    $('goal-auth-note').textContent = authenticatedNow() ? 'Submitting investigates and proposes. External actions require your separate approval below.' : 'Sign in to submit a goal or approve actions. Stored evidence is public.';
+    $('goal-auth-note').textContent = authenticatedNow() ? 'Goals, plans and receipts are public in this demo. Submitting investigates and proposes. External actions require your separate approval below.' : 'Sign in to submit a goal or approve actions. Stored evidence is public.';
   }
   function render() {
     if (workGraphObserver) { workGraphObserver.disconnect(); workGraphObserver = undefined; }
@@ -161,8 +162,8 @@
     timeline.append(detail('Inference provider receipts · ' + list(record.provider_receipts).length, list(record.provider_receipts)));
     for (const item of list(record.evidence)) {
       const entry = el('article', undefined, 'goal-source'); entry.id = 'goal-source-' + encodeURIComponent(item.id);
-      entry.append(el('h3', item.id), el('p', item.source_id || 'Source ID not recorded'), el('code', 'SHA-256 · ' + (item.sha256 || 'not recorded')));
-      const link = safeLink(item.url); if (link) { const a = el('a', 'Open captured source ↗'); a.href = link; a.target = '_blank'; a.rel = 'noopener noreferrer'; entry.append(a); }
+      entry.append(el('p', evidenceLabel(item), 'eyebrow'), el('h3', item.id), el('p', (item.kind === 'source' ? 'SOURCE ID · ' : 'ENTITY ID · ') + (item.source_id || 'not recorded')), el('code', 'Evidence SHA-256 · ' + (item.sha256 || 'not recorded')));
+      const link = safeLink(item.url); if (link) { const a = el('a', item.kind === 'source' ? 'Open captured source ↗' : item.kind === 'model_proposal' ? 'Open proposal record ↗' : 'Open linked record ↗'); a.href = link; a.target = '_blank'; a.rel = 'noopener noreferrer'; entry.append(a); }
       if (item.excerpt) entry.append(el('pre', text(item.excerpt)));
       entry.append(detail('Inspect source provenance', item)); evidence.append(entry);
     }
