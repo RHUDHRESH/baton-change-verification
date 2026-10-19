@@ -440,3 +440,61 @@ def test_quota_reuses_daily_graph_record_and_rejects_before_provider_on_exhausti
     with pytest.raises(RuntimeError, match="allowance"):
         module._quota(None, 0, 1000)
     write.assert_not_called()
+
+
+def test_actual_empty_search_feedback_exposes_arguments_and_model_broadens_query(boundary, monkeypatch):
+    original = boundary.graph.call_tool
+    def search(*args, **kwargs):
+        if args[2] == "search_company_graph" and args[3]["query"] == "redis-py 8.1.0 failure":
+            boundary.graph.calls.append((args[2], args[3]))
+            return {"observation": {"entities": []}, "evidence": [], "binding": {"fingerprint": C.sha("empty")}}
+        return original(*args, **kwargs)
+    boundary.graph.call_tool = search
+    seen = []
+    def model(messages, tools, timeout):
+        context = json.loads(messages[1]["content"]);seen.append(context)
+        if len(seen) == 1:
+            return call("search_company_graph", {"query": "redis-py 8.1.0 failure"}, 0)
+        if len(seen) == 2:
+            assert context["observations"][-1]["args"] == {"query": "redis-py 8.1.0 failure"}
+            assert context["observations"][-1]["result"]["observation"]["entities"] == []
+            feedback = context["observation_feedback"][0]
+            assert feedback["args"]["query"] == "redis-py 8.1.0 failure" and feedback["actual_empty_executions"] == 1
+            assert feedback["outcome"] == "empty_literal_search"
+            return call("read_company_source", {"source_id": "source-A"}, 1)
+        return call("propose_goal_plan", proposal(), 2)
+    monkeypatch.setattr(A, "completion", model)
+    result = A.investigate(None, 0, "Investigate the actual captured compatibility failure", "empty-adapt")
+    assert result["status"] == "proposed" and len(seen) == 3
+    assert len([c for c in boundary.graph.calls if c[0] == "search_company_graph"]) == 1
+    assert "never repeat the same exhausted" in A.SYSTEM
+
+
+@pytest.mark.parametrize("retry_args", [{"query": "redis-py 8.1.0 failure"}, {"query": "REDIS-PY 8.1.0 FAILURE", "limit": 20}])
+def test_repeat_empty_native_selection_is_recorded_but_never_executed_or_fabricated(boundary, monkeypatch, retry_args):
+    original = boundary.graph.call_tool
+    def search(*args, **kwargs):
+        if args[2] == "search_company_graph":
+            boundary.graph.calls.append((args[2], args[3]))
+            return {"observation": {"entities": []}, "evidence": [], "binding": {"fingerprint": C.sha("empty")}}
+        return original(*args, **kwargs)
+    boundary.graph.call_tool = search
+    contexts = []
+    queue = [call("search_company_graph", {"query": "redis-py 8.1.0 failure"}, 0),
+             call("search_company_graph", retry_args, 1), call("read_company_source", {"source_id": "source-A"}, 2),
+             call("propose_goal_plan", proposal(), 3)]
+    def model(messages, tools, timeout):
+        context = json.loads(messages[1]["content"]);contexts.append(context)
+        if len(contexts) == 3:
+            assert context["selection_feedback"][-1]["args"] == retry_args
+            assert context["selection_feedback"][-1]["tool_call_id"] == "actual-provider-tool-1"
+        return queue.pop(0)
+    monkeypatch.setattr(A, "completion", model)
+    r = A.investigate(None, 0, "Investigate the observed compatibility condition", "empty-repeat")
+    assert r["status"] == "proposed" and len(contexts) == 4
+    assert len([c for c in boundary.graph.calls if c[0] == "search_company_graph"]) == 1
+    assert len([e for e in r["events"] if e["type"] == "tool_call" and e["tool_name"] == "search_company_graph"]) == 2
+    assert len([e for e in r["events"] if e["type"] == "tool_result" and e["tool_name"] == "search_company_graph"]) == 1
+    rejection = next(e for e in r["events"] if e["type"] == "tool_rejected")
+    assert rejection["receipt_id"] == receipt(1)["id"] and "result" not in rejection
+    assert r["provider_receipts"] == [receipt(i) for i in range(4)] and r["provider_calls"] == 4

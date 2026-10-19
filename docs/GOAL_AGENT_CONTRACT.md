@@ -104,3 +104,13 @@ selected tools. Provider-off cannot plan or act. Changed actual observation must
 change model-selected next action/revision; stale graph dependency/source blocks
 effects. Persisted graph state must survive a fresh request. Contract mocks prove
 validation only; live Groq/provider/graph receipts prove the demonstrated runs.
+
+## Implementation validation
+
+The complete Docker harness passed on immutable checkpoint
+`b28d376f0feaad2fa33235134a351f9ff9fe70a5`: original scoring 88/88 and 1,104
+pytest tests, with zero failures, errors or skips. The 140 goal-agent contract
+tests are included. All 456 tracked file hashes remained unchanged. See the
+[checkpoint evidence](evidence/GOAL_AGENT_B28_VALIDATION.md) for exact group
+counts, command and retained log digest. This is implementation validation;
+the live proof requirements above remain separate.

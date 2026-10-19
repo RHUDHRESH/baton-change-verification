@@ -31,13 +31,15 @@ function tree(e){return {tag:e.tag,text:e.own,href:e.href||null,id:e.id||null,ch
 (async()=>{
  if(input.mode==='link')return console.log(JSON.stringify({url:ui.safeLink(input.url)}));
  if(input.mode==='completion')return console.log(JSON.stringify({verified:ui.completionVerified(input.record)}));
- if(['hydrate','act','continue','hydrate-submit'].includes(input.mode))await ui.hydrate();
+ if(['hydrate','act','continue','continue-twice','continue-refresh-continue','hydrate-submit'].includes(input.mode))await ui.hydrate();
  if(['submit','submit-twice','hydrate-submit'].includes(input.mode))await ui.submit();
  if(input.mode==='submit-twice')await ui.submit();
  if(input.mode==='act'){for(const kind of input.approve||[]){const e=nodes.get('goal-approve-'+kind);if(e)e.checked=true;}await ui.act();}
  if(input.mode==='continue')await ui.continueGoal();
+ if(input.mode==='continue-twice'){await ui.continueGoal();await ui.continueGoal();}
+ if(input.mode==='continue-refresh-continue'){await ui.continueGoal();await ui.hydrate();await ui.continueGoal();}
  if(input.mode==='examples'){ui.examples();for(const button of nodes.get('goal-examples').children){button.onclick();} }
- const result={calls,delays,notice:context.noticeText,disabled:nodes.get('goal-submit').disabled,continueDisabled:nodes.get('goal-continue').disabled,input:nodes.get('goal-input').value};
+ const result={calls,delays,notice:context.noticeText,disabled:nodes.get('goal-submit').disabled,continueDisabled:nodes.get('goal-continue').disabled,continueLabel:nodes.get('goal-continue').textContent,input:nodes.get('goal-input').value};
  for(const id of ['goal-state','goal-plan','goal-timeline','goal-evidence','goal-receipts','goal-progress','goal-approvals','goal-examples'])result[id]={text:nodes.get(id).textContent,tree:tree(nodes.get(id))};
  console.log(JSON.stringify(result));
 })().catch(e=>{console.error(e.stack);process.exitCode=1;});
@@ -61,6 +63,17 @@ def test_anonymous_hydrates_actual_goal_using_only_get(goal):
     assert result['disabled'] is True
     assert goal['goal'] in result['goal-state']['text']
     assert 'No external action receipts' in result['goal-receipts']['text']
+
+
+@pytest.mark.parametrize('authenticated', [False, True])
+def test_empty_latest_goal_is_clean_read_only_state(authenticated):
+    result = js(mode='hydrate', authenticated=authenticated, records=[None])
+    assert result['calls'] == [{'path': '/api/public/goals/latest'}]
+    assert result['goal-state']['tree']['children'] == []
+    assert result['goal-plan']['tree']['children'] == []
+    assert 'No goals yet. Submit an engineering goal' in result['goal-progress']['text']
+    assert 'identity' not in result['goal-progress']['text']
+    assert result['disabled'] is not authenticated
 
 
 def test_missing_provider_has_null_proposal_and_no_synthetic_result(goal):
@@ -130,6 +143,37 @@ def test_budget_limited_investigation_can_continue_before_proposal(goal):
     result = js(mode='continue', records=[goal, goal])
     assert result['calls'][1] == {'path': '/api/public/goals/goal-real-shape/continue', 'body': {'expected_plan_hash': ''}}
     assert 'No AI proposal is stored' in result['goal-plan']['text']
+
+
+@pytest.mark.parametrize('has_proposal', [False, True])
+def test_blocked_goal_explicit_resume_uses_bound_hash_without_granting_actions(goal, has_proposal):
+    goal.update(status='blocked', blocked_reason='Provider rate limit')
+    if not has_proposal:
+        goal['proposal'] = None
+    loaded = js(mode='hydrate', records=[goal])
+    assert loaded['calls'] == [{'path': '/api/public/goals/latest'}]
+    assert loaded['continueLabel'] == 'Resume investigation'
+    assert loaded['continueDisabled'] is False
+    result = js(mode='continue', records=[goal, goal])
+    assert result['calls'][1] == {'path': '/api/public/goals/goal-real-shape/continue', 'body': {'expected_plan_hash': 'sealed-source-plan-hash' if has_proposal else ''}}
+
+
+def test_anonymous_blocked_goal_cannot_resume(goal):
+    goal.update(status='blocked', proposal=None)
+    result = js(mode='continue', authenticated=False, records=[goal])
+    assert result['calls'] == [{'path': '/api/public/goals/latest'}]
+    assert result['continueDisabled'] is True
+
+
+def test_unknown_resume_post_stays_latched_until_successful_get(goal):
+    goal['status'] = 'blocked'
+    uncertain = js(mode='continue-twice', records=[goal], failAt=1)
+    assert len(uncertain['calls']) == 2
+    assert uncertain['continueDisabled'] is True
+    assert 'No POST was repeated' in uncertain['goal-progress']['text']
+    recovered = js(mode='continue-refresh-continue', records=[goal], failAt=1)
+    assert [call['path'] for call in recovered['calls']] == ['/api/public/goals/latest', '/api/public/goals/goal-real-shape/continue', '/api/public/goals/goal-real-shape', '/api/public/goals/goal-real-shape/continue']
+    assert all(call.get('body') == {'expected_plan_hash': goal['proposal']['hash']} for call in recovered['calls'] if 'body' in call)
 
 
 def test_verification_approval_names_actual_publication_destinations(goal):

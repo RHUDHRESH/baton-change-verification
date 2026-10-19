@@ -172,7 +172,11 @@ SYSTEM = ("You are a goal-driven company graph investigator and planner. The use
           "evidence_ids are gev observation IDs; source_ids are exact raw captured-source IDs, never interchangeable. "
           "Both publish_task and verify_release require citing at least one kind=source evidence produced by an actual "
           "read_company_source call. Search/entity observations alone cannot authorize either effect. Discover source IDs "
-          "from real tool results; do not guess them. Choose the inspection order yourself. If internal ownership is unknown, "
+          "from real tool results; do not guess them. Search is literal substring matching, not semantic or keyword-AND search: "
+          "a long multi-word query may match nothing. Inspect the actual query arguments and result. After an empty search, "
+          "choose a concise broader query or another useful offered investigation yourself; never repeat the same exhausted "
+          "query, including by changing only its limit or letter case. Empty results are not evidence that the goal is impossible. "
+          "Choose the inspection order yourself. If internal ownership is unknown, "
           "decline that claim or ask a question rather than assigning a public contributor. "
           "Graph reads and publish_task/verify_release are valid plan tools. Effects require explicit approval; "
           "proposing does not execute. publish_task creates work; verify_release measures existing code. Neither fixes or merges code. "
@@ -183,8 +187,28 @@ SYSTEM = ("You are a goal-driven company graph investigator and planner. The use
           "For an existing plan, inspect changes or choose an eligible step using select_plan_step; do not invent success.")
 
 
+def _empty_searches(record):
+    """Only observed empty literal searches; no query or next tool is invented."""
+    exhausted = {}
+    for event in record["events"]:
+        if event["type"] == "replan_required":
+            exhausted = {}
+        if event["type"] != "tool_result" or event.get("tool_name") != "search_company_graph" or event.get("status") != "succeeded":
+            continue
+        args = event.get("args", {})
+        observation = event.get("result", {}).get("observation", {})
+        if isinstance(args.get("query"), str) and observation.get("entities") == []:
+            key = args["query"].lower()
+            previous = exhausted.get(key, {})
+            exhausted[key] = {"tool_name": "search_company_graph", "args": copy.deepcopy(args),
+                              "observation_seq": event["seq"], "actual_empty_executions": previous.get("actual_empty_executions", 0) + 1,
+                              "outcome": "empty_literal_search", "guidance": "Choose a different query or investigation; host does not choose the next query."}
+    return exhausted
+
+
 def _messages(record, ready, replan):
-    observations = [{"tool": e.get("tool_name"), "result": e.get("result"), "step_id": e.get("step_id")}
+    observations = [{"tool": e.get("tool_name"), "args": e.get("args"), "status": e.get("status"),
+                     "result": e.get("result"), "step_id": e.get("step_id")}
                     for e in record["events"] if e["type"] == "tool_result"][-3:]
     def compact(value, limit):
         text, _ = transport.bounded_excerpt(value, limit=limit)
@@ -194,6 +218,9 @@ def _messages(record, ready, replan):
     payload = {"goal": record["goal"], "proposal": compact(record.get("proposal"), 2800), "ready_steps": ready,
                "replan_required": replan, "approved_actions": record["approved_actions"],
                "observations": compact(observations, 2600), "evidence_ids": [e["id"] for e in record["evidence"]],
+               "observation_feedback": list(_empty_searches(record).values())[-6:],
+               "selection_feedback": [{key: e.get(key) for key in ("tool_name", "args", "error", "receipt_id", "tool_call_id")}
+                                      for e in record["events"] if e["type"] == "tool_rejected"][-2:],
                "inspected_sources": [{"evidence_id": e["id"], "source_id": e.get("source_id")} for e in record["evidence"] if e.get("kind") == "source"],
                "action_results": compact(actions, 1600), "action_ids": [action.get("id") for action in record["actions"] if action.get("id")],
                "success_criteria": (record.get("proposal") or {}).get("success_criteria", []),
@@ -297,6 +324,12 @@ def _loop(data, port, record, deadline, acting=False, executor=None, replan=Fals
             _event(record, "goal_reflection", tool_call_id=call_id, receipt_id=receipt["id"], result={"summary": args["summary"], "criteria_assessment": assessed, "basis": "Model criterion assessment; artifact membership and step completion independently checked, semantic entailment not certified"})
             return _save(data, port, record)
         if name != "select_plan_step":
+            if name == "search_company_graph" and args["query"].lower() in _empty_searches(record):
+                prior = _empty_searches(record)[args["query"].lower()]
+                _event(record, "tool_rejected", tool_call_id=call_id, receipt_id=receipt["id"], tool_name=name,
+                       args=args, error="Repeated empty literal search was not executed; select a different query or investigation", previous_observation_seq=prior["observation_seq"])
+                _save(data, port, record)
+                continue
             _observe(data, port, record, name, args, call_id, receipt["id"])
             continue
         # Selection is model-authored; readiness, source freshness and authority are host-verified.

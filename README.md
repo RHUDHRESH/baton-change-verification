@@ -2,6 +2,11 @@
 
 ## Give the agent a goal
 
+An engineer can see a merged pull request, a failed check and an old discussion,
+yet still not know what to do next. The evidence is split across code, reviews,
+test runs and work trackers. Baton exists to turn that scattered context into a
+specific, reviewable next action, with the evidence and result kept together.
+
 Baton turns a company goal into source-backed work: investigate the connected
 evidence, propose a plan, choose the next action, and retain the actual result.
 The current workspace uses public FalkorDB engineering records; the connected
@@ -15,6 +20,13 @@ stale graph evidence blocks action. The existing immutable verification runner
 is one available capability. No arbitrary repository execution, source repair,
 internal ownership inference or ten independently validated AI features is claimed.
 
+The AI supplies the goal interpretation, evidence-seeking choices, proposed work
+graph and outcome assessment. FalkorDB supplies the connected facts, persistent
+episodes, plan dependencies and evidence bindings used to decide which actions
+are eligible. Neither is an optional answer decoration. Deterministic checks
+remain responsible for permissions and proof; model confidence never establishes
+that an external action or a code check succeeded.
+
 **Validation status:** local goal-agent and interface checks pass; fresh deployed
 goal diversity and action proofs are still pending. The earlier completed c93
 verification run is separate evidence of the bounded runner, not proof of the
@@ -23,7 +35,7 @@ new planner. [Interface and proof requirements](docs/GOAL_AGENT_CONTRACT.md) ·
 
 ## Graph-driven change verification
 
-The main experience investigates [FalkorDB-py PR #212](https://github.com/FalkorDB/falkordb-py/pull/212): why must a synchronous serializer change also be checked through the async client? Source-proven calls and inheritance in FalkorDB determine the required sync/async regressions. Groq inspects typed graph tools; deterministic policy seals the executable plan.
+The bounded verification capability investigates [FalkorDB-py PR #212](https://github.com/FalkorDB/falkordb-py/pull/212): why must a synchronous serializer change also be checked through the async client? Source-proven calls and inheritance in FalkorDB determine the required sync/async regressions. Groq inspects typed graph tools; deterministic policy seals the executable plan.
 
 An authenticated operator's **Investigate and verify** action starts an isolated GitHub Actions matrix against Python Redis client versions 8.0.0 and 8.1.0, preserves unchanged upstream source, and independently verifies the resulting artifacts. Both environments are required. Verified failing checks produce a blocked decision and an open evidence-backed remediation task in the operator's Jira project, plus a Slack report. Publication verification is separate from passing code checks.
 

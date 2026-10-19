@@ -18,7 +18,7 @@
   let record, busy = false, reading = false, uncertain = false, generation = 0, key, keyGoal, pendingCreation = false;
   const list = value => Array.isArray(value) ? value : [];
   const authenticatedNow = () => typeof authenticated !== 'undefined' && authenticated;
-  const canContinue = () => record?.status === 'needs_continuation' || (record?.status === 'proposed' && Boolean(record?.proposal?.hash));
+  const canContinue = () => ['needs_continuation', 'blocked'].includes(record?.status) || (record?.status === 'proposed' && Boolean(record?.proposal?.hash));
   const text = value => typeof value === 'string' ? value : JSON.stringify(value, null, 2);
   const progress = value => { if ($('goal-progress')) $('goal-progress').textContent = value; };
   function safeLink(value) {
@@ -53,6 +53,7 @@
     $('goal-submit').disabled = !authenticatedNow() || locked;
     $('goal-refresh').disabled = busy || reading;
     $('goal-continue').disabled = !authenticatedNow() || locked || !canContinue();
+    $('goal-continue').textContent = record?.status === 'blocked' ? 'Resume investigation' : 'Continue investigation';
     const selected = Object.keys(EFFECTS).filter(kind => $('goal-approve-' + kind)?.checked);
     $('goal-act').disabled = !authenticatedNow() || locked || !record?.proposal?.hash || !['proposed', 'needs_continuation'].includes(record?.status) || !selected.length;
     $('goal-auth-note').textContent = authenticatedNow() ? 'Submitting investigates and proposes. External actions require your separate approval below.' : 'Sign in to submit a goal or approve actions. Stored evidence is public.';
@@ -132,8 +133,14 @@
     const token = ++generation; reading = true; controls(); progress('Reading the latest stored goal…');
     try {
       const expected = pendingCreation ? undefined : record?.id;
-      const value = assertRecord(await api(expected ? ROOT + '/' + encodeURIComponent(expected) : ROOT + '/latest'), expected);
+      const response = await api(expected ? ROOT + '/' + encodeURIComponent(expected) : ROOT + '/latest');
       if (token !== generation) return;
+      if (response === null && !expected) {
+        record = undefined; uncertain = false; pendingCreation = false; render();
+        progress('No goals yet. Submit an engineering goal to start an investigation. Sign in to take action.');
+        return;
+      }
+      const value = assertRecord(response, expected);
       record = value; uncertain = false; pendingCreation = false; render(); progress('Stored state loaded. Reading does not run the agent or approve actions.');
       await poll(record.id, token);
     } catch (error) { progress('Stored goal unavailable: ' + error.message + '. No agent request was submitted.'); }
