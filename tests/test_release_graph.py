@@ -125,6 +125,19 @@ def test_unrelated_graph_changes_do_not_invalidate_plan(live):
     assert R.revalidate(live.data, live.port, live.plan)
 
 
+def test_unrelated_edges_do_not_change_scoped_release_binding(live):
+    fingerprint, plan_hash = live.plan["binding_fingerprint"], live.plan["plan_hash"]
+    live.graph.query("CREATE (a:Unrelated {id:'outside-a'})-[:UNRELATED]->(b:Unrelated {id:'outside-b'})")
+    live.graph.query("MATCH (c:ReleaseEvidence {id:$change}),(a:Unrelated {id:'outside-a'}) CREATE (c)-[:UNRELATED]->(a)",
+                     {"change": R._id("change")})
+    assert live.graph.ro_query("MATCH ()-[r:UNRELATED]->() RETURN count(r)").result_set == [[2]]
+    assert R._fingerprint(live.graph) == fingerprint
+    assert R.revalidate(live.data, live.port, live.plan)
+    checks, witnesses = R._traverse(live.graph)
+    assert checks == live.plan["required_checks"] and witnesses == live.plan["witness_paths"]
+    assert C.plan_hash(live.plan) == plan_hash
+
+
 @pytest.mark.parametrize("relation", ["INHERITS", "RECURSES", "CALLS", "BOUND_TO", "REQUIRES_ENVIRONMENT"])
 def test_relevant_graph_binding_removal_invalidates_plan(live, relation):
     assert relation in {"INHERITS", "RECURSES", "CALLS", "BOUND_TO", "REQUIRES_ENVIRONMENT"}
@@ -292,6 +305,15 @@ def test_actual_tool_loop_uses_adaptive_provider_selections(live, monkeypatch, o
                                      "production-source": "source" in expected_seen}
         assert state["missing"] == [name for name, seen in state["observed"].items() if not seen]
         assert state["offered_tools"] == [tool["function"]["name"] for tool in tools]
+        source_tool = next(tool["function"] for tool in tools if tool["function"]["name"] == "release_read_source")
+        offered_source_ids = source_tool["parameters"]["properties"]["source_id"]["enum"]
+        production = [s for s in live.plan["source_versions"] if s.get("path", "").startswith("falkordb/")]
+        if "source" not in expected_seen:
+            assert offered_source_ids == [s["id"] for s in production]
+            assert state["required_production_sources"] == [{"id": s["id"], "path": s["path"]} for s in production]
+        else:
+            assert offered_source_ids == [s["id"] for s in live.plan["source_versions"]]
+            assert "required_production_sources" not in state
         assert ("release_explain" in runtime) == (len(calls) == 3)
         assert ("no ordinary prose" in runtime) == (len(calls) < 3)
         name, args = selections[len(calls)]
@@ -496,6 +518,38 @@ def test_runtime_state_is_included_in_provider_input_budget(live, monkeypatch):
         provider.assert_not_called()
     assert result["status"] == "failed" and "token budget" in result["error"]
     assert result["provider_calls"] == 0 and not result["receipts"]
+
+
+def test_documentation_observation_never_satisfies_production_source_gate(live):
+    production_ids = {s["id"] for s in live.plan["source_versions"] if s.get("path", "").startswith("falkordb/")}
+    docs = next(s for s in live.plan["source_versions"] if s.get("path") == "docs/source/falkordb.asyncio.rst")
+    runtime = R._investigation_state({"release_read_change", "release_follow_impact", "release_read_source"},
+                                    {docs["id"]}, production_ids, R.TOOLS, live.plan["source_versions"])
+    state = json.JSONDecoder().raw_decode(runtime.split(": ", 1)[1])[0]
+    assert state["observed"] == {"change": True, "impact": True, "production-source": False}
+    assert state["missing"] == ["production-source"]
+    assert {s["id"] for s in state["required_production_sources"]} == production_ids
+    assert "release_explain" not in state["offered_tools"] and "no ordinary prose" in runtime
+
+
+def test_agent_cannot_select_documentation_outside_initial_production_enum(live, monkeypatch):
+    from contextlib import nullcontext
+    from server import graph_agent, control
+    monkeypatch.setenv("GROQ_API_KEY", "provider-test-only")
+    monkeypatch.setattr(control, "connect", lambda port: SimpleNamespace(set=lambda *a, **k: True, lock=lambda *a, **k: nullcontext()))
+    docs = next(s for s in live.plan["source_versions"] if s.get("path") == "docs/source/falkordb.asyncio.rst")
+    def provider(messages, tools, timeout, tool_choice, allow_final):
+        source = next(t["function"] for t in tools if t["function"]["name"] == "release_read_source")
+        assert docs["id"] not in source["parameters"]["properties"]["source_id"]["enum"]
+        assert tool_choice == "required" and allow_final is False
+        return {"tool_calls": [{"id": "1", "function": {"name": "release_read_source", "arguments": C.encode({"source_id": docs["id"]})}}]}, {
+            "id": "provider-test", "model": "test", "finish_reason": "tool_calls", "usage": {"total_tokens": 100}}
+    monkeypatch.setattr(graph_agent, "completion", provider)
+    with patch.object(R, "call_tool") as tool:
+        result = R._investigate(live.data, live.port, live.plan)
+        tool.assert_not_called()
+    assert result["status"] == "failed" and "offered production source" in result["error"]
+    assert result["provider_calls"] == 1 and result["trace"][0]["result"]["isError"] is True
 
 
 @pytest.mark.parametrize("extra_inspection", [False, True])

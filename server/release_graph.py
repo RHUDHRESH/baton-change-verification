@@ -530,7 +530,7 @@ def call_tool(data, port, name, arguments, plan=None, deadline=None):
     return {"content": [{"type": "text", "text": C.encode(result)}], "isError": False}
 
 
-def _investigation_state(seen, inspected, code_sources, choices):
+def _investigation_state(seen, inspected, code_sources, choices, source_versions=()):
     """Trusted observations only; source text cannot declare an inspection done."""
     observations = {"change": "release_read_change" in seen,
                     "impact": "release_follow_impact" in seen,
@@ -538,6 +538,9 @@ def _investigation_state(seen, inspected, code_sources, choices):
     state = {"observed": observations,
              "missing": [name for name, observed in observations.items() if not observed],
              "offered_tools": [tool["name"] for tool in choices]}
+    if not observations["production-source"]:
+        state["required_production_sources"] = [{"id": source["id"], "path": source["path"]}
+                                                 for source in source_versions if source["id"] in code_sources]
     if not state["missing"]:
         state["observed_source_ids"] = sorted(inspected)
         return ("Trusted runtime state for this turn: " + C.encode(state) +
@@ -579,14 +582,16 @@ def _investigate(data, port, plan, deadline=None):
             ready = {"release_read_change", "release_follow_impact"}.issubset(seen) and bool(inspected.intersection(code_sources))
             if ready:
                 choices.append(copy.deepcopy(finish))
+            eligible_source_ids = [source["id"] for source in plan["source_versions"]
+                                   if inspected.intersection(code_sources) or source["id"] in code_sources]
             for tool in choices:
                 props = tool["inputSchema"]["properties"]
                 if "change_id" in props:
                     props["change_id"]["enum"] = [C.CHANGE_ID]
                 if "source_id" in props:
-                    props["source_id"]["enum"] = [s["id"] for s in plan["source_versions"]]
+                    props["source_id"]["enum"] = eligible_source_ids
             api_tools = [{"type": "function", "function": {"name": t["name"], "description": t["description"], "parameters": t["inputSchema"]}} for t in choices]
-            request_messages = [messages[0], {"role": "system", "content": _investigation_state(seen, inspected, code_sources, choices)}, *messages[1:]]
+            request_messages = [messages[0], {"role": "system", "content": _investigation_state(seen, inspected, code_sources, choices, plan["source_versions"])}, *messages[1:]]
             estimate = (len(C.encode(request_messages)) + len(C.encode(api_tools))) // 3 + agent.MAX_COMPLETION_TOKENS
             if tokens + estimate > MAX_INVESTIGATION_TOKENS:
                 raise RuntimeError("Release investigation token budget reached before another provider call")
@@ -627,6 +632,8 @@ def _investigate(data, port, plan, deadline=None):
                 raise ValueError("Release agent selected an invalid or premature tool")
             args = json.loads(function["arguments"])
             pending_request["params"]["arguments"] = args
+            if name == "release_read_source" and (not isinstance(args, dict) or args.get("source_id") not in eligible_source_ids):
+                raise ValueError("Release source selection must use an offered production source until one has been inspected")
             _remaining(deadline)
             if name == "release_explain":
                 if not isinstance(args, dict) or set(args) != {"summary", "source_ids"} or not isinstance(args["summary"], str) or not 20 <= len(args["summary"]) <= 1800 or not isinstance(args["source_ids"], list) or not args["source_ids"] or not set(args["source_ids"]).issubset(inspected):

@@ -10,6 +10,8 @@ This is verification of an existing merged change, with no source repair or upst
 
 [Source publication boundary](docs/SOURCE_PUBLICATION.md) · [Third-party notices](docs/THIRD_PARTY_NOTICES.md). The public source mirror preserves genuine source history; private runner logs and credentials are not published with it.
 
+## Separate historical Rust workflow
+
 **Turn a public company issue into work you can verify.**
 
 [Open the cloud workflow workbench](https://baton-workspace.vercel.app/#workflow-runner). An authenticated operator can start the approved FalkorDB issue profile: Groq investigates graph evidence, GitHub Actions runs real code checks in a fresh isolated Docker container, Groq may propose a bounded production edit after an observed failure, and the app independently verifies the outcome before updating existing Jira/Slack work. The Vercel frontend uses AWS Lambda in Mumbai, FalkorDB Cloud Free and Groq; GitHub Actions supplies the code execution.
@@ -92,19 +94,19 @@ Start the application first. This generates 360 lane records. The graph lane mat
 
 ```mermaid
 flowchart LR
-  Source[Public GitHub source records] --> Graph[(FalkorDB)]
-  Graph --> Agent[Groq graph investigation]
-  Agent --> Task[Source-backed verification task]
-  Task --> Runner[GitHub Actions: fresh Docker checks]
-  Runner -->|Observed failure, bounded attempts| Repair[Groq production edit]
-  Repair --> Runner
-  Runner --> Gate[Independent job, artifact and source verification]
-  Gate --> Receipt[Graph execution receipt and checks]
-  Receipt --> Tools[Jira and Slack outcome read-backs]
-  Tools --> UI[Public workbench evidence]
+  Source[Pinned public issue, review, code and tests] --> Graph[(FalkorDB source facts)]
+  Graph --> Agent[Groq selects MCP investigation tools]
+  Graph --> Plan[Deterministic graph obligations and sealed plan]
+  Agent -->|Inspected evidence required| Plan
+  Plan --> Runner[GitHub Actions: both required client versions]
+  Runner --> Gate[Independent source, environment, JUnit and log verification]
+  Gate --> Receipt[Graph evidence and blocked or verified decision]
+  Receipt --> Intent[Durable publication intents]
+  Intent --> Tools[New Jira task and Slack report with separate readbacks]
+  Tools --> UI[Main URL: evidence and publication receipts]
 ```
 
-Lambda coordinates this approved profile; it does not execute the Rust build. Failed checks, unknown provider outcomes and partial publication remain visible. A successful patch stays in the runner and is not merged upstream. [Current workflow architecture](docs/AUTONOMOUS_WORKFLOW.md).
+Lambda coordinates the Python verification profile; isolated GitHub Actions containers execute its unchanged upstream tests. Failed checks, unknown provider outcomes and partial publication remain visible. This profile never repairs source. [Change-verification architecture](docs/CHANGE_VERIFICATION.md). The separate [historical Rust workflow](docs/AUTONOMOUS_WORKFLOW.md) supports bounded runner-only edits and does not merge upstream.
 
 The separate legacy departure fixtures retain time-valid OWNER, ROUTES_TO, SHIFT, ESCALATES_TO and gated HOLDS paths, graph-copy previews, capacity cuts and explicit operations-repository writes. Their fixed queries and graph algorithms are distinct from the current public-issue execution flow; the model never receives a raw-Cypher tool.
 
