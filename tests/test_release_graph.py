@@ -278,7 +278,8 @@ def test_actual_tool_loop_uses_adaptive_provider_selections(live, monkeypatch):
                   ("release_read_change", {"change_id": C.CHANGE_ID}),
                   ("release_explain", {"summary": "Both public surfaces invoke the inherited header and recursive map serializer; empty and backtick keys are rejected.", "source_ids": [source_id]})]
     calls = []
-    def provider(messages, tools, timeout):
+    def provider(messages, tools, timeout, tool_choice):
+        assert tool_choice == "required"
         name, args = selections[len(calls)]
         calls.append((name, tools))
         return {"content": None, "tool_calls": [{"id": str(len(calls)), "function": {"name": name, "arguments": json.dumps(args)}}]}, {
@@ -413,7 +414,8 @@ def test_provider_timeout_uses_remaining_budget_and_late_tool_is_rejected(live, 
     monkeypatch.setenv("GROQ_API_KEY", "provider-test-only")
     monkeypatch.setattr(control, "connect", lambda port: SimpleNamespace(set=lambda *a, **k: True, lock=lambda *a, **k: nullcontext()))
     timeouts = []
-    def late_provider(messages, tools, timeout):
+    def late_provider(messages, tools, timeout, tool_choice):
+        assert tool_choice == "required"
         timeouts.append(timeout)
         clock[0] += 5
         return {"tool_calls": [{"id": "1", "function": {"name": "release_read_change", "arguments": C.encode({"change_id": C.CHANGE_ID})}}]}, {"id": "test", "model": "test", "usage": {"total_tokens": 100}}

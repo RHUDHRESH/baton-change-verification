@@ -328,12 +328,14 @@ class Investigation:
         return {"content":[{"type":"text","text":json.dumps(result,ensure_ascii=False)}],"isError":False}
 
 
-def completion(messages,tools,timeout=22):
+def completion(messages,tools,timeout=22,tool_choice="auto"):
+    if tool_choice not in {"auto","required"}:
+        raise ValueError("Unsupported graph tool selection policy")
     key=os.environ.get("GROQ_API_KEY","")
     if not key:
         raise RuntimeError("Groq is not configured")
     body={"model":os.environ.get("GROQ_MODEL",DEFAULT_MODEL),"messages":messages,"tools":tools,
-          "tool_choice":"auto","parallel_tool_calls":False,"temperature":0,"reasoning_effort":"low","max_completion_tokens":MAX_COMPLETION_TOKENS}
+          "tool_choice":tool_choice,"parallel_tool_calls":False,"temperature":0,"reasoning_effort":"low","max_completion_tokens":MAX_COMPLETION_TOKENS}
     request=urllib.request.Request(ENDPOINT,data=json.dumps(body).encode(),headers={"Authorization":"Bearer "+key,"Content-Type":"application/json","User-Agent":"Baton-Agent/0.3"})
     try:
         with urllib.request.urlopen(request,timeout=timeout) as response:
@@ -348,8 +350,11 @@ def completion(messages,tools,timeout=22):
     usage=result.get("usage",{})
     if not result.get("id") or any(type(usage.get(k)) is not int or usage[k]<0 for k in ("prompt_tokens","completion_tokens","total_tokens")) or not usage["completion_tokens"] or usage["total_tokens"]<usage["prompt_tokens"]+usage["completion_tokens"]:
         raise ValueError("Missing provider generation receipt")
-    receipt={"id":result["id"],"model":result["model"],"usage":result["usage"],"response_sha256":public.sha(raw)}
-    if len(result.get("choices",[]))!=1 or result["choices"][0].get("finish_reason")!="tool_calls":
+    choices=result.get("choices")
+    finish=choices[0].get("finish_reason") if isinstance(choices,list) and len(choices)==1 and isinstance(choices[0],dict) else None
+    receipt={"id":result["id"],"model":result["model"],"usage":result["usage"],"response_sha256":public.sha(raw),
+             "finish_reason":finish if finish in ("tool_calls","stop","length","content_filter","function_call") else "unknown"}
+    if finish!="tool_calls":
         raise ProviderProtocolError("Provider did not finish a complete tool selection",receipt)
     message=result["choices"][0]["message"]
     return message,receipt

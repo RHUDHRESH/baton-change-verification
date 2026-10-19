@@ -575,7 +575,7 @@ def _investigate(data, port, plan, deadline=None):
                     raise RuntimeError("Workspace daily free-quota guard reached")
                 _workspace_write(data, port, quota, {"used": used + 1}, deadline=deadline)
             record["provider_calls"] += 1
-            message, receipt = agent.completion(messages, api_tools, timeout=min(20, _remaining(deadline)))
+            message, receipt = agent.completion(messages, api_tools, timeout=min(20, _remaining(deadline)), tool_choice="required")
             record["receipts"].append(receipt)
             record["model"] = receipt["model"]
             tokens += receipt["usage"]["total_tokens"]

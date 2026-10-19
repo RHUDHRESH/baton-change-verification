@@ -8,6 +8,46 @@ import pytest
 from server import graph_agent as agent
 
 
+@pytest.mark.parametrize("selection", ["auto", "required"])
+def test_transport_tool_choice_is_explicit_and_legacy_default_stays_auto(selection):
+    payload = {"id": "provider-test", "model": "test-model", "usage": {"prompt_tokens": 20, "completion_tokens": 5, "total_tokens": 25},
+               "choices": [{"finish_reason": "tool_calls", "message": {"tool_calls": [{"id": "call-test", "function": {"name": "read_work_item", "arguments": "{}"}}]}}]}
+    response = MagicMock()
+    response.__enter__.return_value.read.return_value = json.dumps(payload).encode()
+    with patch.dict("os.environ", {"GROQ_API_KEY": "provider-test-only"}), patch.object(agent.urllib.request, "urlopen", return_value=response) as request:
+        if selection == "auto":
+            _, receipt = agent.completion([], [])
+        else:
+            _, receipt = agent.completion([], [], tool_choice=selection)
+    body = json.loads(request.call_args.args[0].data)
+    assert body["tool_choice"] == selection
+    assert body["parallel_tool_calls"] is False
+    assert "disable_tool_validation" not in body
+    assert receipt["finish_reason"] == "tool_calls"
+
+
+@pytest.mark.parametrize("reason,recorded", [("stop", "stop"), ("length", "length"), ("content_filter", "content_filter"),
+                                            ("untrusted provider body value", "unknown"), (None, "unknown")])
+def test_incomplete_tool_selection_records_only_sanitized_finish_reason(reason, recorded):
+    payload = {"id": "provider-test", "model": "test-model", "usage": {"prompt_tokens": 20, "completion_tokens": 5, "total_tokens": 25},
+               "choices": [{"finish_reason": reason, "message": {"content": "Unaccepted provider content"}}]}
+    response = MagicMock()
+    response.__enter__.return_value.read.return_value = json.dumps(payload).encode()
+    with patch.dict("os.environ", {"GROQ_API_KEY": "provider-test-only"}), patch.object(agent.urllib.request, "urlopen", return_value=response):
+        with pytest.raises(agent.ProviderProtocolError, match="complete tool selection") as error:
+            agent.completion([], [], tool_choice="required")
+    assert error.value.receipt["finish_reason"] == recorded
+    assert "Unaccepted provider content" not in json.dumps(error.value.receipt)
+    assert "untrusted provider body value" not in json.dumps(error.value.receipt)
+
+
+def test_transport_rejects_unknown_tool_choice_before_provider_request():
+    with patch.object(agent.urllib.request, "urlopen") as request:
+        with pytest.raises(ValueError, match="selection policy"):
+            agent.completion([], [], tool_choice="disabled")
+        request.assert_not_called()
+
+
 @pytest.fixture
 def investigation(tmp_path):
     graph=MagicMock(name="graph")
