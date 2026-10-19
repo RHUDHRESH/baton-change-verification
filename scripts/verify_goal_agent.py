@@ -372,7 +372,7 @@ def _verify_record(record, catalog):
     require(current and observations and record.get("proposal") == plans[current], "Current public proposal differs from the model-authored DAG")
     require(record.get("revision") == revision_count and record.get("actions") == reconstructed_actions, "Public revision/actions differ from actual execution episodes")
     require(all(r["finish_reason"] not in {"stop", "tool_calls"} or id in response_events for id, r in generations.items()), "Successful generation has no matching response event")
-    require(all(r.get("transport")!="json_decision" or id in json_decisions and id in called_receipts for id,r in generations.items()),"JSON generation lacks its actual decision or validated invocation")
+    require(all(r.get("transport")!="json_decision" or r["finish_reason"]!="stop" or id in json_decisions and id in called_receipts for id,r in generations.items()),"JSON generation lacks its actual decision or validated invocation")
     require(record.get("model") == list(generations.values())[-1]["model"], "Public model differs from its latest actual generation")
     require(record.get("evidence") == list(active_evidence.values()), "Public evidence differs from actual inspected evidence episodes")
     sealed = record.get("plan_evidence", record["evidence"])

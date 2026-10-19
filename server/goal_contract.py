@@ -17,7 +17,7 @@ EFFECTS = [
          "description": {"type": "string", "minLength": 30, "maxLength": 3500},
          "source_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 8}},
          "required": ["title", "description", "source_ids"], "additionalProperties": False}},
-    {"name": "verify_release", "description": "Request the approved immutable FalkorDB-py #212 verification capability. Both declared redis-py environments are required; source repair is disabled. Existing verified evidence may be reused explicitly, never presented as a fresh run.",
+    {"name": "verify_release", "description": "After approval and an actual pinned-source inspection, request a fresh bounded verification of immutable FalkorDB-py #212 in both declared redis-py client environments, including an evidence-backed Jira Task and Slack report of the outcome. Repeating the same goal-plan-step request returns only its already-started run; continuation reconciles that run without dispatching or publishing. Verified evidence and delivery may report a failing matrix. No source repair or task Done transition.",
      "inputSchema": {"type": "object", "properties": {"change_id": {"type": "string", "enum": ["FalkorDB/falkordb-py#212"]}},
                      "required": ["change_id"], "additionalProperties": False}},
 ]

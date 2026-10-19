@@ -144,6 +144,17 @@ def test_public_proof_validates_truthful_json_selection_and_mixed_native_history
     assert result['current_criteria_reflection']==terminal
 
 
+def test_historical_incomplete_json_generation_retains_real_usage_without_fake_decision():
+    r=json_fixture()
+    incomplete={'id':'actual-incomplete-response','model':'openai/gpt-oss-120b','transport':'json_decision','finish_reason':'length',
+                'request_sha256':C.sha('actual-incomplete-request'),'response_sha256':C.sha('actual-truncated-response'),
+                'usage':{'prompt_tokens':5199,'completion_tokens':1100,'total_tokens':6299}}
+    r['provider_receipts'].insert(0,incomplete);r['provider_calls']+=1;r['total_tokens']+=6299
+    result=P.verify_record(r,P.catalog_from_source()[0])
+    assert result['provider_generations']==3 and result['json_decisions']==2 and result['measured_tokens']==6599
+    assert not any(e.get('receipt_id')==incomplete['id'] for e in r['events'])
+
+
 @pytest.mark.parametrize('fault',['content','catalog_hash','schema','read_schema','selection_id','invocation_id','native_claim','args','unknown_name','finish','missing_decision'])
 def test_public_json_proof_rejects_substituted_decision_schema_or_forged_native_identity(fault):
     r=json_fixture();decision=next(e for e in r['events'] if e['type']=='assistant_json_decision')

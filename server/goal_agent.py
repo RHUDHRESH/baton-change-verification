@@ -22,7 +22,7 @@ from .goal_contract import EFFECTS as EFFECT_TOOLS, EFFECT_TOOLS as EFFECTS
 MAX_SECONDS = 145
 MAX_CALLS = 4
 MAX_TOKENS = 7500
-MAX_OUTPUT_TOKENS = 1100
+MAX_OUTPUT_TOKENS = 1800
 READ_REJECTIONS = {
     "Source is not in the real captured workspace": "unknown_captured_source",
     "Selected public graph entity is missing or ambiguous": "unknown_graph_entity",

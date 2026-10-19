@@ -256,7 +256,7 @@ def test_token_budget_stops_before_spending_provider_quota(boundary, monkeypatch
 
 def test_insufficient_remaining_effect_deadline_causes_continuation_without_write(boundary, monkeypatch):
     assert 110 < A.MAX_SECONDS < 155
-    assert (A.MAX_CALLS, A.MAX_TOKENS, A.MAX_OUTPUT_TOKENS) == (4, 7500, 1100)
+    assert (A.MAX_CALLS, A.MAX_TOKENS, A.MAX_OUTPUT_TOKENS) == (4, 7500, 1800)
     r, _ = plan_goal(monkeypatch, boundary, proposal("publish_task"))
     monkeypatch.setattr(A, "completion", Mock(return_value=call("select_plan_step", {"step_id": "step0"}, 2)))
     monkeypatch.setattr(A, "_remaining", lambda deadline: 109)
@@ -809,3 +809,10 @@ def test_second_compaction_retains_every_original_entity_capability_and_archived
     newest=json.loads(second[1]['content'])['observations'][-1]['result']['observation']
     assert newest['entity_capabilities']==[{'id':'actual-'+str(i),'captured_source_ids':['source-'+str(i)]} for i in range(8)]
     assert newest['entities']==[] and newest['truncated'] is True and original==A._messages(r,[],False)
+
+
+def test_request_estimate_reserves_larger_output_with_unchanged_total_cap(boundary,monkeypatch):
+    monkeypatch.setenv('BATON_GOAL_PROTOCOL','json_decision')
+    messages=[{'role':'user','content':'Actual bounded investigation'}]
+    assert A._estimate(messages,[SEARCH])==len(A._encode(A._decision_messages(messages,[SEARCH])))//3+1800
+    assert A.MAX_TOKENS==7500
