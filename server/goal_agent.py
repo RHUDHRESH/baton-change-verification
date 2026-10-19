@@ -106,17 +106,38 @@ def _goal_http_receipt(error, requested_model):
     return receipt
 
 
+def _protocol():
+    value = os.environ.get("BATON_GOAL_PROTOCOL", "native")
+    if value not in {"native", "json_decision"}:
+        raise ValueError("Unknown goal selection protocol")
+    return value
+
+
+def _decision_messages(messages, tools):
+    return copy.deepcopy(messages) + [{"role": "system", "content":
+        "JSON decision protocol: no native function calls are enabled. Return exactly ONE JSON object: "
+        "{\"tool_name\": an exact offered name, \"args\": its schema-valid object}, or a complete proposal object "
+        "with the propose_goal_plan fields. Choose freely from the actual offered MCP catalog below. "
+        "Do not emit commentary/name/arguments wrappers, markdown, multiple decisions or invented tools. "
+        "A successful JSON choice is a model decision; the host separately invokes validated MCP tools. "
+        "Available catalog: " + _encode(tools)}]
+
+
 def completion(messages, tools, timeout):
-    """Actual native Groq request; final JSON remains assistant content."""
+    """Actual Groq response, with an explicitly configured selection transport."""
     key = os.environ.get("GROQ_API_KEY")
     if not key:
         raise RuntimeError("Groq is unavailable; no semantic plan was substituted")
     requested_model = os.environ.get("BATON_GOAL_MODEL") or os.environ.get("GROQ_MODEL") or DEFAULT_MODEL
-    body = {"model": requested_model, "messages": messages,
-            "tools": [{"type": "function", "function": {"name": tool["name"], "description": tool["description"],
-                        "parameters": tool["inputSchema"]}} for tool in tools],
-            "tool_choice": "auto", "parallel_tool_calls": False, "temperature": 0,
+    protocol = _protocol()
+    body = {"model": requested_model, "messages": _decision_messages(messages, tools) if protocol == "json_decision" else messages,
+            "temperature": 0,
             "reasoning_effort": "low", "max_completion_tokens": MAX_OUTPUT_TOKENS}
+    if protocol == "json_decision":
+        body["response_format"] = {"type": "json_object"}
+    else:
+        body.update(tools=[{"type": "function", "function": {"name": tool["name"], "description": tool["description"],
+                        "parameters": tool["inputSchema"]}} for tool in tools], tool_choice="auto", parallel_tool_calls=False)
     request = urllib.request.Request(ENDPOINT, data=_encode(body).encode(), headers={
         "Authorization": "Bearer " + key, "Content-Type": "application/json", "User-Agent": "Baton-Goal-Agent/1"})
     try:
@@ -124,6 +145,7 @@ def completion(messages, tools, timeout):
             raw = response.read(200001)
     except urllib.error.HTTPError as error:
         receipt = _goal_http_receipt(error, requested_model)
+        receipt["transport"] = "json_decision" if protocol == "json_decision" else "native_chat_completions"
         raise transport.ProviderHTTPError("Groq goal selection returned HTTP " + str(error.code), receipt) from None
     except (urllib.error.URLError, TimeoutError):
         raise RuntimeError("Groq goal selection was not confirmed") from None
@@ -141,12 +163,16 @@ def completion(messages, tools, timeout):
     finish = choice.get("finish_reason")
     receipt = {"id": result["id"], "model": result.get("model"), "usage": usage,
                "response_sha256": public.sha(raw), "finish_reason": finish,
-               "requested_model": requested_model, "transport": "native_chat_completions", "request_sha256": public.sha(request.data)}
+               "requested_model": requested_model, "transport": "json_decision" if protocol == "json_decision" else "native_chat_completions", "request_sha256": public.sha(request.data)}
     message = choice.get("message")
     if finish not in {"tool_calls", "stop"} or not isinstance(message, dict) or message.get("role") != "assistant" or message.get("refusal"):
         raise transport.ProviderProtocolError("Provider goal selection was incomplete", receipt)
     if finish == "stop" and (message.get("role") != "assistant" or not isinstance(message.get("content"), str) or message.get("tool_calls")):
         raise transport.ProviderProtocolError("Provider final proposal was invalid", receipt)
+    if protocol == "json_decision" and (finish != "stop" or message.get("tool_calls")):
+        raise transport.ProviderProtocolError("JSON decision response was not an actual assistant stop response", receipt)
+    if protocol == "json_decision":
+        receipt.update(assistant_content_sha256=public.sha(message["content"]), offered_catalog_sha256=public.sha(_encode(tools)))
     return message, receipt
 
 
@@ -436,6 +462,47 @@ def _messages(record, ready, replan):
     return [{"role": "system", "content": SYSTEM}, {"role": "user", "content": _encode(payload)}]
 
 
+def _compact_messages(messages, level):
+    """Reduce display detail only; retain authority and discovery identities."""
+    result = copy.deepcopy(messages)
+    payload = json.loads(result[1]["content"])
+    observations = payload["observations"]
+    for index, row in enumerate(observations):
+        view = row.get("result", {}).get("observation")
+        if not isinstance(view, dict):
+            continue
+        newest = index == len(observations)-1
+        if isinstance(view.get("entities"), list):
+            entities = view["entities"]
+            if "entity_capabilities" not in view:
+                view["entity_capabilities"] = [{key: copy.deepcopy(e[key]) for key in ("id", "captured_source_ids") if key in e} for e in entities]
+            kept = 2 if newest and level == 1 else 0
+            view["entities"] = entities[:kept]
+            details = view.get("details", [])[:1] if newest else []
+            for detail in details:
+                if isinstance(detail.get("inspected_properties_excerpt"), str):
+                    detail["inspected_properties_excerpt"] = transport.head_tail(detail["inspected_properties_excerpt"], 800 if level == 1 else 320)
+                    detail["inspected_properties_truncated"] = True
+            view["details"] = details
+            view["details_shown"] = len(details)
+        if "excerpt" in view:
+            view["excerpt"], _ = _bounded_content(view["excerpt"], (500 if level == 1 else 200) if newest else 80)
+        view["truncated"] = True
+        view["context_compacted"] = True
+    diagnostic = payload.get("prior_provider_error")
+    if isinstance(diagnostic, dict):
+        diagnostic.pop("failed_generation_excerpt", None)
+        diagnostic["diagnostic_excerpt_omitted_for_budget"] = True
+    payload["projection"] += " Context compacted for the unchanged provider budget; candidate/older observation detail and historical diagnostic excerpts omitted. All displayed entity IDs and captured-source capabilities remain in entity_capabilities."
+    payload["context_compaction"] = {"level": level, "truncated": True, "archived_evidence_unchanged": True}
+    result[1]["content"] = _encode(payload)
+    return result
+
+
+def _estimate(messages, choices):
+    return (len(_encode(_decision_messages(messages, choices))) if _protocol() == "json_decision" else len(_encode(messages)) + len(_encode(choices))) // 3 + MAX_OUTPUT_TOKENS
+
+
 def _done(record):
     steps = record.get("proposal", {}).get("steps", [])
     plan_hash = record["proposal"]["hash"]
@@ -467,7 +534,12 @@ def _loop(data, port, record, deadline, acting=False, executor=None, replan=Fals
                                     "status": {"type": "string", "enum": ["supported", "not_met", "unknown"]},
                                     "reason": _string(300), "evidence_ids": _strings(12), "action_ids": _strings(6)})}})})
         messages = _messages(record, ready, replan)
-        estimate = (len(_encode(messages)) + len(_encode(choices))) // 3 + MAX_OUTPUT_TOKENS
+        estimate = _estimate(messages, choices)
+        for level in (1, 2):
+            if spent + estimate <= MAX_TOKENS:
+                break
+            messages = _compact_messages(messages, level)
+            estimate = _estimate(messages, choices)
         if spent + estimate > MAX_TOKENS:
             break
         _quota(data, port, deadline)
@@ -482,23 +554,42 @@ def _loop(data, port, record, deadline, acting=False, executor=None, replan=Fals
         if spent > MAX_TOKENS:
             raise ValueError("Measured goal provider usage exceeded this request's budget")
         calls = message.get("tool_calls")
-        if receipt["finish_reason"] == "stop":
+        selection_fields = {}
+        if receipt.get("transport") == "json_decision":
+            if receipt["finish_reason"] != "stop" or calls or not isinstance(message.get("content"), str):
+                raise ValueError("JSON decision has invalid actual protocol fields")
+            content = message["content"]
+            selection_id = "host-json-" + public.sha(_encode([receipt["id"], receipt["response_sha256"], content]))
+            _event(record, "assistant_json_decision", receipt_id=receipt["id"], result=content,
+                   offered_catalog=copy.deepcopy(choices), catalog_sha256=public.sha(_encode(choices)),
+                   selection_id=selection_id, id_origin="host_assigned_json_decision")
+            decision = json.loads(content)
+            if not isinstance(decision, dict):
+                raise ValueError("JSON decision must be one object")
+            if set(decision) == {"tool_name", "args"}:
+                name, args, call_id = decision["tool_name"], decision["args"], selection_id
+                selection_fields = {"invocation_id": selection_id, "id_origin": "host_assigned_json_decision"}
+            else:
+                contract.validate_arguments(decision, PLAN_TOOL["inputSchema"])
+                return _proposal(data, port, record, decision)
+        elif receipt["finish_reason"] == "stop":
             if calls or not isinstance(message.get("content"), str):
                 raise ValueError("Native final proposal has invalid protocol fields")
             _event(record, "assistant_final", receipt_id=receipt["id"], result=message["content"])
             return _proposal(data, port, record, json.loads(message["content"]))
-        if not isinstance(calls, list) or len(calls) != 1:
-            raise ValueError("Model must select exactly one actual tool call")
-        call = calls[0]
-        function = call.get("function", {})
-        name, call_id = function.get("name"), call.get("id")
-        if not isinstance(call_id, str) or not call_id or not isinstance(function.get("arguments"), str):
-            raise ValueError("Native tool call identity or arguments are missing")
-        args = json.loads(function["arguments"])
+        else:
+            if not isinstance(calls, list) or len(calls) != 1:
+                raise ValueError("Model must select exactly one actual tool call")
+            call = calls[0]
+            function = call.get("function", {})
+            name, call_id = function.get("name"), call.get("id")
+            if not isinstance(call_id, str) or not call_id or not isinstance(function.get("arguments"), str):
+                raise ValueError("Native tool call identity or arguments are missing")
+            args = json.loads(function["arguments"])
         tool = next((tool for tool in choices if tool["name"] == name), None)
         if tool is None:
             raise ValueError("Model selected a tool outside the current catalog")
-        _event(record, "tool_call", tool_call_id=call_id, receipt_id=receipt["id"], tool_name=name, args=args)
+        _event(record, "tool_selection" if selection_fields else "tool_call", tool_call_id=call_id, receipt_id=receipt["id"], tool_name=name, args=args, **selection_fields)
         try:
             contract.validate_arguments(args, tool["inputSchema"])
         except ValueError:

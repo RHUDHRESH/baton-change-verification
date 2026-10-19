@@ -94,6 +94,79 @@ class Reader:
 def pair():return [fixture_record(), fixture_record("b" * 32, extra_search=True, publish=True, terminal=True)]
 
 
+def json_fixture(*,mixed=False,direct=False,terminal=False):
+    """Synthetic successful JSON generations; no failed generation is parsed."""
+    from server import goal_agent as A
+    r=fixture_record(terminal=terminal,native_json=direct)
+    catalog=P.catalog_from_source()[0]
+    base=[copy.deepcopy(t) for t in catalog if t["name"] in P.READ_NAMES]+[copy.deepcopy(A.PLAN_TOOL)]
+    rebuilt=[];replaced={};plan_seen=False;done=set()
+    for e in r['events']:
+        if e['type']=='plan_proposed':plan_seen=True
+        if e['type'] in {'tool_result','action_result'} and e.get('step_id'):done.add(e['step_id'])
+        if e['type'] in {'tool_call','assistant_final'} and not (mixed and e.get('tool_name')=='read_company_source' and not e.get('step_id') and not plan_seen):
+            receipt=next(x for x in r['provider_receipts'] if x['id']==e['receipt_id'])
+            content=e['result'] if e['type']=='assistant_final' else json.dumps({'tool_name':e['tool_name'],'args':e['args']})
+            offered=copy.deepcopy(base)
+            if plan_seen:
+                ready=[s['id'] for s in r['proposal']['steps'] if s['id'] not in done and set(s['depends_on']).issubset(done)]
+                if ready:offered.append({'name':'select_plan_step','description':'Actual test catalog selection','inputSchema':A._object({'step_id':{'type':'string','enum':ready}})})
+                else:
+                    offered.append({'name':'finish_goal','description':'Actual test catalog reflection','inputSchema':A._object({'summary':{'type':'string','minLength':15,'maxLength':1200},
+                        'criteria_assessment':{'type':'array','minItems':1,'maxItems':6,'items':A._object({'criterion':{'type':'string','enum':r['proposal']['success_criteria']},
+                        'status':{'type':'string','enum':['supported','not_met','unknown']},'reason':A._string(300),'evidence_ids':A._strings(12),'action_ids':A._strings(6)})}})})
+            receipt.update(transport='json_decision',finish_reason='stop',assistant_content_sha256=C.sha(content),offered_catalog_sha256=C.sha(C.encode(offered)))
+            invocation='host-json-'+C.sha(C.encode([receipt['id'],receipt['response_sha256'],content]))
+            rebuilt.append({'type':'assistant_json_decision','receipt_id':receipt['id'],'result':content,'offered_catalog':offered,'catalog_sha256':receipt['offered_catalog_sha256'],
+                            'selection_id':invocation,'id_origin':'host_assigned_json_decision'})
+            if e['type']=='tool_call':
+                replaced[e['tool_call_id']]=invocation
+                e.update(type='tool_selection',tool_call_id=invocation,invocation_id=invocation,id_origin='host_assigned_json_decision')
+            else:continue
+        rebuilt.append(e)
+    for i,e in enumerate(rebuilt):
+        e['seq']=i
+        if e['type']=='provider_response':e['finish_reason']=next(x['finish_reason'] for x in r['provider_receipts'] if x['id']==e['receipt_id'])
+        if e.get('tool_call_id') in replaced:e['tool_call_id']=replaced[e['tool_call_id']]
+    for evidence in r['evidence']+r['plan_evidence']:
+        if evidence.get('observed_by_tool_call') in replaced:evidence['observed_by_tool_call']=replaced[evidence['observed_by_tool_call']]
+    r['events']=rebuilt
+    return r
+
+
+@pytest.mark.parametrize('mixed,direct,terminal',[(False,False,False),(True,False,False),(False,True,False),(False,False,True)])
+def test_public_proof_validates_truthful_json_selection_and_mixed_native_history(mixed,direct,terminal):
+    r=json_fixture(mixed=mixed,direct=direct,terminal=terminal)
+    result=P.verify_record(r,P.catalog_from_source()[0])
+    assert result['json_decisions']>=1 and result['host_assigned_json_invocations']>=1
+    assert 'json_decision' in result['selection_transports']
+    assert ('native_chat_completions' in result['selection_transports'])==mixed
+    assert result['current_criteria_reflection']==terminal
+
+
+@pytest.mark.parametrize('fault',['content','catalog_hash','schema','read_schema','selection_id','invocation_id','native_claim','args','unknown_name','finish','missing_decision'])
+def test_public_json_proof_rejects_substituted_decision_schema_or_forged_native_identity(fault):
+    r=json_fixture();decision=next(e for e in r['events'] if e['type']=='assistant_json_decision')
+    selected=next(e for e in r['events'] if e['type']=='tool_selection')
+    receipt=next(x for x in r['provider_receipts'] if x['id']==decision['receipt_id'])
+    if fault=='content':decision['result']=json.dumps({'tool_name':'read_company_source','args':{'source_id':'substituted'}})
+    elif fault=='catalog_hash':decision['catalog_sha256']='a'*64
+    elif fault in {'schema','read_schema'}:
+        chosen=next(t for t in decision['offered_catalog'] if t['name']==('propose_goal_plan' if fault=='schema' else 'read_company_source'))
+        chosen['inputSchema']={'type':'object','additionalProperties':True}
+        decision['catalog_sha256']=receipt['offered_catalog_sha256']=C.sha(C.encode(decision['offered_catalog']))
+    elif fault=='selection_id':decision['selection_id']='invented'
+    elif fault=='invocation_id':selected['invocation_id']='native-looking-invented'
+    elif fault=='native_claim':selected['type']='tool_call'
+    elif fault=='args':selected['args']={'source_id':'substituted'}
+    elif fault=='unknown_name':selected['tool_name']='shell'
+    elif fault=='finish':receipt['finish_reason']='tool_calls'
+    else:
+        r['events'].remove(decision)
+        for i,e in enumerate(r['events']):e['seq']=i
+    with pytest.raises(P.ProofError):P.verify_record(r,P.catalog_from_source()[0])
+
+
 def test_two_public_goal_records_have_real_observation_bound_plans_and_structural_variation():
     reader = Reader(pair());result = P.verify_pair(list(reader.records), reader)
     assert result["status"] == "verified_distinct_goal_records" and result["read_only"] is True

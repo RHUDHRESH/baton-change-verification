@@ -1,4 +1,4 @@
-"""Select the approved Groq Free goal model without changing other settings.
+"""Select the approved Groq Free goal model and explicit decision protocol.
 
 Run in the existing authenticated AWS CloudShell. Credentials and existing
 environment values remain in memory; output contains only the model and revision.
@@ -12,7 +12,8 @@ def main():
     client = boto3.client("lambda", region_name="ap-south-1")
     before = client.get_function_configuration(FunctionName="baton-workspace")
     variables = dict(before.get("Environment", {}).get("Variables", {}))
-    expected = {**variables, "BATON_GOAL_MODEL": "openai/gpt-oss-120b"}
+    expected = {**variables, "BATON_GOAL_MODEL": "openai/gpt-oss-120b",
+                "BATON_GOAL_PROTOCOL": "json_decision"}
     client.update_function_configuration(
         FunctionName="baton-workspace", RevisionId=before["RevisionId"],
         Environment={"Variables": expected})
@@ -21,6 +22,7 @@ def main():
     if after.get("Environment", {}).get("Variables") != expected:
         raise RuntimeError("Goal model configuration was not independently confirmed")
     print(json.dumps({"goal_model": expected["BATON_GOAL_MODEL"],
+                      "goal_protocol": expected["BATON_GOAL_PROTOCOL"],
                       "revision": after["RevisionId"],
                       "other_environment_preserved": True,
                       "new_resources": False}))

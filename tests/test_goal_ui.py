@@ -177,6 +177,44 @@ def test_variable_dependency_dag_comes_from_proposal_not_events(goal):
     assert 'Inference provider receipts · 2' in result['goal-timeline']['text']
 
 
+def test_json_decision_protocol_preserves_actual_stop_and_host_selection_provenance(goal):
+    content = '{"tool_name":"read_company_source","args":{"source_id":"source/A"}}'
+    host_id = 'host-json-actual-correlation'
+    goal['provider_receipts'] = [{'id': 'json-provider', 'transport': 'json_decision', 'finish_reason': 'stop', 'usage': {'total_tokens': 37}, 'response_sha256': 'actual-response-hash'}]
+    goal['events'] = [{'seq': 1, 'type': 'provider_response', 'receipt_id': 'json-provider', 'finish_reason': 'stop'}, {'seq': 2, 'type': 'assistant_json_decision', 'receipt_id': 'json-provider', 'result': content, 'offered_catalog': [{'name': 'read_company_source'}], 'catalog_sha256': 'actual-catalog-hash', 'selection_id': host_id, 'id_origin': 'host_assigned_json_decision'}, {'seq': 3, 'type': 'tool_selection', 'receipt_id': 'json-provider', 'tool_name': 'read_company_source', 'args': {'source_id': 'source/A'}, 'tool_call_id': host_id, 'invocation_id': host_id, 'id_origin': 'host_assigned_json_decision'}, {'seq': 4, 'type': 'tool_result', 'receipt_id': 'json-provider', 'tool_name': 'read_company_source', 'tool_call_id': host_id, 'result': {'actual': 'observed source'}}]
+    result = js(mode='hydrate', records=[goal])
+    timeline = result['goal-timeline']['text']
+    assert 'Model JSON decision' in timeline and 'Model-selected tool · read_company_source' in timeline
+    assert 'Actual provider finish reason · stop' in timeline
+    assert 'Host-assigned selection ID · ' + host_id in timeline
+    assert 'Provider tool-call ID · ' + host_id not in timeline
+    assert 'Native tool call ·' not in timeline
+    assert 'actual-response-hash' in timeline and 'actual-catalog-hash' in timeline and content in timeline
+    events = [row for row in result['goal-timeline']['tree']['children'] if row.get('className') == 'goal-event']
+    # The renderer uses actual event rows; no native tool event or synthetic finish is inserted.
+    assert timeline.count('Actual event record') == 4
+
+
+def test_direct_json_proposal_does_not_invent_tool_selection_or_native_call(goal):
+    goal['events'] = [{'seq': 1, 'type': 'assistant_json_decision', 'result': '{"summary":"actual direct proposal"}', 'selection_id': 'host-json-direct', 'id_origin': 'host_assigned_json_decision'}, {'seq': 2, 'type': 'plan_proposed', 'plan_hash': goal['proposal']['hash']}]
+    result = js(mode='hydrate', records=[goal])
+    assert 'Model JSON decision' in result['goal-timeline']['text']
+    assert 'Model-selected tool' not in result['goal-timeline']['text']
+    assert 'Native tool call ·' not in result['goal-timeline']['text']
+    assert result['goal-timeline']['text'].count('Actual event record') == 2
+
+
+def test_mixed_native_history_retains_actual_provider_ids_and_finish_reasons(goal):
+    goal['provider_receipts'] = [{'id': 'native-provider', 'transport': 'native_chat_completions', 'finish_reason': 'tool_calls'}, {'id': 'json-provider', 'transport': 'json_decision', 'finish_reason': 'stop'}]
+    goal['events'] = [{'seq': 1, 'type': 'tool_call', 'tool_call_id': 'native-provider-id', 'tool_name': 'inspect_graph_entity', 'args': {'entity_id': 'literal-id'}, 'receipt_id': 'native-provider'}, {'seq': 2, 'type': 'tool_result', 'tool_call_id': 'native-provider-id', 'tool_name': 'inspect_graph_entity', 'result': {'observed': True}}, {'seq': 3, 'type': 'assistant_json_decision', 'receipt_id': 'json-provider', 'result': '{"summary":"later proposal"}', 'selection_id': 'host-json-later', 'id_origin': 'host_assigned_json_decision'}]
+    result = js(mode='hydrate', records=[goal])
+    assert 'Native tool call · inspect_graph_entity' in result['goal-timeline']['text']
+    assert 'Provider tool-call ID · native-provider-id' in result['goal-timeline']['text']
+    assert 'Host-assigned selection ID · host-json-later' in result['goal-timeline']['text']
+    assert '"finish_reason": "tool_calls"' in result['goal-timeline']['text']
+    assert result['goal-timeline']['text'].count('Actual event record') == 3
+
+
 def test_approve_only_selected_proposed_capability_and_bound_hash(goal):
     result = js(mode='act', approve=['publish_task', 'verify_release'], records=[goal, goal])
     assert result['calls'][1] == {'path': '/api/public/goals/goal-real-shape/act', 'body': {'expected_plan_hash': 'sealed-source-plan-hash', 'approved_actions': ['publish_task']}}

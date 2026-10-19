@@ -83,6 +83,15 @@ Reasoning lane owns `server/goal_agent.py` and focused tests. Exports:
   `BATON_GOAL_MODEL` can select the goal-only model without changing legacy
   workflows. Receipts retain both the requested model and the provider's actual
   returned model; a requested setting is not evidence of a successful generation.
+  `BATON_GOAL_PROTOCOL=json_decision` explicitly requests a JSON assistant
+  response without native function calling. The actual offered MCP catalog is
+  included in the request. A successful response can choose one catalog tool
+  and schema-valid arguments or supply the proposed plan. The host validates
+  and invokes that choice through the same authority checks. Receipts preserve
+  the actual `stop` finish reason and provider usage; selection IDs are explicitly
+  host assigned. These events are not described as native provider tool calls.
+  Native protocol history remains available. Failed provider generations are
+  diagnostic data and can never supply a tool choice, plan or observation.
 
 Graph search uses bounded parameterized Cypher term matching and global candidate
 ranking across the captured public graphs. Results expose the matched terms,
@@ -122,9 +131,9 @@ validation only; live Groq/provider/graph receipts prove the demonstrated runs.
 ## Implementation validation
 
 The complete Docker harness passed on immutable checkpoint
-`b28d376f0feaad2fa33235134a351f9ff9fe70a5`: original scoring 88/88 and 1,104
-pytest tests, with zero failures, errors or skips. The 140 goal-agent contract
-tests are included. All 456 tracked file hashes remained unchanged. See the
-[checkpoint evidence](evidence/GOAL_AGENT_B28_VALIDATION.md) for exact group
-counts, command and retained log digest. This is implementation validation;
-the live proof requirements above remain separate.
+`81ca64041e22112f333e5e1e151cfe4ffcf83ce0`: original scoring 88/88 and 1,281
+pytest tests, with zero failures, errors or skips. All 466 tracked file hashes
+remained unchanged. The retained complete harness log has SHA-256
+`ad5dc95b58915fe67bcd2e073f50729b06896616a01906b82160e7b254113eea`.
+This is implementation validation of that checkpoint, before the JSON decision
+transport change; the live proof requirements above remain separate.

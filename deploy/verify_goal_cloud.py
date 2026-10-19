@@ -10,6 +10,7 @@ import base64
 import json
 from pathlib import Path
 import re
+import sys
 import zipfile
 
 from verify_release_cloud import AuditError, approved_archive, encode, get, load_redis, require, sha
@@ -67,6 +68,31 @@ def catalog_from_sources(sources):
         tools.append({"name": name, "description": descriptions[name], "inputSchema": {"type": "object", "properties": properties, "required": required, "additionalProperties": False}})
     values = {node.targets[0].id: node.value for node in contract.body if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)}
     return tools + ast.literal_eval(values["EFFECTS"]), ast.literal_eval(values["CATALOG_VERSION"])
+
+
+def protocol_audit(record, catalog):
+    """Check explicit JSON decisions without relabeling them as native calls.
+
+Historical native-only audits retain their existing graph/receipt checks. JSON
+records additionally require the independent public protocol verifier and its
+goal_contract dependency from the reviewed source checkout/upload package.
+"""
+    json_receipts = any(r.get("transport") == "json_decision" for r in record.get("provider_receipts", []))
+    json_events = any(e.get("type") in {"assistant_json_decision", "tool_selection"} for e in record.get("events", []))
+    if not (json_receipts or json_events):
+        return {"json_decision_protocol_checked": False}
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        from scripts import verify_goal_agent as protocol
+    except ImportError:
+        raise AuditError("JSON decision proof requires the reviewed public protocol verifier and goal contract") from None
+    try:
+        result = protocol.verify_record(record, catalog)
+    except protocol.ProofError:
+        raise AuditError("Actual JSON decision, offered schema, host invocation or provider receipt binding differs") from None
+    return {"json_decision_protocol_checked": True, "selection_transports": result["selection_transports"],
+            "json_decisions": result["json_decisions"], "host_assigned_json_invocations": result["host_assigned_json_invocations"],
+            "id_provenance": "JSON invocation IDs are host-assigned correlations; no native provider tool_call is claimed"}
 
 
 def graph_connection(settings, archive, digest):
@@ -206,13 +232,14 @@ def verify(identity, archive, archive_sha, commit):
     try:
         sources, source_hashes = runtime_sources(archive, archive_sha, commit, deployed)
         catalog, version = catalog_from_sources(sources)
+        protocol = protocol_audit(record, catalog)
         state = settings.get("BATON_CLOUD_STATE_GRAPH") or "baton_goal_memory"
         connection = graph_connection(settings, archive, archive_sha)
         read = lambda graph, text, params=None: query(connection, graph, text, params)
         native = audit_record(record, read, state)
         bindings = audit_bindings(record, read, state, catalog, version)
         return {"status": "verified", "read_only": True, "source_commit": commit, "lambda_archive_sha256": archive_sha,
-                "deployed_runtime_matches_public_source": source_hashes, "graph_command": "GRAPH.RO_QUERY", **native, **bindings,
+                "deployed_runtime_matches_public_source": source_hashes, "graph_command": "GRAPH.RO_QUERY", **native, **bindings, **protocol,
                 "limits": ["Native plan, dependencies, selected facts, source hashes and actual event bindings were checked; semantic usefulness/entailment is not certified.",
                            "Model/provider receipt hashes are preserved evidence, not an independent request to Groq.",
                            "External Jira/Slack/GitHub effect readbacks require their separate provider audit; this helper makes no effect-completion claim."]}

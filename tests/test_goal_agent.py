@@ -55,6 +55,7 @@ class Graph:
 
 @pytest.fixture
 def boundary(monkeypatch):
+    monkeypatch.delenv("BATON_GOAL_PROTOCOL", raising=False)
     g, s = Graph(), Store()
     monkeypatch.setattr(A, "_modules", lambda: (C, g))
     monkeypatch.setattr(A, "connect", lambda port: s)
@@ -383,6 +384,60 @@ def test_native_transport_receipts_hash_actual_request_response_and_keep_real_fi
     assert A.NoRedirect().redirect_request(None, None, 302, "redirect", {}, "https://elsewhere.example") is None
 
 
+def test_json_decision_transport_sends_no_native_tools_and_preserves_actual_stop_receipt(boundary,monkeypatch):
+    monkeypatch.setenv("BATON_GOAL_PROTOCOL","json_decision")
+    content=json.dumps({"tool_name":"search_company_graph","args":{"query":"observed work"}})
+    payload=provider_response({"role":"assistant","content":content},"stop")
+    opener,raw=mock_http(monkeypatch,payload)
+    message,r=A.completion([{"role":"user","content":"Inspect actual work"}],[SEARCH],7)
+    body=json.loads(opener.open.call_args.args[0].data)
+    assert body["response_format"]=={"type":"json_object"}
+    assert not any(key in body for key in ("tools","tool_choice","parallel_tool_calls"))
+    assert json.loads(body["messages"][-1]["content"].split("Available catalog: ",1)[1])==[SEARCH]
+    assert message==payload["choices"][0]["message"] and "tool_calls" not in message
+    assert r["transport"]=="json_decision" and r["finish_reason"]=="stop" and r["usage"]==payload["usage"]
+    assert r["assistant_content_sha256"]==C.sha(content) and r["offered_catalog_sha256"]==C.sha(C.encode([SEARCH]))
+    assert r["response_sha256"]==C.sha(raw)
+
+
+@pytest.mark.parametrize("final_direct",[False,True])
+def test_json_decisions_route_actual_choices_with_host_ids_and_no_synthetic_native_calls(boundary,monkeypatch,final_direct):
+    monkeypatch.setenv("BATON_GOAL_PROTOCOL","json_decision")
+    decisions=[{"tool_name":"read_company_source","args":{"source_id":"source-A"}},
+               proposal() if final_direct else {"tool_name":"propose_goal_plan","args":proposal()}]
+    contents=[]
+    def model(messages,tools,timeout):
+        content=json.dumps(decisions[len(contents)]);contents.append(content)
+        r=receipt(len(contents)-1,"stop");r.update(transport="json_decision",assistant_content_sha256=C.sha(content),offered_catalog_sha256=C.sha(C.encode(tools)))
+        return {"role":"assistant","content":content},r
+    monkeypatch.setattr(A,"completion",model)
+    r=A.investigate(None,0,"Investigate the actual captured behavior","json-decisions")
+    assert r["status"]=="proposed" and r["provider_calls"]==2 and len(boundary.graph.calls)==1
+    assert not any(e["type"] in {"tool_call","assistant_final"} for e in r["events"])
+    actual=[e for e in r["events"] if e["type"]=="assistant_json_decision"]
+    assert [e["result"] for e in actual]==contents
+    selected=[e for e in r["events"] if e["type"]=="tool_selection"]
+    assert len(selected)==(1 if final_direct else 2)
+    assert all(e["tool_call_id"]==e["invocation_id"] and e["tool_call_id"].startswith("host-json-") and e["id_origin"]=="host_assigned_json_decision" for e in selected)
+    observed=next(e for e in r["events"] if e["type"]=="tool_result")
+    assert observed["tool_call_id"]==selected[0]["invocation_id"] and observed["receipt_id"]==actual[0]["receipt_id"]
+
+
+@pytest.mark.parametrize("content",['{"tool_name":"unoffered","args":{}}','{"name":"commentary","arguments":{}}','not JSON','[]'])
+def test_json_decision_malformed_or_unoffered_content_never_executes(boundary,monkeypatch,content):
+    r=receipt(0,"stop");r["transport"]="json_decision"
+    monkeypatch.setattr(A,"completion",Mock(return_value=({"role":"assistant","content":content},r)))
+    out=A.investigate(None,0,"Inspect the actual captured behavior","json-fail-closed")
+    assert out["status"]=="blocked" and out["proposal"] is None and not boundary.graph.calls and not out["actions"]
+    assert any(e["type"]=="assistant_json_decision" and e["result"]==content for e in out["events"])
+
+
+def test_json_protocol_rejects_provider_native_calls_instead_of_relabeling_them(boundary,monkeypatch):
+    monkeypatch.setenv("BATON_GOAL_PROTOCOL","json_decision");mock_http(monkeypatch,provider_response())
+    with pytest.raises(A.transport.ProviderProtocolError) as caught:A.completion([], [SEARCH],5)
+    assert caught.value.receipt["transport"]=="json_decision" and caught.value.receipt["finish_reason"]=="tool_calls"
+
+
 @pytest.mark.parametrize("goal_model,shared_model,expected", [("openai/gpt-oss-120b", "openai/gpt-oss-20b", "openai/gpt-oss-120b"),
                                                              (None, "configured-shared-model", "configured-shared-model"),
                                                              ("", "configured-shared-model", "configured-shared-model"),
@@ -708,3 +763,49 @@ def test_prior_provider_failure_is_historical_after_real_subsequent_generation(b
     feedback=json.loads(A._messages(r,[],False)[1]["content"])["prior_provider_error"]
     assert feedback["historical_only"] is True and feedback["actual_successful_generations_since"]==2
     assert feedback["request_id"]=="req_actual_old"
+
+
+def test_large_history_compacts_display_before_next_model_attempt_preserving_authority(boundary,monkeypatch):
+    r,_=plan_goal(monkeypatch,boundary)
+    for n in range(3):
+        entities=[{"id":"actual-entity-"+str(n)+"-"+str(i)+"x"*80,"source_ids":["captured-source-"+str(i)],
+                   "properties":{"title":"actual title "+"t"*210,"name":"actual name "+"n"*210,"url":"https://github.com/"+"u"*200,
+                                 "path":"actual/path/"+"p"*200,"source_commit":"a"*40},"directed_relationships":[]} for i in range(8)]
+        A._event(r,"tool_result",tool_name="search_company_graph",args={"query":"actual historic query "+str(n)},status="succeeded",
+                 result={"observation":{"entities":entities},"evidence":[],"binding":{}})
+    r['provider_receipts'].insert(0,{'http_status':400,'error':{'code':'tool_use_failed','message':'Actual previous parse failure'},
+                                    'failed_generation_excerpt':'diagnostic text only '*20,'response_sha256':'a'*64})
+    boundary.graph.save_goal(None,0,r)
+    monkeypatch.setenv('BATON_GOAL_PROTOCOL','json_decision')
+    choices=boundary.graph.TOOLS+[A.PLAN_TOOL,{'name':'select_plan_step','description':'Select the next graph-ready sealed step for this goal.',
+              'inputSchema':A._object({'step_id':{'type':'string','enum':['step0']}})}]
+    initial=A._messages(r,['step0'],False)
+    assert A._estimate(initial,choices)>A.MAX_TOKENS
+    before=copy.deepcopy(r)
+    expected=json.loads(initial[1]['content'])
+    def select(messages,tools,timeout):
+        payload=json.loads(messages[1]['content'])
+        assert payload['context_compaction']['truncated'] is True and A._estimate(messages,tools)<=7500
+        for key in ('proposal','ready_steps','approved_actions','success_criteria','action_results','action_ids','evidence_ids','inspected_sources'):
+            assert payload[key]==expected[key]
+        for old,new in zip(expected['observations'],payload['observations']):
+            assert new['args']==old['args'] and new['result']['evidence']==old['result']['evidence']
+            assert new['result']['observation']['entity_capabilities']==[{'id':e['id'],'captured_source_ids':e['captured_source_ids']} for e in old['result']['observation']['entities']]
+        assert payload['prior_provider_error']['diagnostic_excerpt_omitted_for_budget'] is True
+        content=json.dumps({'tool_name':'select_plan_step','args':{'step_id':'step0'}})
+        receipt_=receipt(2,'stop');receipt_.update(transport='json_decision',assistant_content_sha256=C.sha(content),offered_catalog_sha256=C.sha(C.encode(tools)))
+        return {'role':'assistant','content':content},receipt_
+    model=Mock(side_effect=select);monkeypatch.setattr(A,'completion',model)
+    out=A.continue_goal(None,0,r['id'],r['proposal']['hash'])
+    assert model.call_count==1 and out['status']=='needs_continuation' and out['provider_calls']==before['provider_calls']+1
+    assert out['events'][:len(before['events'])]==before['events'] and A.MAX_TOKENS==7500
+
+
+def test_second_compaction_retains_every_original_entity_capability_and_archived_payload(boundary,monkeypatch):
+    r,_=plan_goal(monkeypatch,boundary)
+    A._event(r,'tool_result',tool_name='search_company_graph',args={'query':'actual query'},status='succeeded',result={
+        'observation':{'entities':[{'id':'actual-'+str(i),'source_ids':['source-'+str(i)],'properties':{'title':'Actual '+str(i)}} for i in range(8)]},'evidence':[],'binding':{}})
+    original=A._messages(r,[],False);first=A._compact_messages(original,1);second=A._compact_messages(first,2)
+    newest=json.loads(second[1]['content'])['observations'][-1]['result']['observation']
+    assert newest['entity_capabilities']==[{'id':'actual-'+str(i),'captured_source_ids':['source-'+str(i)]} for i in range(8)]
+    assert newest['entities']==[] and newest['truncated'] is True and original==A._messages(r,[],False)

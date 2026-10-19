@@ -152,10 +152,21 @@
       }
     }
     if (!list(record.events).length) timeline.append(el('p', 'No actual tool events are recorded.'));
+    const jsonIds = new Set(list(record.events).filter(event => event.id_origin === 'host_assigned_json_decision').map(event => event.invocation_id || event.selection_id || event.tool_call_id).filter(Boolean));
+    const nativeIds = new Set(list(record.events).filter(event => event.type === 'tool_call' && event.tool_call_id).map(event => event.tool_call_id));
+    if (list(record.provider_receipts).some(receipt => receipt.transport === 'json_decision') || list(record.events).some(event => event.type === 'assistant_json_decision')) {
+      timeline.append(el('p', 'JSON decision protocol: the model returns assistant content; the host validates its selection. Host-assigned IDs are correlation IDs, not native provider function-call IDs.', 'goal-footnote'));
+    }
     for (const event of list(record.events)) {
       const entry = el('div', undefined, 'goal-event');
-      entry.append(el('strong', String(event.seq ?? '?') + ' · ' + (event.tool_name || event.type || 'Recorded event')));
-      if (event.tool_call_id) entry.append(el('small', 'Tool call ' + event.tool_call_id));
+      const heading = event.type === 'assistant_json_decision' ? 'Model JSON decision' : event.type === 'tool_selection' ? 'Model-selected tool · ' + event.tool_name : event.type === 'tool_call' ? 'Native tool call · ' + event.tool_name : event.type === 'tool_result' ? 'Tool result · ' + event.tool_name : event.type === 'provider_response' ? 'Provider response' : event.tool_name || event.type || 'Recorded event';
+      entry.append(el('strong', String(event.seq ?? '?') + ' · ' + heading));
+      const invocation = event.invocation_id || event.selection_id || event.tool_call_id;
+      if (invocation) entry.append(el('small', (jsonIds.has(invocation) ? 'Host-assigned selection ID · ' : nativeIds.has(invocation) ? 'Provider tool-call ID · ' : 'Recorded invocation ID · ') + invocation));
+      const providerReceipt = list(record.provider_receipts).find(receipt => receipt.id === event.receipt_id);
+      const finish = event.finish_reason ?? providerReceipt?.finish_reason;
+      if ((event.type === 'provider_response' || event.type === 'assistant_json_decision') && finish !== undefined) entry.append(el('small', 'Actual provider finish reason · ' + finish));
+      if (event.type === 'assistant_json_decision') entry.append(detail('Actual assistant JSON content', event.result));
       if (event.error) entry.append(el('p', text(event.error), 'goal-warning'));
       entry.append(detail('Actual event record', event)); timeline.append(entry);
     }

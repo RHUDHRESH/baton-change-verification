@@ -27,6 +27,35 @@ class ProofError(ValueError):
     pass
 
 
+def _json_offered_catalog(value, catalog, current, plans, done):
+    """Independently check authority-bearing schemas, including ready-step enums."""
+    def obj(properties, required=None):
+        return {"type":"object","properties":properties,"required":list(properties) if required is None else required,"additionalProperties":False}
+    def string(limit=400):return {"type":"string","minLength":1,"maxLength":limit}
+    def strings(limit=6):return {"type":"array","items":string(),"maxItems":limit}
+    step=obj({"id":string(80),"title":string(160),"tool_name":string(80),"args":{"type":"object","additionalProperties":True},
+              "why":string(600),"evidence_ids":strings(12),"depends_on":strings(),"expected_result":string(600)})
+    plan=obj({"summary":string(1200),"success_criteria":strings(),"assumptions":strings(),"questions":strings(),
+              "steps":{"type":"array","items":step,"minItems":1,"maxItems":6},"limitations":strings()})
+    expected={t["name"]:t for t in catalog if t["name"] in READ_NAMES}
+    require(isinstance(value,list) and len(value) in {6,7}, "JSON decision catalog has an unexpected capability count")
+    named={t.get("name"):t for t in value}
+    require(len(named)==len(value) and set(named).issubset(READ_NAMES|{"propose_goal_plan","select_plan_step","finish_goal"}) and
+            all(named.get(name)==tool for name,tool in expected.items()) and named.get("propose_goal_plan",{}).get("inputSchema")==plan,
+            "JSON decision catalog substituted a read or planning capability schema")
+    ready=[s["id"] for s in plans[current]["steps"] if s["id"] not in done[current] and set(s["depends_on"]).issubset(done[current])] if current else []
+    if "select_plan_step" in named:
+        require(current and ready and named["select_plan_step"].get("inputSchema")==obj({"step_id":{"type":"string","enum":ready}}),
+                "JSON decision step-selection schema differs from graph-ready sealed steps")
+    if "finish_goal" in named:
+        require(current and not ready and done[current]=={s["id"] for s in plans[current]["steps"]}, "JSON finish offered before actual plan completion")
+        schema=obj({"summary":{"type":"string","minLength":15,"maxLength":1200},"criteria_assessment":{"type":"array","minItems":1,"maxItems":6,"items":obj({
+            "criterion":{"type":"string","enum":plans[current]["success_criteria"]},"status":{"type":"string","enum":["supported","not_met","unknown"]},
+            "reason":string(300),"evidence_ids":strings(12),"action_ids":strings(6)})}})
+        require(named["finish_goal"].get("inputSchema")==schema,"JSON finish schema substituted criterion authority")
+    return named
+
+
 def require(value, message):
     if not value:
         raise ProofError(message)
@@ -178,7 +207,7 @@ def _verify_record(record, catalog):
             continue
         id = receipt.get("id")
         require(isinstance(id, str) and id.strip() and id not in generations and isinstance(receipt.get("model"), str) and receipt["model"].strip(), "Provider identity/model is missing or duplicated")
-        require(digest(receipt.get("response_sha256")) and digest(receipt.get("request_sha256")) and receipt.get("transport") == "native_chat_completions", "Provider request/response protocol binding is missing")
+        require(digest(receipt.get("response_sha256")) and digest(receipt.get("request_sha256")) and receipt.get("transport") in {"native_chat_completions","json_decision"}, "Provider request/response protocol binding is missing")
         usage = receipt.get("usage", {})
         require(all(type(usage.get(k)) is int and usage[k] >= 0 for k in ("prompt_tokens", "completion_tokens", "total_tokens")) and
                 usage["completion_tokens"] > 0 and usage["total_tokens"] >= usage["prompt_tokens"] + usage["completion_tokens"], "Provider token usage is absent or contradictory")
@@ -192,6 +221,7 @@ def _verify_record(record, catalog):
     calls, active_evidence, plans, done, reconstructed_actions = {}, {}, {}, {}, []
     pending_proposal, current, reflections = None, None, []
     revision_count, called_receipts, response_events, rejected_calls = 0, set(), set(), set()
+    json_decisions = {}
     selected_tools, read_arguments, observations = [], [], 0
     for event in events:
         kind = event.get("type")
@@ -203,12 +233,41 @@ def _verify_record(record, catalog):
             response_events.add(event["receipt_id"])
         elif kind == "assistant_final":
             r = generations.get(event.get("receipt_id"))
-            require(r and r["finish_reason"] == "stop", "Native final content was fabricated as a tool response")
+            require(r and r.get("transport")=="native_chat_completions" and r["finish_reason"] == "stop", "Native final content was fabricated as a tool response")
             pending_proposal = json.loads(event["result"])
-        elif kind == "tool_call":
+        elif kind == "assistant_json_decision":
+            r=generations.get(event.get("receipt_id"))
+            require(r and r.get("transport")=="json_decision" and r["finish_reason"]=="stop" and r["id"] in response_events and r["id"] not in json_decisions,
+                    "JSON decision has no unique actual assistant stop generation")
+            content=event.get("result");offered=event.get("offered_catalog")
+            require(isinstance(content,str) and r.get("assistant_content_sha256")==C.sha(content) and
+                    event.get("catalog_sha256")==r.get("offered_catalog_sha256")==C.sha(C.encode(offered)),"JSON decision content/catalog differs from its provider receipt")
+            expected_id="host-json-"+C.sha(C.encode([r["id"],r["response_sha256"],content]))
+            require(event.get("selection_id")==expected_id and event.get("id_origin")=="host_assigned_json_decision","JSON decision invocation ID is not explicitly host-bound")
+            offered_names=_json_offered_catalog(offered,catalog,current,plans,done)
+            decision=json.loads(content)
+            require(isinstance(decision,dict),"JSON decision is not one object")
+            json_decisions[r["id"]]=(event,decision,offered_names)
+            if set(decision)!={"tool_name","args"}:
+                C.validate_arguments(decision,offered_names["propose_goal_plan"]["inputSchema"])
+                pending_proposal=decision;called_receipts.add(r["id"])
+        elif kind in {"tool_call","tool_selection"}:
             r = generations.get(event.get("receipt_id"))
             key = (event.get("receipt_id"), event.get("tool_call_id"))
-            require(r and r["finish_reason"] == "tool_calls" and isinstance(key[1], str) and key[1] and key not in calls and key[0] not in called_receipts, "Tool call lacks a unique native provider selection")
+            require(r and isinstance(key[1], str) and key[1] and key not in calls and key[0] not in called_receipts, "Tool call lacks a unique provider selection")
+            if kind=="tool_selection":
+                decision_event,decision,offered=json_decisions.get(key[0],(None,None,None))
+                require(r.get("transport")=="json_decision" and r["finish_reason"]=="stop" and decision_event and
+                        set(decision)=={"tool_name","args"} and decision=={"tool_name":event.get("tool_name"),"args":event.get("args")} and
+                        event.get("tool_call_id")==event.get("invocation_id")==decision_event["selection_id"] and event.get("id_origin")=="host_assigned_json_decision",
+                        "Host invocation differs from the actual JSON decision or claims a native ID")
+                require(event.get("tool_name") in offered,"JSON decision selected an unoffered capability")
+                try:C.validate_arguments(event.get("args"),offered[event["tool_name"]]["inputSchema"])
+                except ValueError:
+                    require(event.get("tool_name") in reads and rejected_events.get(key,{}).get("category")=="invalid_read_arguments","JSON selection violates its offered schema")
+            else:
+                require(r.get("transport")=="native_chat_completions" and r["finish_reason"]=="tool_calls" and "invocation_id" not in event,
+                        "Tool call lacks a unique native provider selection")
             calls[key] = event
             called_receipts.add(key[0])
             name = event.get("tool_name")
@@ -313,6 +372,7 @@ def _verify_record(record, catalog):
     require(current and observations and record.get("proposal") == plans[current], "Current public proposal differs from the model-authored DAG")
     require(record.get("revision") == revision_count and record.get("actions") == reconstructed_actions, "Public revision/actions differ from actual execution episodes")
     require(all(r["finish_reason"] not in {"stop", "tool_calls"} or id in response_events for id, r in generations.items()), "Successful generation has no matching response event")
+    require(all(r.get("transport")!="json_decision" or id in json_decisions and id in called_receipts for id,r in generations.items()),"JSON generation lacks its actual decision or validated invocation")
     require(record.get("model") == list(generations.values())[-1]["model"], "Public model differs from its latest actual generation")
     require(record.get("evidence") == list(active_evidence.values()), "Public evidence differs from actual inspected evidence episodes")
     sealed = record.get("plan_evidence", record["evidence"])
@@ -324,7 +384,10 @@ def _verify_record(record, catalog):
     return {"goal_id": record["id"], "goal_sha256": C.sha(record["goal"]), "status": record["status"], "plan_hash": current,
             "revision": revision_count, "step_count": len(plans[current]["steps"]), "plan_tools": [s["tool_name"] for s in plans[current]["steps"]],
             "model_selected_read_tools": selected_tools, "actual_read_observations": observations, "provider_generations": len(generations),
-            "native_selections_rejected_without_execution": len(rejected_calls),
+            "native_selections_rejected_without_execution": sum(generations[key[0]]["transport"]=="native_chat_completions" for key in rejected_calls),
+            "selections_rejected_without_execution": len(rejected_calls),
+            "selection_transports": sorted({r["transport"] for r in generations.values()}),
+            "json_decisions": len(json_decisions), "host_assigned_json_invocations": sum(e["type"]=="tool_selection" for e in events),
             "provider_attempts": record["provider_calls"], "measured_tokens": measured, "model_ids": sorted({r["model"] for r in generations.values()}),
             "provider_response_hashes": [r["response_sha256"] for r in generations.values()], "evidence_count": len(active_evidence),
             "verified_effect_receipts": sum(a.get("status") == "verified" and a.get("read_back_verified") is True for a in reconstructed_actions),

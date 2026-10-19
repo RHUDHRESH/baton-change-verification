@@ -98,3 +98,51 @@ def test_invalid_goal_id_rejected_before_any_network(monkeypatch):
     monkeypatch.setattr(V, "get", lambda *args: pytest.fail("must not fetch"))
     with pytest.raises(V.AuditError, match="identity"):
         V.verify("x' MATCH(n) DELETE n", "not-used", "not-used", "not-used")
+
+
+@pytest.mark.parametrize("mixed,direct,terminal", [(False, False, False), (True, False, False), (False, True, False), (False, False, True)])
+def test_cloud_protocol_audit_preserves_truthful_json_and_native_history(mixed, direct, terminal):
+    from test_verify_goal_agent import json_fixture
+    record = json_fixture(mixed=mixed, direct=direct, terminal=terminal)
+    result = V.protocol_audit(record, Q.TOOLS + C.EFFECTS)
+    assert result["json_decision_protocol_checked"] is True
+    assert result["json_decisions"] >= 1 and result["host_assigned_json_invocations"] >= 1
+    assert "host-assigned" in result["id_provenance"]
+    assert ("native_chat_completions" in result["selection_transports"]) == mixed
+
+
+@pytest.mark.parametrize("fault", ["content", "host_id", "native_claim", "missing_decision", "schema"])
+def test_cloud_protocol_audit_rejects_json_provenance_or_catalog_substitution(fault):
+    from test_verify_goal_agent import json_fixture
+    record = json_fixture()
+    decision = next(e for e in record["events"] if e["type"] == "assistant_json_decision")
+    selection = next(e for e in record["events"] if e["type"] == "tool_selection")
+    if fault == "content": decision["result"] += " "
+    elif fault == "host_id": selection["invocation_id"] = "invented-native-looking-id"
+    elif fault == "native_claim": selection["type"] = "tool_call"
+    elif fault == "missing_decision": record["events"].remove(decision)
+    else:
+        decision["offered_catalog"][0]["inputSchema"] = {"type": "object", "additionalProperties": True}
+        receipt = next(r for r in record["provider_receipts"] if r["id"] == decision["receipt_id"])
+        decision["catalog_sha256"] = receipt["offered_catalog_sha256"] = C.sha(C.encode(decision["offered_catalog"]))
+    with pytest.raises(V.AuditError, match="JSON decision"):
+        V.protocol_audit(record, Q.TOOLS + C.EFFECTS)
+
+
+def test_json_native_episode_tampering_still_rejected_by_real_graph_audit(workspace):
+    from test_verify_goal_agent import json_fixture
+    record = json_fixture()
+    # Protocol data and plan are test-authored. Native graph operations are real;
+    # this checks stored episode integrity, not live provider/source provenance.
+    graph = Q._graph(workspace.port)
+    for evidence in record["evidence"]:
+        graph.query("MERGE (:GoalEvidence {id:$id})", {"id": evidence["id"]})
+    Q.create_goal(workspace.data, workspace.port, record)
+    db = Q._connect(workspace.port)
+    read = lambda name, text, params=None: db.select_graph(name).ro_query(text, params or {}).result_set
+    assert V.protocol_audit(record, Q.TOOLS + C.EFFECTS)["json_decision_protocol_checked"]
+    assert V.audit_record(record, read, graph.name)["provider_receipt_tool_links"] == 1
+    event = next(e for e in record["events"] if e["type"] == "assistant_json_decision")
+    graph.query("MATCH (e:GoalEpisode {id:$id}) SET e.json='{}'", {"id": record["id"] + ":event:" + str(event["seq"])})
+    with pytest.raises(V.AuditError, match="episodes"):
+        V.audit_record(record, read, graph.name)
