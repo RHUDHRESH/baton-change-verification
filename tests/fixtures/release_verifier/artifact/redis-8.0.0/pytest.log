@@ -1,0 +1,18 @@
+BATON_COMMAND ["python","-m","pytest","-v","-o","addopts=","-p","no:cacheprovider","--junitxml=/out/junit.xml","tests/test_graph.py::test_param_non_identifier_keys","tests/test_graph.py::test_param_invalid_keys_rejected","tests/test_async_graph.py::test_param_non_identifier_keys","tests/test_async_graph.py::test_param_invalid_keys_rejected"]
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.7.0 -- /usr/local/bin/python
+rootdir: /work/unpacked/falkordb-py-207000da70ca183ab02990a98bdd97d0a3e3bb1b
+configfile: pytest.ini
+plugins: cov-7.1.0, asyncio-1.4.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 4 items
+
+tests/test_graph.py::test_param_non_identifier_keys PASSED               [ 25%]
+tests/test_graph.py::test_param_invalid_keys_rejected PASSED             [ 50%]
+tests/test_async_graph.py::test_param_non_identifier_keys PASSED         [ 75%]
+tests/test_async_graph.py::test_param_invalid_keys_rejected PASSED       [100%]
+
+---------------------- generated xml file: /out/junit.xml ----------------------
+============================== 4 passed in 0.21s ===============================
+
+BATON_EXIT_CODE 0

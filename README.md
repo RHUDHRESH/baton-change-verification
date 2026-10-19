@@ -1,5 +1,15 @@
 # Baton
 
+## Graph-driven change verification
+
+The main experience investigates [FalkorDB-py PR #212](https://github.com/FalkorDB/falkordb-py/pull/212): why must a synchronous serializer change also be checked through the async client? Source-proven calls and inheritance in FalkorDB determine the required sync/async regressions. Groq inspects typed graph tools; deterministic policy seals the executable plan.
+
+An authenticated operator's **Investigate and verify** action starts an isolated GitHub Actions matrix against Python Redis client versions 8.0.0 and 8.1.0, preserves unchanged upstream source, and independently verifies the resulting artifacts. Both environments are required. Verified failing checks produce a blocked decision and an open evidence-backed remediation task in the operator's Jira project, plus a Slack report. Publication verification is separate from passing code checks.
+
+This is verification of an existing merged change, with no source repair or upstream merge. Local feasibility and contract-test results are not evidence of a new deployed app run. The earlier Rust repair workflow remains available separately. [Architecture, exact scope and evidence boundaries](docs/CHANGE_VERIFICATION.md).
+
+[Source publication boundary](docs/SOURCE_PUBLICATION.md) · [Third-party notices](docs/THIRD_PARTY_NOTICES.md). The public source mirror preserves genuine source history; private runner logs and credentials are not published with it.
+
 **Turn a public company issue into work you can verify.**
 
 [Open the cloud workflow workbench](https://baton-workspace.vercel.app/#workflow-runner). An authenticated operator can start the approved FalkorDB issue profile: Groq investigates graph evidence, GitHub Actions runs real code checks in a fresh isolated Docker container, Groq may propose a bounded production edit after an observed failure, and the app independently verifies the outcome before updating existing Jira/Slack work. The Vercel frontend uses AWS Lambda in Mumbai, FalkorDB Cloud Free and Groq; GitHub Actions supplies the code execution.

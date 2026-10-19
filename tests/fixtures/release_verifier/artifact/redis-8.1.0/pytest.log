@@ -1,0 +1,100 @@
+BATON_COMMAND ["python","-m","pytest","-v","-o","addopts=","-p","no:cacheprovider","--junitxml=/out/junit.xml","tests/test_graph.py::test_param_non_identifier_keys","tests/test_graph.py::test_param_invalid_keys_rejected","tests/test_async_graph.py::test_param_non_identifier_keys","tests/test_async_graph.py::test_param_invalid_keys_rejected"]
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.1.1, pluggy-1.7.0 -- /usr/local/bin/python
+rootdir: /work/unpacked/falkordb-py-207000da70ca183ab02990a98bdd97d0a3e3bb1b
+configfile: pytest.ini
+plugins: cov-7.1.0, asyncio-1.4.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 4 items
+
+tests/test_graph.py::test_param_non_identifier_keys PASSED               [ 25%]
+tests/test_graph.py::test_param_invalid_keys_rejected PASSED             [ 50%]
+tests/test_async_graph.py::test_param_non_identifier_keys FAILED         [ 75%]
+tests/test_async_graph.py::test_param_invalid_keys_rejected FAILED       [100%]
+
+=================================== FAILURES ===================================
+________________________ test_param_non_identifier_keys ________________________
+
+    @pytest.mark.asyncio
+    async def test_param_non_identifier_keys():
+        """Regression test for issue #211 — async mirror.
+    
+        Covers @type, hyphenated UUIDs, reserved keywords, leading digits,
+        whitespace/punctuation, unicode, and embedded backticks (which must be
+        doubled inside backtick-quoted identifiers).
+        """
+        pool = BlockingConnectionPool(
+            max_connections=16, timeout=None, decode_responses=True
+        )
+>       db = FalkorDB(connection_pool=pool)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_async_graph.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+falkordb/asyncio/falkordb.py:115: in __init__
+    if Is_Cluster(conn):
+       ^^^^^^^^^^^^^^^^
+falkordb/asyncio/cluster.py:21: in Is_Cluster
+    info = sync_redis.Redis(**kwargs).info(section="server")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.13/site-packages/redis/utils.py:258: in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = (<[AttributeError("'Redis' object has no attribute 'connection_pool'") raised in repr()] Redis object at 0x7d68be374050>,)
+kwargs = {'decode_responses': True, 'himport_registry': HImportRegistry(), 'ssl': False}
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        filterable_args = _get_filterable_args(func, args, kwargs, allowed_args)
+        _check_deprecated_args(func, filterable_args)
+>       return func(*args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: Redis.__init__() got an unexpected keyword argument 'himport_registry'
+
+/usr/local/lib/python3.13/site-packages/redis/utils.py:258: TypeError
+_______________________ test_param_invalid_keys_rejected _______________________
+
+    @pytest.mark.asyncio
+    async def test_param_invalid_keys_rejected():
+        """Async mirror — empty keys and backticks-in-keys must be rejected
+        client-side with a clear error."""
+        pool = BlockingConnectionPool(
+            max_connections=16, timeout=None, decode_responses=True
+        )
+>       db = FalkorDB(connection_pool=pool)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_async_graph.py:196: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+falkordb/asyncio/falkordb.py:115: in __init__
+    if Is_Cluster(conn):
+       ^^^^^^^^^^^^^^^^
+falkordb/asyncio/cluster.py:21: in Is_Cluster
+    info = sync_redis.Redis(**kwargs).info(section="server")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.13/site-packages/redis/utils.py:258: in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = (<[AttributeError("'Redis' object has no attribute 'connection_pool'") raised in repr()] Redis object at 0x7d68be40e190>,)
+kwargs = {'decode_responses': True, 'himport_registry': HImportRegistry(), 'ssl': False}
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        filterable_args = _get_filterable_args(func, args, kwargs, allowed_args)
+        _check_deprecated_args(func, filterable_args)
+>       return func(*args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: Redis.__init__() got an unexpected keyword argument 'himport_registry'
+
+/usr/local/lib/python3.13/site-packages/redis/utils.py:258: TypeError
+---------------------- generated xml file: /out/junit.xml ----------------------
+=========================== short test summary info ============================
+FAILED tests/test_async_graph.py::test_param_non_identifier_keys - TypeError:...
+FAILED tests/test_async_graph.py::test_param_invalid_keys_rejected - TypeErro...
+========================= 2 failed, 2 passed in 0.26s ==========================
+
+BATON_EXIT_CODE 1

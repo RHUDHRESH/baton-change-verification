@@ -1,0 +1,126 @@
+[
+  [
+    "coverage",
+    "7.16.2",
+    [
+      {
+        "filename": "coverage-7.16.2-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl",
+        "sha256": "4358b9c8c0125b460407f3017c6cce8156e904b32772c5630d27112f52bdbfe5"
+      },
+      {
+        "filename": "coverage-7.16.2-py3-none-any.whl",
+        "sha256": "11d28e9123a9156cb405d8d27b44256c9a58fb5decc2073a8f17862057e3aa0f"
+      }
+    ]
+  ],
+  [
+    "iniconfig",
+    "2.3.1",
+    [
+      {
+        "filename": "iniconfig-2.3.1-py3-none-any.whl",
+        "sha256": "9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7"
+      }
+    ]
+  ],
+  [
+    "packaging",
+    "26.3",
+    [
+      {
+        "filename": "packaging-26.3-py3-none-any.whl",
+        "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+      }
+    ]
+  ],
+  [
+    "pluggy",
+    "1.7.0",
+    [
+      {
+        "filename": "pluggy-1.7.0-py3-none-any.whl",
+        "sha256": "7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec"
+      }
+    ]
+  ],
+  [
+    "Pygments",
+    "2.21.0",
+    [
+      {
+        "filename": "pygments-2.21.0-py3-none-any.whl",
+        "sha256": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9"
+      }
+    ]
+  ],
+  [
+    "pytest",
+    "9.1.1",
+    [
+      {
+        "filename": "pytest-9.1.1-py3-none-any.whl",
+        "sha256": "37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c"
+      }
+    ]
+  ],
+  [
+    "pytest-asyncio",
+    "1.4.0",
+    [
+      {
+        "filename": "pytest_asyncio-1.4.0-py3-none-any.whl",
+        "sha256": "933ca923a23075a87fb7070c0ec272a6848489824d887c85c812670932835aa1"
+      }
+    ]
+  ],
+  [
+    "pytest-cov",
+    "7.1.0",
+    [
+      {
+        "filename": "pytest_cov-7.1.0-py3-none-any.whl",
+        "sha256": "a0461110b7865f9a271aa1b51e516c9a95de9d696734a2f71e3e78f46e1d4678"
+      }
+    ]
+  ],
+  [
+    "python-dateutil",
+    "2.9.0.post0",
+    [
+      {
+        "filename": "python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+        "sha256": "a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"
+      }
+    ]
+  ],
+  [
+    "six",
+    "1.17.0",
+    [
+      {
+        "filename": "six-1.17.0-py2.py3-none-any.whl",
+        "sha256": "4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"
+      }
+    ]
+  ],
+  [
+    "redis",
+    "8.0.0",
+    [
+      {
+        "filename": "redis-8.0.0-py3-none-any.whl",
+        "sha256": "c938c18338585009f0bc310f4c7e4e4b4d37639356c4ac072cedf3af570c8dc7"
+      }
+    ]
+  ],
+  [
+    "redis",
+    "8.1.0",
+    [
+      {
+        "filename": "redis-8.1.0-py3-none-any.whl",
+        "sha256": "a4fe1aac3d3b3cc791d4b3d5931c5a956045dc951ee74d1c913ee3ac4d2ee9fb"
+      }
+    ]
+  ]
+]

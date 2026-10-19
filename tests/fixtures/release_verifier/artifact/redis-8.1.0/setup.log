@@ -1,0 +1,31 @@
+BATON_SETUP_COMMAND ["python","-m","pip","install","--disable-pip-version-check","--no-cache-dir","--no-deps","--only-binary=:all:","--require-hashes","-r","/work/requirements.lock"]
+Collecting coverage==7.16.2 (from -r /work/requirements.lock (line 1))
+  Downloading coverage-7.16.2-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (257 kB)
+Collecting iniconfig==2.3.1 (from -r /work/requirements.lock (line 2))
+  Downloading iniconfig-2.3.1-py3-none-any.whl (7.6 kB)
+Collecting packaging==26.3 (from -r /work/requirements.lock (line 3))
+  Downloading packaging-26.3-py3-none-any.whl (129 kB)
+Collecting pluggy==1.7.0 (from -r /work/requirements.lock (line 4))
+  Downloading pluggy-1.7.0-py3-none-any.whl (27 kB)
+Collecting Pygments==2.21.0 (from -r /work/requirements.lock (line 5))
+  Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 20.0 MB/s eta 0:00:00
+Collecting pytest==9.1.1 (from -r /work/requirements.lock (line 6))
+  Downloading pytest-9.1.1-py3-none-any.whl (386 kB)
+Collecting pytest-asyncio==1.4.0 (from -r /work/requirements.lock (line 7))
+  Downloading pytest_asyncio-1.4.0-py3-none-any.whl (16 kB)
+Collecting pytest-cov==7.1.0 (from -r /work/requirements.lock (line 8))
+  Downloading pytest_cov-7.1.0-py3-none-any.whl (22 kB)
+Collecting python-dateutil==2.9.0.post0 (from -r /work/requirements.lock (line 9))
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Collecting redis==8.1.0 (from -r /work/requirements.lock (line 10))
+  Downloading redis-8.1.0-py3-none-any.whl (560 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 560.6/560.6 kB 15.5 MB/s eta 0:00:00
+Collecting six==1.17.0 (from -r /work/requirements.lock (line 11))
+  Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Installing collected packages: six, redis, python-dateutil, pytest-cov, pytest-asyncio, pytest, Pygments, pluggy, packaging, iniconfig, coverage
+
+Successfully installed Pygments-2.21.0 coverage-7.16.2 iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pytest-9.1.1 pytest-asyncio-1.4.0 pytest-cov-7.1.0 python-dateutil-2.9.0.post0 redis-8.1.0 six-1.17.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+BATON_ENVIRONMENT {"dependencies":{"Pygments":"2.21.0","coverage":"7.16.2","iniconfig":"2.3.1","packaging":"26.3","pluggy":"1.7.0","pytest":"9.1.1","pytest-asyncio":"1.4.0","pytest-cov":"7.1.0","python-dateutil":"2.9.0.post0","redis":"8.1.0","six":"1.17.0"},"imported_source":"/work/unpacked/falkordb-py-207000da70ca183ab02990a98bdd97d0a3e3bb1b/falkordb/__init__.py","python_version":"3.13.5"}

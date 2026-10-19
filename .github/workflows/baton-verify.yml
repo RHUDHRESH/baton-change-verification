@@ -1,0 +1,76 @@
+name: Baton immutable release verification
+run-name: Baton verification ${{ inputs.execution_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      execution_id:
+        description: App release execution identity
+        required: true
+        type: string
+      callback_token:
+        description: Single-run callback capability
+        required: true
+        type: string
+      plan_id:
+        description: Sealed graph-derived release plan identity
+        required: true
+        type: string
+      plan_hash:
+        description: Approved plan content hash
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: baton-release-verification
+  cancel-in-progress: false
+jobs:
+  execute:
+    name: execute
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Mask the per-run callback capability
+        env:
+          CALLBACK_TOKEN: ${{ inputs.callback_token }}
+        run: echo "::add-mask::$CALLBACK_TOKEN"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Execute every required environment from the immutable sealed plan
+        env:
+          BATON_CALLBACK_TOKEN: ${{ inputs.callback_token }}
+          BATON_EXECUTION_ID: ${{ inputs.execution_id }}
+          BATON_PLAN_ID: ${{ inputs.plan_id }}
+          BATON_PLAN_HASH: ${{ inputs.plan_hash }}
+        run: python3 scripts/release_gate_worker.py --run-id "$BATON_EXECUTION_ID" --out release-artifact
+      - name: Upload raw logs, JUnit, source archive, and immutable execution report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: baton-verify-${{ inputs.execution_id }}
+          path: release-artifact/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6
+  finalization:
+    name: finalization
+    needs: execute
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Mask the per-run callback capability
+        env:
+          CALLBACK_TOKEN: ${{ inputs.callback_token }}
+        run: echo "::add-mask::$CALLBACK_TOKEN"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Request independent completed-job and artifact readback
+        env:
+          BATON_CALLBACK_TOKEN: ${{ inputs.callback_token }}
+          BATON_EXECUTION_ID: ${{ inputs.execution_id }}
+        run: python3 scripts/release_gate_worker.py --run-id "$BATON_EXECUTION_ID" --finalize

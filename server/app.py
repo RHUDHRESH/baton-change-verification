@@ -598,6 +598,104 @@ def publish_company_task(task_id: str,body: PublishTask,request: Request):
         raise HTTPException(422,str(error))
 
 
+class ReleasePlanStart(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    change_id: str = Field(min_length=1, max_length=200)
+
+
+class ReleaseExecute(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_plan_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    publish_targets: list[Literal["jira", "slack"]] = Field(min_length=2, max_length=2)
+
+
+@app.post("/api/public/release-plans", status_code=201)
+def create_release_plan(body: ReleasePlanStart, request: Request):
+    from . import release_gate
+    security.session(request, auth_db(), DATA)
+    try:
+        return release_gate.create_plan(DATA, PORT, body.change_id)
+    except ValueError as error:
+        raise HTTPException(422, str(error))
+    except Exception:
+        raise HTTPException(503, "Graph investigation was not confirmed; no substitute plan was created") from None
+
+
+@app.get("/api/public/release-plans/latest")
+def latest_release_plan():
+    from . import release_gate
+    try:
+        return release_gate.read_plan(PORT)
+    except ValueError as error:
+        raise HTTPException(404, str(error))
+    except Exception:
+        raise HTTPException(503, "Verification plan storage is unavailable") from None
+
+
+@app.get("/api/public/release-plans/{plan_id}")
+def read_release_plan(plan_id: str):
+    from . import release_gate
+    try:
+        return release_gate.read_plan(PORT, plan_id)
+    except ValueError as error:
+        raise HTTPException(404, str(error))
+
+
+@app.post("/api/public/release-plans/{plan_id}/execute", status_code=202)
+def execute_release_plan(plan_id: str, body: ReleaseExecute, request: Request):
+    from . import release_gate
+    security.session(request, auth_db(), DATA)
+    try:
+        return release_gate.execute(DATA, PORT, plan_id, body.expected_plan_hash, body.publish_targets)
+    except ValueError as error:
+        raise HTTPException(409, str(error))
+    except Exception:
+        raise HTTPException(503, "Verification dispatch was not confirmed; inspect the plan before retrying") from None
+
+
+@app.get("/api/public/release-runs/{run_id}")
+def read_release_run(run_id: str):
+    from . import release_gate
+    try:
+        return release_gate.read_run(PORT, run_id)
+    except ValueError as error:
+        raise HTTPException(404, str(error))
+
+
+@app.get("/api/public/release-runs/{run_id}/evidence")
+def read_release_evidence(run_id: str):
+    from . import release_gate
+    try:
+        return Response(release_gate.evidence(PORT, run_id), media_type="application/json")
+    except ValueError as error:
+        raise HTTPException(409, str(error))
+
+
+@app.get("/api/public/release-runs/{run_id}/logs/{name:path}")
+def read_release_log(run_id: str, name: str):
+    from . import release_gate
+    try:
+        return Response(release_gate.evidence(PORT, run_id, name), media_type="text/plain")
+    except ValueError as error:
+        raise HTTPException(404, str(error))
+
+
+@app.post("/api/public/release-runs/{run_id}/{operation}")
+def release_callback(run_id: str, operation: Literal["events", "complete", "publish"], body: dict, request: Request):
+    from . import release_gate
+    try:
+        release_gate.authenticate(PORT, run_id, request.headers.get("authorization", ""))
+    except ValueError:
+        raise HTTPException(401, "Invalid or expired verification callback") from None
+    try:
+        return {"events": release_gate.event, "complete": release_gate.complete,
+                "publish": release_gate.publish_result}[operation](DATA, PORT, run_id, body)
+    except ValueError as error:
+        raise HTTPException(409, str(error))
+    except Exception:
+        raise HTTPException(503, "Verification callback was not confirmed; no completion is implied") from None
+
+
 class AgentInvestigation(BaseModel):
     model_config = ConfigDict(extra="forbid")
     item_id: str = Field(min_length=1,max_length=200)
@@ -707,6 +805,7 @@ def graph_agent_result(run_id: str):
 @app.post("/api/mcp")
 def graph_mcp(body: dict,request: Request):
     from .graph_agent import TOOLS,Investigation
+    from . import release_graph
     security.session(request,auth_db(),DATA)
     identity=body.get("id")
     if body.get("jsonrpc")!="2.0":
@@ -718,10 +817,13 @@ def graph_mcp(body: dict,request: Request):
         if method=="initialize":
             result={"protocolVersion":"2025-03-26","capabilities":{"tools":{}},"serverInfo":{"name":"baton-graph","version":"0.3.0"}}
         elif method=="tools/list":
-            result={"tools":TOOLS}
+            result={"tools":TOOLS + release_graph.TOOLS}
         elif method=="tools/call":
             params=body.get("params",{})
             name=params.get("name")
+            if name in {t["name"] for t in release_graph.TOOLS}:
+                result=release_graph.call_tool(DATA,PORT,name,params.get("arguments",{}))
+                return {"jsonrpc":"2.0","id":identity,"result":result}
             if name not in {t["name"] for t in TOOLS}:
                 raise ValueError("Unknown read tool; actions require an authorized agent run")
             arguments=params.get("arguments",{})

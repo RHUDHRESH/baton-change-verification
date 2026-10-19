@@ -1,0 +1,47 @@
+{
+  "id": "plan-local-smoke",
+  "source_commit": "207000da70ca183ab02990a98bdd97d0a3e3bb1b",
+  "source_archive_sha256": "cb2057288440cfc977da4bcfbf3770a3a577511f6ef5d3b5b79cf4006ea1a499",
+  "source_hashes": {
+    "falkordb/graph.py": "a14f09fb7322d3e7e2e808d97f4103e460a62c39212d9fb76769223227e85036",
+    "falkordb/helpers.py": "a97d54c480b98e550af3b2dfd324e82669266ddf07547e9fedc5aaf50285c6a1",
+    "falkordb/asyncio/graph.py": "41fc523886a2b40e2874dfba13387306ef853cfe098b0a54683722b66fb47f0f",
+    "tests/test_graph.py": "f9f4be99d4887cd4f1c989fe3f145eb74d05a8deae583b2209cd192522cf3197",
+    "tests/test_async_graph.py": "8d59ac14963d1e8131ada191292ee2f241da933645d3feed9fa9dfcd12b8eecc"
+  },
+  "python_version": "3.13.5",
+  "python_image": "python@sha256:a7cb177dc60dfa77b223192cd0d9e6ce1aac7cf9a569023d68e7c91b6371a718",
+  "falkordb_image": "falkordb/falkordb@sha256:b0bdcac2cbaff989e77cb0610439b7a9289e86de033ccbbd4368b66fb680ae7a",
+  "required_checks": [
+    {
+      "id": "tests/test_graph.py::test_param_non_identifier_keys"
+    },
+    {
+      "id": "tests/test_graph.py::test_param_invalid_keys_rejected"
+    },
+    {
+      "id": "tests/test_async_graph.py::test_param_non_identifier_keys"
+    },
+    {
+      "id": "tests/test_async_graph.py::test_param_invalid_keys_rejected"
+    }
+  ],
+  "environments": [
+    {
+      "id": "redis-8.0.0",
+      "redis_version": "8.0.0",
+      "required": true
+    },
+    {
+      "id": "redis-8.1.0",
+      "redis_version": "8.1.0",
+      "required": true
+    }
+  ],
+  "plan_hash": "50a1351f7d32f5fed5f846cc8d5bec50bb934e9bf9a73657495192e9befdd001",
+  "schema_version": 1,
+  "registry_version": "py211-v1",
+  "policy_version": "required-redis-800-810-v1",
+  "change_id": "FalkorDB/falkordb-py#212",
+  "plan_status": "ready"
+}
