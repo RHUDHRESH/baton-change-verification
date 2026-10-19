@@ -80,6 +80,15 @@ Reasoning lane owns `server/goal_agent.py` and focused tests. Exports:
   graph-ready step and exact current plan/evidence/permission validation.
 - Reuse existing Groq Free configuration, quota/cooldown and measured receipts.
   No runtime framework install, embeddings, local model or new paid services.
+  `BATON_GOAL_MODEL` can select the goal-only model without changing legacy
+  workflows. Receipts retain both the requested model and the provider's actual
+  returned model; a requested setting is not evidence of a successful generation.
+
+Graph search uses bounded parameterized Cypher term matching and global candidate
+ranking across the captured public graphs. Results expose the matched terms,
+score and `native-terms-v1` version. This is lexical retrieval, not a full-text
+index or semantic embedding search. Captured source IDs are resolved by exact
+source URL matches; an entity observation alone never counts as a raw source read.
   Budget each request below Lambda180s; bounded loop, then needs_continuation.
   No manufactured finish or fabricated token usage/tool trace.
 

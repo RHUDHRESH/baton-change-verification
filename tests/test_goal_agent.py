@@ -381,6 +381,33 @@ def test_native_transport_receipts_hash_actual_request_response_and_keep_real_fi
     assert A.NoRedirect().redirect_request(None, None, 302, "redirect", {}, "https://elsewhere.example") is None
 
 
+@pytest.mark.parametrize("goal_model,shared_model,expected", [("openai/gpt-oss-120b", "openai/gpt-oss-20b", "openai/gpt-oss-120b"),
+                                                             (None, "configured-shared-model", "configured-shared-model"),
+                                                             ("", "configured-shared-model", "configured-shared-model"),
+                                                             (None, None, A.DEFAULT_MODEL)])
+def test_goal_specific_model_precedence_preserves_actual_provider_model_and_receipt(boundary, monkeypatch, goal_model, shared_model, expected):
+    for name, value in (("BATON_GOAL_MODEL", goal_model), ("GROQ_MODEL", shared_model)):
+        if value is None:monkeypatch.delenv(name, raising=False)
+        else:monkeypatch.setenv(name, value)
+    payload = provider_response();payload["model"] = "actual-provider-returned-model"
+    opener, raw = mock_http(monkeypatch, payload)
+    _, receipt = A.completion([], [SEARCH], 5)
+    body = json.loads(opener.open.call_args.args[0].data)
+    assert body["model"] == expected and receipt["requested_model"] == expected
+    assert receipt["model"] == payload["model"] and receipt["response_sha256"] == C.sha(raw)
+    assert receipt["id"] == payload["id"] and receipt["usage"] == payload["usage"]
+
+
+def test_goal_model_http_error_records_actual_requested_override_without_changing_shared_config(boundary, monkeypatch):
+    monkeypatch.setenv("BATON_GOAL_MODEL", "openai/gpt-oss-120b");monkeypatch.setenv("GROQ_MODEL", "openai/gpt-oss-20b")
+    error = urllib.error.HTTPError(A.ENDPOINT, 429, "limited", {}, io.BytesIO(b'{"error":{"code":"rate_limit_exceeded","message":"limited"}}'))
+    opener = Mock();opener.open.side_effect = error
+    monkeypatch.setattr(A.urllib.request, "build_opener", Mock(return_value=opener))
+    with pytest.raises(A.transport.ProviderHTTPError) as caught:A.completion([], [SEARCH], 5)
+    assert caught.value.receipt["requested_model"] == "openai/gpt-oss-120b"
+    assert A.os.environ["GROQ_MODEL"] == "openai/gpt-oss-20b" and "model" not in caught.value.receipt
+
+
 @pytest.mark.parametrize("finish,message", [("length", {"role": "assistant", "content": "partial"}),
                                            ("stop", {"role": "assistant", "content": "{}", "refusal": "denied"}),
                                            ("stop", {"role": "tool", "content": "{}"}),
@@ -498,3 +525,63 @@ def test_repeat_empty_native_selection_is_recorded_but_never_executed_or_fabrica
     rejection = next(e for e in r["events"] if e["type"] == "tool_rejected")
     assert rejection["receipt_id"] == receipt(1)["id"] and "result" not in rejection
     assert r["provider_receipts"] == [receipt(i) for i in range(4)] and r["provider_calls"] == 4
+
+
+def test_old_empty_query_cannot_exhaust_a_new_graph_search_strategy(boundary):
+    boundary.graph.SEARCH_VERSION = "new-term-search-v2"
+    record = {"events": [{"seq":0,"type":"tool_result","tool_name":"search_company_graph","args":{"query":"redis-py 8.1.0 failure"},
+                           "status":"succeeded","result":{"observation":{"entities":[]}}}]}
+    assert A._empty_searches(record) == {}
+    record["events"][0]["result"]["observation"]["search_version"] = "old-literal-v1"
+    assert A._empty_searches(record) == {}
+    record["events"][0]["result"]["observation"]["search_version"] = "new-term-search-v2"
+    assert A._empty_searches(record)["redis-py 8.1.0 failure"]["search_version"] == "new-term-search-v2"
+
+
+def test_large_entity_observation_retains_exact_identity_sources_edges_and_verification_facts(boundary, monkeypatch):
+    r, _ = plan_goal(monkeypatch,boundary)
+    properties = {"irrelevant_"+str(i):"noise"*500 for i in range(100)}
+    properties.update(id="actual-entity-id",title="Actual captured entity title",source_ids=["src-real-captured"],
+                      record={"id":"actual-execution","decision":"blocked","verification_status":"failed","source_versions":[{"id":"src-real-captured","path":"falkordb/graph.py"}],
+                              "environments":[{"id":"redis-8.1.0","redis_version":"8.1.0","failed":2,"passed":2,"checks":[{"id":"async-case","status":"failed"}]}]})
+    relationship={"source":"Graph._query","relation":"CALLS","target":"Graph._build_params_header"}
+    event={"type":"tool_result","tool_name":"search_company_graph","args":{"query":"redis","limit":5},"status":"succeeded", "result":{
+        "observation":{"entities":[{"id":"actual-entity-id","labels":["ReleaseExecution"],"properties":properties,"directed_relationships":[relationship]}],"search_version":"real-search-v2"},
+        "evidence":[],"binding":{"fingerprint":"a"*64}}}
+    r["events"].append(event)
+    context=json.loads(A._messages(r,[],False)[1]["content"])
+    last=context["observations"][-1]
+    assert last["args"]==event["args"]
+    observation=last["result"]["observation"]
+    assert observation["entities"][0]["id"]=="actual-entity-id" and observation["entities"][0]["source_ids"]==["src-real-captured"]
+    assert observation["entities"][0]["labels"]==["ReleaseExecution"]
+    details=observation["details"][0]
+    assert details["directed_relationships"]==[relationship]
+    assert details["record"]["decision"]=="blocked" and details["record"]["environments"][0]["failed"]==2
+    assert details["record"]["source_versions"][0]["id"]=="src-real-captured"
+    assert observation["search_version"]=="real-search-v2" and "omitted" not in observation
+    assert len(json.dumps(context)) < 13000 and "irrelevant_" not in json.dumps(context)
+
+
+def test_source_and_action_projection_keep_member_ids_outside_truncated_prose(boundary,monkeypatch):
+    r,_=plan_goal(monkeypatch,boundary)
+    r["events"].append({"type":"tool_result","tool_name":"read_company_source","args":{"source_id":"src-real-captured"},"status":"succeeded","result":{
+        "observation":{"source_id":"src-real-captured","url":"https://github.com/FalkorDB/falkordb-py/pull/212","captured_sha256":"a"*64,"excerpt":"opening code\n"+"middle"*2000+"\nterminal assertion","truncated":False},"evidence":[],"binding":{}}})
+    r["actions"]=[{"id":"actual-action-id","step_id":"step0","kind":"verify_release","status":"verified","read_back_verified":True,"url":"https://example.com/result",
+                   "result":{"run_id":"actual-run-id","decision":"blocked","evidence_status":"verified","environments":[{"id":"redis-8.1.0","failed":2}],"unrelated":"x"*10000}}]
+    context=json.loads(A._messages(r,[],False)[1]["content"])
+    observation=context["observations"][-1]["result"]["observation"]
+    assert observation["source_id"]=="src-real-captured" and observation["captured_sha256"]=="a"*64 and observation["truncated"] is True
+    assert "opening code" in observation["excerpt"] and "terminal assertion" in observation["excerpt"]
+    action=context["action_results"][0]
+    assert action["id"]=="actual-action-id" and action["read_back_verified"] is True
+    assert action["result"]["decision"]=="blocked" and action["result"]["environments"][0]["failed"]==2
+
+
+def test_plan_projection_preserves_all_step_ids_and_dependencies_instead_of_omitting_whole_plan(boundary,monkeypatch):
+    r,_=plan_goal(monkeypatch,boundary,proposal(count=6))
+    for step in r["proposal"]["steps"]:step["why"]="a"*600;step["expected_result"]="b"*600
+    context=json.loads(A._messages(r,[],False)[1]["content"])
+    assert [s["id"] for s in context["proposal"]["steps"]]==[s["id"] for s in r["proposal"]["steps"]]
+    assert context["proposal"]["steps"][-1]["depends_on"]==["step4"]
+    assert context["proposal"]["steps"][-1]["args"]=={"source_id":"source-A"}

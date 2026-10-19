@@ -73,7 +73,8 @@ def completion(messages, tools, timeout):
     key = os.environ.get("GROQ_API_KEY")
     if not key:
         raise RuntimeError("Groq is unavailable; no semantic plan was substituted")
-    body = {"model": os.environ.get("GROQ_MODEL", DEFAULT_MODEL), "messages": messages,
+    requested_model = os.environ.get("BATON_GOAL_MODEL") or os.environ.get("GROQ_MODEL") or DEFAULT_MODEL
+    body = {"model": requested_model, "messages": messages,
             "tools": [{"type": "function", "function": {"name": tool["name"], "description": tool["description"],
                         "parameters": tool["inputSchema"]}} for tool in tools],
             "tool_choice": "auto", "parallel_tool_calls": False, "temperature": 0,
@@ -84,7 +85,9 @@ def completion(messages, tools, timeout):
         with urllib.request.build_opener(NoRedirect()).open(request, timeout=timeout) as response:
             raw = response.read(200001)
     except urllib.error.HTTPError as error:
-        raise transport.ProviderHTTPError("Groq goal selection returned HTTP " + str(error.code), transport.provider_http_receipt(error)) from None
+        receipt = transport.provider_http_receipt(error)
+        receipt["requested_model"] = requested_model
+        raise transport.ProviderHTTPError("Groq goal selection returned HTTP " + str(error.code), receipt) from None
     except (urllib.error.URLError, TimeoutError):
         raise RuntimeError("Groq goal selection was not confirmed") from None
     if len(raw) > 200000:
@@ -101,7 +104,7 @@ def completion(messages, tools, timeout):
     finish = choice.get("finish_reason")
     receipt = {"id": result["id"], "model": result.get("model"), "usage": usage,
                "response_sha256": public.sha(raw), "finish_reason": finish,
-               "transport": "native_chat_completions", "request_sha256": public.sha(request.data)}
+               "requested_model": requested_model, "transport": "native_chat_completions", "request_sha256": public.sha(request.data)}
     message = choice.get("message")
     if finish not in {"tool_calls", "stop"} or not isinstance(message, dict) or message.get("role") != "assistant" or message.get("refusal"):
         raise transport.ProviderProtocolError("Provider goal selection was incomplete", receipt)
@@ -172,8 +175,8 @@ SYSTEM = ("You are a goal-driven company graph investigator and planner. The use
           "evidence_ids are gev observation IDs; source_ids are exact raw captured-source IDs, never interchangeable. "
           "Both publish_task and verify_release require citing at least one kind=source evidence produced by an actual "
           "read_company_source call. Search/entity observations alone cannot authorize either effect. Discover source IDs "
-          "from real tool results; do not guess them. Search is literal substring matching, not semantic or keyword-AND search: "
-          "a long multi-word query may match nothing. Inspect the actual query arguments and result. After an empty search, "
+          "from real tool results; do not guess them. Search uses its disclosed bounded substring strategy, not embeddings; "
+          "inspect search_strategy, search_version, actual query arguments and matched terms rather than assuming all words matched. After an empty search, "
           "choose a concise broader query or another useful offered investigation yourself; never repeat the same exhausted "
           "query, including by changing only its limit or letter case. Empty results are not evidence that the goal is impossible. "
           "Choose the inspection order yourself. If internal ownership is unknown, "
@@ -184,12 +187,14 @@ SYSTEM = ("You are a goal-driven company graph investigator and planner. The use
           "No shell, Python, raw Cypher or arbitrary URL. Never claim completion, publication, "
           "or task Done without independent readback. State uncertainty. Use propose_goal_plan to finish planning. "
           "Alternatively return ONLY a JSON object with the same proposal fields, as your native final response. "
+          "Keep proposals concise and include only necessary steps; brief rationales leave room for a complete structured response. "
           "For an existing plan, inspect changes or choose an eligible step using select_plan_step; do not invent success.")
 
 
 def _empty_searches(record):
     """Only observed empty literal searches; no query or next tool is invented."""
     exhausted = {}
+    search_version = getattr(_modules()[1], "SEARCH_VERSION", None)
     for event in record["events"]:
         if event["type"] == "replan_required":
             exhausted = {}
@@ -197,32 +202,135 @@ def _empty_searches(record):
             continue
         args = event.get("args", {})
         observation = event.get("result", {}).get("observation", {})
-        if isinstance(args.get("query"), str) and observation.get("entities") == []:
+        if isinstance(args.get("query"), str) and observation.get("entities") == [] and observation.get("search_version") == search_version:
             key = args["query"].lower()
             previous = exhausted.get(key, {})
             exhausted[key] = {"tool_name": "search_company_graph", "args": copy.deepcopy(args),
+                              "search_version": search_version,
                               "observation_seq": event["seq"], "actual_empty_executions": previous.get("actual_empty_executions", 0) + 1,
                               "outcome": "empty_literal_search", "guidance": "Choose a different query or investigation; host does not choose the next query."}
     return exhausted
 
 
+def _bounded_content(value, limit):
+    text, truncated = transport.bounded_excerpt(value, limit=limit)
+    return json.loads(text), truncated
+
+
+def _fact_fields(value):
+    """Select actual identity/status fields; never infer findings from prose."""
+    if not isinstance(value, dict):
+        return {}
+    fields = ("id", "source_id", "source_ids", "title", "name", "path", "url", "kind", "status", "decision",
+              "verification_status", "evidence_status", "source_commit", "passed", "failed", "errors", "skipped", "total",
+              "redis_version", "python_redis_client_version", "read_back_verified", "graph_linked", "remote_id", "run_id")
+    fields += ("matched_search_terms", "matched_substrings", "term_overlap_score")
+    result = {key: copy.deepcopy(value[key]) for key in fields if key in value}
+    for key in ("title", "name"):
+        if isinstance(result.get(key), str):
+            result[key] = transport.head_tail(result[key], 220)
+    for key in ("source_versions", "sources"):
+        if isinstance(value.get(key), list):
+            result[key] = [{field: row[field] for field in ("id", "source_id", "path", "url", "kind") if field in row}
+                           for row in value[key][:12] if isinstance(row, dict)]
+    if isinstance(value.get("environments"), list):
+        result["environments"] = []
+        for environment in value["environments"][:4]:
+            if not isinstance(environment, dict):
+                continue
+            row = _fact_fields({key: part for key, part in environment.items() if key != "environments"})
+            if isinstance(environment.get("checks"), list):
+                row["checks"] = [_fact_fields(check) for check in environment["checks"][:6]]
+            result["environments"].append(row)
+    return result
+
+
+def _observation_view(event, detailed):
+    result = event.get("result", {})
+    observation = result.get("observation", {})
+    if "entities" in observation:
+        entities = observation["entities"]
+        index, shown = [], []
+        for entity in entities[:8]:
+            if not isinstance(entity, dict):
+                continue
+            properties = entity.get("properties", {})
+            core = _fact_fields(entity)
+            core.update({key: part for key, part in _fact_fields(properties).items() if key not in core})
+            if "labels" in entity:
+                core["labels"] = copy.deepcopy(entity["labels"])
+            index.append(core)
+        for entity in entities[:(2 if detailed else 0)]:
+            if not isinstance(entity, dict):
+                continue
+            properties = entity.get("properties", {})
+            row = {"id": entity.get("id"), "properties": _fact_fields(properties)}
+            if isinstance(properties.get("record"), dict):
+                row["record"] = _fact_fields(properties["record"])
+            if isinstance(entity.get("directed_relationships"), list):
+                row["directed_relationships"] = copy.deepcopy(entity["directed_relationships"][:6])
+            shown.append(row)
+        view = {"entities": index, "details": shown, "observed_entity_count": len(entities),
+                "details_shown": len(shown), "truncated": bool(entities) and (len(entities) > len(shown) or any(e.get("truncated") for e in entities)),
+                "scope": observation.get("scope"), "projection": "Actual identity/status fields and directed edges; remaining properties are archived."}
+    elif "source_id" in observation:
+        excerpt, clipped = _bounded_content(observation.get("excerpt"), 2000 if detailed else 450)
+        view = {key: copy.deepcopy(observation[key]) for key in ("source_id", "url", "captured_sha256") if key in observation}
+        view.update(excerpt=excerpt, truncated=bool(clipped or observation.get("truncated")))
+    elif "memories" in observation:
+        view = {"memories": [{key: copy.deepcopy(row[key]) for key in ("id", "goal", "status", "revision") if key in row}
+                             for row in observation["memories"][:3]], "observed_memory_count": len(observation["memories"]),
+                "truncated": bool(observation["memories"]), "origin": observation.get("origin")}
+    else:
+        # Unknown observation formats retain an explicit bounded excerpt; known
+        # tool identities and their arguments remain outside this projection.
+        view, _ = _bounded_content(observation, 1200 if detailed else 450)
+    if isinstance(view, dict):
+        for key in ("search_version", "search_strategy"):
+            if key in observation:
+                view[key] = copy.deepcopy(observation[key])
+    return {"observation": view, "evidence": [{key: e.get(key) for key in ("id", "source_id", "kind")} for e in result.get("evidence", [])[:20]],
+            "binding": copy.deepcopy(result.get("binding"))}
+
+
+def _plan_view(proposal):
+    if not proposal:
+        return None
+    value = {"hash": proposal["hash"], "summary": transport.head_tail(proposal["summary"], 400), "steps": [], "truncated": True}
+    for step in proposal["steps"]:
+        row = {key: copy.deepcopy(step[key]) for key in ("id", "title", "tool_name", "depends_on", "evidence_ids")}
+        row["args"] = copy.deepcopy(step["args"])
+        if isinstance(row["args"].get("description"), str):
+            row["args"]["description"] = transport.head_tail(row["args"]["description"], 240)
+        row["expected_result"] = transport.head_tail(step["expected_result"], 160)
+        value["steps"].append(row)
+    return value
+
+
 def _messages(record, ready, replan):
-    observations = [{"tool": e.get("tool_name"), "args": e.get("args"), "status": e.get("status"),
-                     "result": e.get("result"), "step_id": e.get("step_id")}
-                    for e in record["events"] if e["type"] == "tool_result"][-3:]
-    def compact(value, limit):
-        text, _ = transport.bounded_excerpt(value, limit=limit)
-        return json.loads(text)
+    events = [e for e in record["events"] if e["type"] == "tool_result"][-3:]
+    observations = [{"tool": e.get("tool_name"), "args": copy.deepcopy(e.get("args")), "status": e.get("status"),
+                     "result": _observation_view(e, i == len(events)-1), "step_id": e.get("step_id")}
+                    for i, e in enumerate(events)]
     actions = [{key: action.get(key) for key in ("id", "step_id", "kind", "status", "read_back_verified", "url", "result", "error")}
                for action in record["actions"][-2:]]
-    payload = {"goal": record["goal"], "proposal": compact(record.get("proposal"), 2800), "ready_steps": ready,
+    for action in actions:
+        actual = action.get("result")
+        if isinstance(actual, dict):
+            projected = _fact_fields(actual)
+            if isinstance(actual.get("publications"), dict):
+                projected["publications"] = {target: _fact_fields(row) for target, row in actual["publications"].items()}
+            if "work_completion_claimed" in actual:
+                projected["work_completion_claimed"] = actual["work_completion_claimed"]
+            action["result"] = projected
+    payload = {"goal": record["goal"], "proposal": _plan_view(record.get("proposal")), "ready_steps": ready,
                "replan_required": replan, "approved_actions": record["approved_actions"],
-               "observations": compact(observations, 2600), "evidence_ids": [e["id"] for e in record["evidence"]],
+               "observations": observations, "evidence_ids": [e["id"] for e in record["evidence"]],
                "observation_feedback": list(_empty_searches(record).values())[-6:],
                "selection_feedback": [{key: e.get(key) for key in ("tool_name", "args", "error", "receipt_id", "tool_call_id")}
-                                      for e in record["events"] if e["type"] == "tool_rejected"][-2:],
+                                      for e in record["events"] if e["type"] == "tool_rejected" and e.get("search_version") == getattr(_modules()[1], "SEARCH_VERSION", None)][-2:],
                "inspected_sources": [{"evidence_id": e["id"], "source_id": e.get("source_id")} for e in record["evidence"] if e.get("kind") == "source"],
-               "action_results": compact(actions, 1600), "action_ids": [action.get("id") for action in record["actions"] if action.get("id")],
+               "action_results": actions, "action_ids": [action.get("id") for action in record["actions"] if action.get("id")],
                "success_criteria": (record.get("proposal") or {}).get("success_criteria", []),
                "effect_schemas": EFFECT_TOOLS, "projection": "Bounded display; exact original observations, plans and receipts remain in durable graph episodes."}
     # Exact results remain durable in events; a bounded view is supplied to the model.
@@ -327,7 +435,7 @@ def _loop(data, port, record, deadline, acting=False, executor=None, replan=Fals
             if name == "search_company_graph" and args["query"].lower() in _empty_searches(record):
                 prior = _empty_searches(record)[args["query"].lower()]
                 _event(record, "tool_rejected", tool_call_id=call_id, receipt_id=receipt["id"], tool_name=name,
-                       args=args, error="Repeated empty literal search was not executed; select a different query or investigation", previous_observation_seq=prior["observation_seq"])
+                       args=args, search_version=prior["search_version"], error="Repeated empty search under this retrieval strategy was not executed; select a different query or investigation", previous_observation_seq=prior["observation_seq"])
                 _save(data, port, record)
                 continue
             _observe(data, port, record, name, args, call_id, receipt["id"])

@@ -15,12 +15,20 @@
     'Compare related public issues and pull requests in the captured FalkorDB knowledge graph; distinguish shared files from dependencies.',
     'Find what the captured public evidence says about contributors to this change, and state what it cannot establish about internal ownership.'
   ];
-  let record, busy = false, reading = false, uncertain = false, generation = 0, key, keyGoal, pendingCreation = false;
+  let record, busy = false, reading = false, uncertain = false, generation = 0, key, keyGoal, pendingCreation = false, workGraph, workGraphObserver;
   const list = value => Array.isArray(value) ? value : [];
   const authenticatedNow = () => typeof authenticated !== 'undefined' && authenticated;
   const canContinue = () => ['needs_continuation', 'blocked'].includes(record?.status) || (record?.status === 'proposed' && Boolean(record?.proposal?.hash));
   const text = value => typeof value === 'string' ? value : JSON.stringify(value, null, 2);
   const progress = value => { if ($('goal-progress')) $('goal-progress').textContent = value; };
+  function requestedGoalId() {
+    const hash = window.location?.hash || '';
+    if (!hash.startsWith('#goal-agent?')) return undefined;
+    const match = /^#goal-agent\?goal=([a-f0-9]{32})$/.exec(hash);
+    if (!match) throw Error('Invalid requested goal link; expected a stored goal ID');
+    return match[1];
+  }
+  function goalLink(id) { return /^[a-f0-9]{32}$/.test(id || '') ? '#goal-agent?goal=' + id : null; }
   function safeLink(value) {
     try {
       const origin = window.location?.origin;
@@ -45,7 +53,52 @@
   }
   function completionVerified(value) {
     const effects = list(value.proposal?.steps).filter(step => EFFECTS[step.tool_name]);
-    return value.status === 'completed' && effects.length > 0 && effects.every(step => list(value.actions).some(action => action.step_id === step.id && action.kind === step.tool_name && action.status === 'verified' && action.read_back_verified === true));
+    return value.status === 'completed' && effects.length > 0 && effects.every(step => stepState(value, step) === 'verified');
+  }
+  function stepState(value, step) {
+    const hash = value.proposal?.hash;
+    if (typeof hash !== 'string' || !hash) return 'proposed';
+    if (EFFECTS[step.tool_name]) return list(value.actions).some(action => action.step_id === step.id && action.kind === step.tool_name && action.plan_hash === hash && action.status === 'verified' && action.read_back_verified === true) ? 'verified' : 'proposed';
+    return list(value.events).some(event => event.type === 'tool_result' && event.step_id === step.id && event.tool_name === step.tool_name && event.plan_hash === hash && event.status === 'succeeded') ? 'observed' : 'proposed';
+  }
+  function workGraphElements(value) {
+    const steps = [...new Map(list(value.proposal?.steps).slice(0, 6).map(step => [step.id, step])).values()];
+    const sources = new Map(list(value.evidence).map(source => [source.id, source]));
+    const nodes = new Map(), edges = new Map();
+    for (const step of steps) {
+      const state = stepState(value, step), status = {verified: 'Verified action', observed: 'Observed read', proposed: 'Proposed'}[state];
+      nodes.set('step:' + step.id, {data: {id: 'step:' + step.id, label: step.title + '\n' + status, kind: 'step', state, anchor: 'goal-step-' + step.id}});
+    }
+    for (const step of steps) {
+      for (const dependency of list(step.depends_on)) if (nodes.has('step:' + dependency)) {
+        const id = JSON.stringify(['depends', dependency, step.id]);
+        edges.set(id, {data: {id, source: 'step:' + dependency, target: 'step:' + step.id, relation: 'DEPENDS_ON', label: 'prerequisite', kind: 'dependency'}});
+      }
+      for (const id of list(step.evidence_ids)) if (sources.has(id)) {
+        const source = sources.get(id);
+        nodes.set('evidence:' + id, {data: {id: 'evidence:' + id, label: id + '\nInspected evidence', kind: 'evidence', state: 'evidence', anchor: 'goal-source-' + encodeURIComponent(id), source_id: source.source_id}});
+        const edgeId = JSON.stringify(['cites', step.id, id]);
+        edges.set(edgeId, {data: {id: edgeId, source: 'step:' + step.id, target: 'evidence:' + id, relation: 'CITES', label: 'cites', kind: 'citation'}});
+      }
+    }
+    return [...nodes.values(), ...edges.values()];
+  }
+  function renderWorkGraph(root, value) {
+    if (typeof window.cytoscape !== 'function') { root.append(el('p', 'The ordered steps below show the work graph; the visual viewer is unavailable.', 'goal-footnote')); return; }
+    const container = el('div', undefined, 'goal-work-graph'); container.id = 'goal-work-graph'; container.setAttribute('role', 'img'); container.setAttribute('aria-label', 'Stored proposal dependencies and cited evidence. Prerequisite arrows point to dependent steps.');
+    root.append(container, el('p', 'Arrows: prerequisite → dependent step; step → cited evidence. Proposed ≠ executed. Green: verified action; blue: observed read; outlined: proposed. Select a node to inspect its existing record below.', 'goal-footnote'));
+    try {
+      workGraph = window.cytoscape({container, elements: workGraphElements(value), layout: {name: 'breadthfirst', directed: true, padding: 28, spacingFactor: 1.15, animate: false}, minZoom: 0.2, maxZoom: 2, userZoomingEnabled: false, style: [
+        {selector: 'node', style: {label: 'data(label)', 'font-family': 'DM Sans, sans-serif', 'font-size': 11, 'text-wrap': 'wrap', 'text-max-width': 115, color: '#263b31', 'text-valign': 'center', 'background-color': '#f6f6f1', 'border-width': 1.5, 'border-color': '#7a827a', width: 125, height: 62, shape: 'roundrectangle'}},
+        {selector: 'node[state="verified"]', style: {'background-color': '#28533c', color: '#ffffff', 'border-color': '#28533c'}},
+        {selector: 'node[state="observed"]', style: {'background-color': '#315b70', color: '#ffffff', 'border-color': '#315b70'}},
+        {selector: 'node[kind="evidence"]', style: {'background-color': '#edf3e7', 'border-color': '#c3ccbf', shape: 'ellipse', width: 100, height: 52, 'font-size': 9}},
+        {selector: 'edge', style: {width: 1.5, 'line-color': '#7a827a', 'target-arrow-color': '#7a827a', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier', label: 'data(label)', 'font-size': 9, 'font-family': 'DM Sans, sans-serif', color: '#7a827a', 'text-background-color': '#f6f6f1', 'text-background-opacity': 1, 'text-background-padding': 3}},
+        {selector: 'edge[kind="citation"]', style: {'line-style': 'dashed', 'line-color': '#c3ccbf', 'target-arrow-color': '#c3ccbf'}}
+      ]});
+      workGraph.on('tap', 'node', event => { const target = $(event.target.data('anchor')); if (target) { target.scrollIntoView?.({behavior: 'auto', block: 'nearest'}); target.tabIndex = -1; target.focus?.({preventScroll: true}); } });
+      if (window.ResizeObserver) { workGraphObserver = new window.ResizeObserver(() => { workGraph?.resize(); workGraph?.fit(undefined, 28); }); workGraphObserver.observe(container); }
+    } catch (_) { if (workGraph) { workGraph.destroy(); workGraph = undefined; } container.hidden = true; root.append(el('p', 'The visual graph could not load. Inspect the ordered steps and source records below.', 'goal-footnote')); }
   }
   function controls() {
     if (!$('goal-submit')) return;
@@ -59,6 +112,8 @@
     $('goal-auth-note').textContent = authenticatedNow() ? 'Submitting investigates and proposes. External actions require your separate approval below.' : 'Sign in to submit a goal or approve actions. Stored evidence is public.';
   }
   function render() {
+    if (workGraphObserver) { workGraphObserver.disconnect(); workGraphObserver = undefined; }
+    if (workGraph) { workGraph.destroy(); workGraph = undefined; }
     const state = $('goal-state'), plan = $('goal-plan'), timeline = $('goal-timeline'), evidence = $('goal-evidence'), actions = $('goal-receipts'), approvals = $('goal-approvals');
     for (const root of [state, plan, timeline, evidence, actions, approvals]) root.replaceChildren();
     $('goal-result').hidden = !record;
@@ -66,6 +121,8 @@
     state.append(el('p', 'STORED GOAL / REVISION ' + (record.revision ?? 'unknown'), 'eyebrow'), el('h2', record.goal || 'Stored goal'));
     const label = completionVerified(record) ? 'Completed · action read-backs verified' : record.status === 'completed' ? 'Completion reported · action verification unconfirmed' : String(record.status || 'unknown').replaceAll('_', ' ');
     state.append(el('strong', label, 'goal-status'), el('small', 'Goal ' + record.id + ' · ' + (record.model || 'Model not recorded') + ' · ' + (record.updated_at || record.created_at || 'Time not recorded')));
+    const permalink = goalLink(record.id);
+    if (permalink) { const a = el('a', 'Link to this stored goal', 'goal-permalink'); a.href = permalink; state.append(a); }
     if (record.blocked_reason) state.append(el('p', text(record.blocked_reason), 'goal-warning'));
     const proposal = record.proposal;
     if (!proposal) plan.append(el('p', 'No AI proposal is stored. A missing model or graph cannot produce a substitute plan.', 'goal-warning'));
@@ -75,7 +132,7 @@
       const steps = el('ol', undefined, 'goal-dag');
       for (const step of list(proposal.steps)) {
         const row = el('li', undefined, 'goal-step'); row.id = 'goal-step-' + step.id;
-        row.append(el('small', step.id + ' · ' + step.tool_name), el('h3', step.title), el('p', step.why || ''), el('p', list(step.depends_on).length ? 'Depends on: ' + step.depends_on.join(', ') : 'No prerequisite steps', 'goal-dependency'), el('p', 'Expected result: ' + (step.expected_result || 'Not specified')));
+        row.append(el('small', step.id + ' · ' + step.tool_name), el('h3', step.title), el('p', {verified: 'Verified action · current proposal read-back', observed: 'Observed read · current proposal tool result', proposed: 'Proposed · no verified execution for this step'}[stepState(record, step)], 'goal-step-status'), el('p', step.why || ''), el('p', list(step.depends_on).length ? 'Depends on: ' + step.depends_on.join(', ') : 'No prerequisite steps', 'goal-dependency'), el('p', 'Expected result: ' + (step.expected_result || 'Not specified')));
         const citations = el('div', undefined, 'goal-citations');
         for (const id of list(step.evidence_ids)) {
           const found = list(record.evidence).find(item => item.id === id);
@@ -85,7 +142,8 @@
         }
         row.append(citations, detail('Inspect proposed arguments', step.args || {})); steps.append(row);
       }
-      plan.append(el('h3', 'Proposed work graph'), el('p', 'Dependencies below come from the stored proposal. A proposed step is not an executed tool call.', 'goal-footnote'), steps);
+      plan.append(el('h3', 'Proposed work graph'), el('p', 'Dependencies below come from the stored proposal. A proposed step is not an executed tool call.', 'goal-footnote'));
+      renderWorkGraph(plan, record); plan.append(steps);
       bullets(plan, 'Limitations', proposal.limitations);
       for (const kind of Object.keys(EFFECTS)) if (list(proposal.steps).some(step => step.tool_name === kind)) {
         const label = el('label', undefined, 'goal-approval'), input = el('input'); input.type = 'checkbox'; input.id = 'goal-approve-' + kind; input.onchange = controls;
@@ -132,9 +190,13 @@
     if (busy || reading) return;
     const token = ++generation; reading = true; controls(); progress('Reading the latest stored goal…');
     try {
-      const expected = pendingCreation ? undefined : record?.id;
+      const expected = pendingCreation ? undefined : requestedGoalId() || record?.id;
       const response = await api(expected ? ROOT + '/' + encodeURIComponent(expected) : ROOT + '/latest');
       if (token !== generation) return;
+      if (pendingCreation && response?.goal !== keyGoal) {
+        progress('The latest goal does not match the pending request; no POST was repeated. Refresh stored state again to reconcile.');
+        return;
+      }
       if (response === null && !expected) {
         record = undefined; uncertain = false; pendingCreation = false; render();
         progress('No goals yet. Submit an engineering goal to start an investigation. Sign in to take action.');
@@ -159,6 +221,7 @@
     try {
       const value = assertRecord(await api(path, body), expected);
       record = value; key = undefined; uncertain = false; pendingCreation = false; render();
+      if (path === ROOT && goalLink(record.id) && window.history?.replaceState) window.history.replaceState(null, '', goalLink(record.id));
       progress('Agent response stored. Review the proposal, source evidence and actual receipts.'); await poll(record.id, token);
     } catch (error) {
       uncertain = true; progress('Request not confirmed: ' + error.message + '. No POST was repeated. Refresh stored state before another explicit action.');
@@ -181,6 +244,7 @@
   if ($('goal-form')) {
     $('goal-form').onsubmit = event => { event.preventDefault(); submit(); };
     $('goal-refresh').onclick = hydrate; $('goal-act').onclick = act; $('goal-continue').onclick = continueGoal;
+    if (window.addEventListener) window.addEventListener('hashchange', () => { if ((window.location.hash || '').startsWith('#goal-agent?')) hydrate(); });
     examples(); render(); hydrate();
   }
 })();

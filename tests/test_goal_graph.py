@@ -198,7 +198,7 @@ def test_cloud_state_graph_reused_but_never_searchable_even_from_tampered_pointe
     assert Q._graph(workspace.port).name == state_name
     assert state_name not in dict(Q._graphs(workspace.data, workspace.port))
     result = Q.call_tool(workspace.data, workspace.port, "search_company_graph", {"query": "private-control-data"})
-    assert result["observation"]["entities"] == []
+    assert all(entity["graph"] != state_name and "private-control-data" not in json.dumps(entity) for entity in result["observation"]["entities"])
 
 
 def test_expired_request_deadline_prevents_native_read_and_write(workspace):
@@ -208,3 +208,84 @@ def test_expired_request_deadline_prevents_native_read_and_write(workspace):
             Q.create_goal(workspace.data, workspace.port, goal())
         with pytest.raises(RuntimeError, match="deadline"):
             Q.call_tool(workspace.data, workspace.port, "search_company_graph", {"query": "Graph"})
+
+
+@pytest.mark.parametrize("query", ["redis-py 8.1.0 failure", "REDIS\u2011PY / 8.1.0: failures", "Why does redis-py 8.1.0 fail?"])
+def test_native_multiterm_search_discovers_actual_failed_measurements(workspace, query):
+    run = measured(workspace.plan)
+    run.update(verification_status="failed", decision="blocked")
+    for check in run["environments"][1]["checks"][2:]:
+        check["status"] = "failed"
+    R.record_result(workspace.data, workspace.port, workspace.plan, run)
+    source_ids = [source["id"] for source in workspace.sources]
+    result = Q.call_tool(workspace.data, workspace.port, "search_company_graph", {"query": query, "limit": 5})
+    entities = result["observation"]["entities"]
+    failed = [e for e in entities if "ReleaseMeasurement" in e["labels"] and e["properties"]["record"]["status"] == "failed"]
+    assert len(failed) == 2
+    assert all(e["properties"]["record"]["environment_id"] == "redis-8.1.0" for e in failed)
+    assert all("8.1.0" in e["matched_search_terms"] and e["term_overlap_score"] >= 3 for e in failed)
+    assert "bounded_native_term_overlap" in result["observation"]["search_strategy"]
+    assert result["observation"]["search_version"] == Q.SEARCH_VERSION == "native-terms-v1"
+    assert {term["match"] for term in result["observation"]["search_terms"]} >= {"redis", "py", "8.1.0", "fail"}
+    assert [source["id"] for source in workspace.sources] == source_ids
+    assert {e["kind"] for e in result["evidence"]} == {"entity"}
+
+
+def test_search_ranks_across_graphs_not_first_graph_first(workspace, monkeypatch):
+    graph = workspace.graph
+    graph.query("CREATE (:WorkItem {id:'low-match',title:'redis'})")
+    run = measured(workspace.plan)
+    run.update(verification_status="failed", decision="blocked")
+    run["environments"][1]["checks"][2]["status"] = "failed"
+    R.record_result(workspace.data, workspace.port, workspace.plan, run)
+    # Same real graph under two graph handles exercises global rank/limit rather
+    # than allowing the first matching graph to consume the output budget.
+    first = Q._CheckedGraph(Q._connect(workspace.port).select_graph("first_search_" + uuid.uuid4().hex))
+    first.query("CREATE (:WorkItem {id:'first-low',title:'redis'})")
+    monkeypatch.setattr(Q, "_graphs", lambda *a: [(first.name, first), (graph.name, Q._CheckedGraph(graph))])
+    try:
+        result = Q.call_tool(workspace.data, workspace.port, "search_company_graph", {"query": "redis-py 8.1.0 failure", "limit": 1})
+        assert result["observation"]["entities"][0]["graph"] == graph.name
+        assert "ReleaseMeasurement" in result["observation"]["entities"][0]["labels"]
+    finally:
+        first.delete()
+
+
+@pytest.mark.parametrize("query", ["quuxzyglorpzzzz", "why is the", "| * @ {}"])
+def test_genuinely_empty_multiterm_search_never_fabricates_evidence(workspace, query):
+    result = Q.call_tool(workspace.data, workspace.port, "search_company_graph", {"query": query})
+    assert result["observation"]["entities"] == [] and result["evidence"] == []
+    assert result["observation"]["search_version"] == Q.SEARCH_VERSION
+
+
+def test_untrusted_search_operators_are_only_data_not_graph_language(workspace):
+    before = workspace.graph.ro_query("MATCH (n) RETURN count(n)").result_set
+    result = Q.call_tool(workspace.data, workspace.port, "search_company_graph", {"query": "redis-py 8.1.0 failure' | * ) MATCH (n) DETACH DELETE n //", "limit": 3})
+    assert workspace.graph.ro_query("MATCH (n) RETURN count(n)").result_set == before
+    assert len(result["observation"]["entities"]) <= 3
+    assert len(result["observation"]["search_terms"]) <= 12
+
+
+def test_source_version_entity_exposes_exact_url_mapped_raw_source_ids(workspace, monkeypatch):
+    source = next(s for s in workspace.sources if s.get("path") == "falkordb/graph.py")
+    original = Q._sources
+    loads = []
+    def catalog(*args):
+        loads.append(True)
+        return original(*args)
+    monkeypatch.setattr(Q, "_sources", catalog)
+    result = Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": R._id(source["id"])})
+    entity = result["observation"]["entities"][0]
+    assert entity["id"] != source["id"]  # Scoped graph identity is not a source API identity.
+    assert entity["source_ids"] == [source["id"]]
+    assert len(loads) == 1 and result["evidence"][0]["kind"] == "entity"
+    raw = Q.call_tool(workspace.data, workspace.port, "read_company_source", {"source_id": entity["source_ids"][0]})
+    assert raw["observation"]["source_id"] == source["id"] and raw["evidence"][0]["kind"] == "source"
+
+
+def test_entity_source_mapping_uses_exact_urls_not_scoped_id_guessing(workspace):
+    identity = "looks-like-src-" + "a" * 16
+    workspace.graph.query("CREATE (:ReleaseEvidence {id:$id,json:$json})", {"id": identity, "json": json.dumps({"url": "https://api.github.com/repos/FalkorDB/falkordb-py/unmatched-public-path"})})
+    result = Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": identity})
+    assert result["observation"]["entities"][0]["source_ids"] == []
+    assert result["evidence"][0]["kind"] == "entity"

@@ -11,18 +11,20 @@ ROOT = Path(__file__).resolve().parents[1]
 NODE = shutil.which('node')
 HARNESS = r"""
 const fs=require('fs'),vm=require('vm'),input=JSON.parse(fs.readFileSync(0,'utf8'));
-const nodes=new Map(),calls=[],delays=[];
+const nodes=new Map(),calls=[],delays=[],history=[],graphs=[];let destroyed=0,tap;
 class Element {
  constructor(tag,text){this.tag=tag;this.children=[];this.own=text||'';this.hidden=false;this.value='';this.checked=false;}
  set id(value){this.identity=value;nodes.set(value,this);}get id(){return this.identity;}
  set textContent(value){this.own=String(value);this.children=[];}get textContent(){return this.own+this.children.map(x=>typeof x==='string'?x:x.textContent).join(' ');}
  set innerHTML(value){throw Error('Unsafe HTML rendering');}
+ setAttribute(name,value){this[name]=value;}
  append(...children){this.children.push(...children);}replaceChildren(...children){this.own='';this.children=[...children];}focus(){this.focused=true;}
 }
 let index=0;
-const context={URL,Set,Map,console,window:{location:{origin:'https://baton-workspace.vercel.app'},crypto:{randomUUID:()=> 'test-idempotency-key'}},authenticated:input.authenticated!==false,
+const context={URL,Set,Map,console,window:{location:{origin:'https://baton-workspace.vercel.app',hash:input.hash||''},history:{replaceState:(state,title,url)=>history.push(url)},crypto:{randomUUID:()=> 'test-idempotency-key'}},authenticated:input.authenticated!==false,
  $:id=>nodes.get(id),el:(tag,text,cls)=>{const e=new Element(tag,text);e.className=cls;return e;},notice:message=>context.noticeText=message,
  setTimeout:(resolve,delay)=>{delays.push(delay);resolve();},api:async(path,body)=>{calls.push(body===undefined?{path}:{path,body});if(input.failAt===calls.length-1)throw Error('mock unavailable');return JSON.parse(JSON.stringify(input.records[Math.min(index++,input.records.length-1)]));}};
+if(input.graph)context.window.cytoscape=options=>{graphs.push({elements:options.elements,layout:options.layout});return {on:(type,target,handler)=>tap=handler,destroy:()=>destroyed++,resize:()=>{},fit:()=>{}};};
 vm.createContext(context);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),context);
 for(const id of ['goal-input','goal-submit','goal-refresh','goal-continue','goal-act','goal-auth-note','goal-progress','goal-result','goal-state','goal-plan','goal-timeline','goal-evidence','goal-receipts','goal-approvals','goal-examples'])nodes.set(id,new Element('div'));
 nodes.get('goal-input').value=input.goal||'Investigate this actual public change';
@@ -31,15 +33,17 @@ function tree(e){return {tag:e.tag,text:e.own,href:e.href||null,id:e.id||null,ch
 (async()=>{
  if(input.mode==='link')return console.log(JSON.stringify({url:ui.safeLink(input.url)}));
  if(input.mode==='completion')return console.log(JSON.stringify({verified:ui.completionVerified(input.record)}));
- if(['hydrate','act','continue','continue-twice','continue-refresh-continue','hydrate-submit'].includes(input.mode))await ui.hydrate();
- if(['submit','submit-twice','hydrate-submit'].includes(input.mode))await ui.submit();
+ if(['hydrate','act','continue','continue-twice','continue-refresh-continue','hydrate-submit','hydrate-submit-refresh'].includes(input.mode))await ui.hydrate();
+ if(['submit','submit-twice','hydrate-submit','hydrate-submit-refresh'].includes(input.mode))await ui.submit();
+ if(input.mode==='hydrate-submit-refresh')await ui.hydrate();
  if(input.mode==='submit-twice')await ui.submit();
  if(input.mode==='act'){for(const kind of input.approve||[]){const e=nodes.get('goal-approve-'+kind);if(e)e.checked=true;}await ui.act();}
  if(input.mode==='continue')await ui.continueGoal();
  if(input.mode==='continue-twice'){await ui.continueGoal();await ui.continueGoal();}
  if(input.mode==='continue-refresh-continue'){await ui.continueGoal();await ui.hydrate();await ui.continueGoal();}
  if(input.mode==='examples'){ui.examples();for(const button of nodes.get('goal-examples').children){button.onclick();} }
- const result={calls,delays,notice:context.noticeText,disabled:nodes.get('goal-submit').disabled,continueDisabled:nodes.get('goal-continue').disabled,continueLabel:nodes.get('goal-continue').textContent,input:nodes.get('goal-input').value};
+ if(input.graphTap&&tap){const node=graphs.at(-1).elements.find(e=>e.data.id===input.graphTap);tap({target:{data:key=>node.data[key]}});}
+ const result={calls,delays,history,graphs,destroyed,focused:[...nodes].filter(([id,e])=>e.focused).map(([id])=>id),notice:context.noticeText,disabled:nodes.get('goal-submit').disabled,continueDisabled:nodes.get('goal-continue').disabled,continueLabel:nodes.get('goal-continue').textContent,input:nodes.get('goal-input').value};
  for(const id of ['goal-state','goal-plan','goal-timeline','goal-evidence','goal-receipts','goal-progress','goal-approvals','goal-examples'])result[id]={text:nodes.get(id).textContent,tree:tree(nodes.get(id))};
  console.log(JSON.stringify(result));
 })().catch(e=>{console.error(e.stack);process.exitCode=1;});
@@ -74,6 +78,57 @@ def test_empty_latest_goal_is_clean_read_only_state(authenticated):
     assert 'No goals yet. Submit an engineering goal' in result['goal-progress']['text']
     assert 'identity' not in result['goal-progress']['text']
     assert result['disabled'] is not authenticated
+
+
+def test_anonymous_goal_deep_link_reads_exact_stored_goal_not_latest(goal):
+    goal['id'] = 'a' * 32
+    result = js(mode='hydrate', authenticated=False, hash='#goal-agent?goal=' + goal['id'], records=[goal])
+    assert result['calls'] == [{'path': '/api/public/goals/' + goal['id']}]
+    assert result['history'] == []
+    assert result['disabled'] is True
+    links = result['goal-state']['tree']['children']
+    assert any(row.get('href') == '#goal-agent?goal=' + goal['id'] for row in links)
+
+
+@pytest.mark.parametrize('hash_value', ['#goal-agent?goal=../bad', '#goal-agent?goal=' + 'A' * 32, '#goal-agent?goal=' + 'a' * 31, '#goal-agent?goal=' + 'a' * 32 + '&other=1'])
+def test_invalid_goal_deep_link_never_reads_a_different_goal(hash_value):
+    result = js(mode='hydrate', hash=hash_value, records=[])
+    assert result['calls'] == []
+    assert 'Invalid requested goal link' in result['goal-progress']['text']
+
+
+@pytest.mark.parametrize('hash_value', ['#release-knowledge', '#goal-source-ev%2FA', '#legacy-workspace', '#goal-agent'])
+def test_normal_navigation_and_source_anchors_are_preserved(goal, hash_value):
+    result = js(mode='hydrate', hash=hash_value, records=[goal])
+    assert result['calls'] == [{'path': '/api/public/goals/latest'}]
+    assert result['history'] == []
+
+
+def test_confirmed_submission_updates_shareable_goal_hash_only(goal):
+    goal['id'] = 'b' * 32
+    result = js(mode='submit', records=[goal])
+    assert len(result['calls']) == 1
+    assert result['history'] == ['#goal-agent?goal=' + goal['id']]
+
+
+def test_unknown_new_goal_refresh_checks_latest_instead_of_old_permalink(goal):
+    goal['id'] = 'a' * 32
+    newer = copy.deepcopy(goal); newer['id'] = 'b' * 32; newer['goal'] = 'Investigate this actual public change'
+    result = js(mode='hydrate-submit-refresh', hash='#goal-agent?goal=' + goal['id'], records=[goal, newer], failAt=1)
+    assert result['calls'] == [{'path': '/api/public/goals/' + goal['id']}, {'path': '/api/public/goals', 'body': {'goal': 'Investigate this actual public change', 'idempotency_key': 'test-idempotency-key'}}, {'path': '/api/public/goals/latest'}]
+    assert 'Goal ' + newer['id'] in result['goal-state']['text']
+    assert result['history'] == []
+
+
+def test_concurrent_latest_goal_does_not_clear_unknown_creation_latch(goal):
+    goal['id'] = 'a' * 32
+    foreign = copy.deepcopy(goal); foreign.update(id='b' * 32, goal='Another operator goal')
+    result = js(mode='hydrate-submit-refresh', hash='#goal-agent?goal=' + goal['id'], records=[goal, foreign], failAt=1)
+    assert len(result['calls']) == 3
+    assert result['disabled'] is True
+    assert 'latest goal does not match the pending request; no POST was repeated' in result['goal-progress']['text']
+    assert 'Goal ' + goal['id'] in result['goal-state']['text']
+    assert result['history'] == []
 
 
 def test_missing_provider_has_null_proposal_and_no_synthetic_result(goal):
@@ -224,16 +279,78 @@ def test_completion_prose_without_independent_receipt_never_verifies(goal):
     goal['status'] = 'completed'
     result = js(mode='hydrate', records=[goal])
     assert 'Completion reported · action verification unconfirmed' in result['goal-state']['text']
-    goal['actions'] = [{'id': 'independent-receipt-id', 'step_id': 'task', 'kind': 'publish_task', 'status': 'verified', 'read_back_verified': True}]
+    goal['actions'] = [{'id': 'independent-receipt-id', 'step_id': 'task', 'kind': 'publish_task', 'plan_hash': goal['proposal']['hash'], 'status': 'verified', 'read_back_verified': True}]
     assert js(mode='completion', record=goal)['verified'] is True
 
 
-@pytest.mark.parametrize('patch', [{'step_id': 'other-step'}, {'status': 'partial'}, {'read_back_verified': False}, {'kind': 'verify_release'}])
+@pytest.mark.parametrize('patch', [{'step_id': 'other-step'}, {'status': 'partial'}, {'read_back_verified': False}, {'kind': 'verify_release'}, {'plan_hash': 'old-revision'}])
 def test_completion_requires_every_effect_bound_to_verified_receipt(goal, patch):
     goal['status'] = 'completed'
-    action = {'id': 'task', 'step_id': 'task', 'kind': 'publish_task', 'status': 'verified', 'read_back_verified': True}
+    action = {'id': 'task', 'step_id': 'task', 'kind': 'publish_task', 'plan_hash': goal['proposal']['hash'], 'status': 'verified', 'read_back_verified': True}
     action.update(patch); goal['actions'] = [action]
     assert js(mode='completion', record=goal)['verified'] is False
+
+
+def test_work_graph_projects_only_actual_dependencies_and_known_citations(goal):
+    goal['proposal']['steps'][1]['evidence_ids'] = ['ev/A', 'ev/A', 'unknown-source']
+    goal['proposal']['steps'][1]['depends_on'] = ['inspect', 'unknown-step']
+    result = js(mode='hydrate', graph=True, records=[goal])
+    elements = [row['data'] for row in result['graphs'][0]['elements']]
+    assert [row['id'] for row in elements if row.get('kind') == 'evidence'] == ['evidence:ev/A']
+    dependencies = [row for row in elements if row.get('relation') == 'DEPENDS_ON']
+    assert [(row['source'], row['target']) for row in dependencies] == [('step:inspect', 'step:task')]
+    citations = [row for row in elements if row.get('relation') == 'CITES']
+    assert [(row['source'], row['target']) for row in citations] == [('step:inspect', 'evidence:ev/A'), ('step:task', 'evidence:ev/A')]
+    assert 'unknown-source' not in json.dumps(elements)
+    assert 'unknown-step' not in json.dumps(elements)
+    assert result['graphs'][0]['layout']['animate'] is False
+
+
+@pytest.mark.parametrize('old_hash,verified', [('old-revision', True), ('sealed-source-plan-hash', False)])
+def test_work_graph_never_marks_old_or_unverified_action_done(goal, old_hash, verified):
+    goal['actions'] = [{'step_id': 'task', 'kind': 'publish_task', 'plan_hash': old_hash, 'status': 'verified' if verified else 'partial', 'read_back_verified': verified}]
+    result = js(mode='hydrate', graph=True, records=[goal])
+    task = next(row['data'] for row in result['graphs'][0]['elements'] if row['data']['id'] == 'step:task')
+    assert task['state'] == 'proposed'
+    assert 'Verified action' not in task['label']
+
+
+def test_work_graph_distinguishes_current_observed_read_and_verified_action(goal):
+    goal['events'][0].update(step_id='inspect', plan_hash=goal['proposal']['hash'], status='succeeded')
+    goal['actions'] = [{'step_id': 'task', 'kind': 'publish_task', 'plan_hash': goal['proposal']['hash'], 'status': 'verified', 'read_back_verified': True}]
+    result = js(mode='hydrate', graph=True, records=[goal])
+    states = {row['data']['id']: row['data']['state'] for row in result['graphs'][0]['elements'] if row['data'].get('kind') == 'step'}
+    assert states == {'step:inspect': 'observed', 'step:task': 'verified'}
+    assert result['calls'] == [{'path': '/api/public/goals/latest'}]
+
+
+def test_work_graph_destroyed_when_next_record_has_no_proposal(goal):
+    blocked = copy.deepcopy(goal); blocked.update(status='blocked', proposal=None)
+    result = js(mode='continue', graph=True, records=[goal, blocked])
+    assert len(result['graphs']) == 1 and result['destroyed'] == 1
+    assert 'No AI proposal is stored' in result['goal-plan']['text']
+
+
+def test_work_graph_absent_viewer_keeps_accessible_ordered_steps(goal):
+    result = js(mode='hydrate', records=[goal])
+    assert result['graphs'] == []
+    assert 'ordered steps below show the work graph' in result['goal-plan']['text']
+    assert 'Read the source' in result['goal-plan']['text']
+
+
+@pytest.mark.parametrize('node,anchor', [('evidence:ev/A', 'goal-source-ev%2FA'), ('step:inspect', 'goal-step-inspect')])
+def test_work_graph_node_inspects_existing_record_anchor_without_request(goal, node, anchor):
+    result = js(mode='hydrate', graph=True, graphTap=node, records=[goal])
+    assert anchor in result['focused']
+    assert result['calls'] == [{'path': '/api/public/goals/latest'}]
+
+
+@pytest.mark.parametrize('hash_value,status', [('old-revision', 'succeeded'), ('sealed-source-plan-hash', 'failed')])
+def test_work_graph_does_not_count_old_or_failed_reads_as_observed(goal, hash_value, status):
+    goal['events'][0].update(step_id='inspect', plan_hash=hash_value, status=status)
+    result = js(mode='hydrate', graph=True, records=[goal])
+    node = next(row['data'] for row in result['graphs'][0]['elements'] if row['data']['id'] == 'step:inspect')
+    assert node['state'] == 'proposed'
 
 
 def test_active_goal_uses_bounded_ten_second_gets_only(goal):

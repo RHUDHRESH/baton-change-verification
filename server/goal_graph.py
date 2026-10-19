@@ -17,6 +17,7 @@ from . import release_contract as C
 from . import release_graph as release
 
 GRAPH_NAME = "baton_goal_memory"
+SEARCH_VERSION = "native-terms-v1"
 MAX_RECORD_BYTES = 340_000
 ALLOWED_LABELS = ["WorkItem", "Repository", "Account", "File", "Source", "LocalTask",
                   "ReleaseEvidence", "ReleaseExecution", "ReleaseMeasurement", "PublicationReceipt"]
@@ -150,7 +151,7 @@ def _remember_evidence(port, locator, payload, kind, source_id, url=None):
     return evidence
 
 
-def _entity(data, port, graph_name, graph, identity):
+def _entity(data, port, graph_name, graph, identity, source_catalog=None):
     payload = _entity_snapshot(graph, identity)
     props = payload["properties"]
     evidence = _remember_evidence(port, {"type": "entity", "graph": graph_name, "id": identity},
@@ -162,11 +163,15 @@ def _entity(data, port, graph_name, graph, identity):
             properties["record"] = json.loads(properties.pop("json"))
         except ValueError:
             pass
+    record_url = properties["record"].get("url") if isinstance(properties.get("record"), dict) else None
+    urls = {value for value in (properties.get("url"), record_url)
+                               if isinstance(value, str)}
+    source_ids = sorted(source["id"] for source in (source_catalog or {}).values() if source.get("url") in urls)
     encoded, truncated = bounded_excerpt(properties, limit=1600)
     relationships = [{"source": row[0] if row[4] else row[2], "relation": row[1],
                       "target": row[2] if row[4] else row[0]} for row in payload["adjacency"][:15]]
     return {"id": identity, "graph": graph_name, "labels": payload["labels"], "properties": json.loads(encoded),
-            "directed_relationships": relationships, "truncated": truncated or len(payload["adjacency"]) > 15}, evidence
+            "source_ids": source_ids, "directed_relationships": relationships, "truncated": truncated or len(payload["adjacency"]) > 15}, evidence
 
 
 @_bounded
@@ -206,7 +211,7 @@ def evidence_binding(data, port, evidence):
 
 def _tool(name, properties, required):
     return {"name": name, "description": {
-        "search_company_graph": "Search captured public work, source facts and verified execution evidence by case-insensitive literal substring. Choose a concise term; broaden or retry empty results. This is not embedding search. Contributor activity is not employment.",
+        "search_company_graph": "Search actual public graph facts using bounded multi-term substring retrieval ranked by matched-term count. Punctuation splits terms, dotted versions stay intact, and words of six or more letters also match their first four characters. Common English words are ignored. Results report matched terms; this is not embedding or full-text-index search. Broaden empty queries. Contributor activity is not employment.",
         "inspect_graph_entity": "Inspect one discovered public entity and its actual directed relationships.",
         "traverse_company_graph": "Follow bounded actual public graph relationships from an inspected entity.",
         "read_company_source": "Read an actual captured source by discovered source ID; only this tool supplies raw source evidence.",
@@ -223,6 +228,25 @@ TOOLS = [
     _tool("read_company_source", {"source_id": STRING}, ["source_id"]),
     _tool("recall_goal_memory", {"query": STRING, "limit": LIMIT}, ["query"]),
 ]
+
+
+def _search_terms(query, max_terms=12):
+    """Literal retrieval terms, not goal interpretation or a query language."""
+    stopwords = {"a", "an", "and", "are", "as", "at", "be", "been", "but", "by", "can", "could", "do", "does",
+                 "for", "from", "has", "have", "how", "i", "in", "into", "is", "it", "its", "me", "my", "not",
+                 "of", "on", "or", "our", "please", "show", "that", "the", "their", "then", "this", "to", "us",
+                 "was", "we", "were", "what", "when", "where", "which", "why", "will", "with", "would", "you"}
+    terms, seen = [], set()
+    for term in re.findall(r"[^\W_]+(?:\.[^\W_]+)*", query.lower(), flags=re.UNICODE):
+        if term in stopwords or len(term) < 2:
+            continue
+        pattern = term[:4] if term.isalpha() and len(term) >= 6 else term
+        if pattern not in seen:
+            seen.add(pattern)
+            terms.append({"term": term, "match": pattern})
+        if len(terms) == max_terms:
+            break
+    return terms
 
 
 @_bounded
@@ -265,12 +289,18 @@ def call_tool(data, port, name, args, record=None):
         observation = {"memories": memories, "origin": "model proposals and actual observation records; not source facts"}
     else:
         entities = []
+        source_catalog = _sources(data, port)
+        terms = _search_terms(args["query"]) if name == "search_company_graph" else []
+        candidates = []
         for graph_name, graph in graphs:
             if name == "search_company_graph":
-                rows = _rows(graph, "MATCH (n) WHERE any(label IN labels(n) WHERE label IN $labels) AND "
-                             "toLower(coalesce(n.id,'')+' '+coalesce(n.title,'')+' '+coalesce(n.name,'')+' '+coalesce(n.json,'')) CONTAINS $query "
-                             "RETURN n.id ORDER BY n.id LIMIT $limit", {"labels": ALLOWED_LABELS, "query": args["query"].lower(), "limit": limit})
-                identities = [row[0] for row in rows]
+                rows = _rows(graph, "MATCH (n) WHERE any(label IN labels(n) WHERE label IN $labels) "
+                             "WITH n,toLower(coalesce(n.id,'')+' '+coalesce(n.title,'')+' '+coalesce(n.name,'')+' '+coalesce(n.json,'')) AS text "
+                             "WITH n,[term IN $terms WHERE text CONTAINS term] AS matched WHERE size(matched)>0 "
+                             "RETURN n.id,matched,size(matched) AS score ORDER BY score DESC,n.id LIMIT $limit",
+                             {"labels": ALLOWED_LABELS, "terms": [term["match"] for term in terms], "limit": 20}) if terms else []
+                candidates.extend((row[2], graph_name, row[0], graph, row[1]) for row in rows)
+                continue
             else:
                 identities = [args["entity_id"]] if _rows(graph, "MATCH (n {id:$id}) RETURN n.id", {"id": args["entity_id"]}) else []
                 if name == "traverse_company_graph" and identities:
@@ -281,10 +311,22 @@ def call_tool(data, port, name, args, record=None):
             for identity in identities:
                 if len(entities) >= limit:
                     break
-                entity, proof = _entity(data, port, graph_name, graph, identity)
+                entity, proof = _entity(data, port, graph_name, graph, identity, source_catalog)
+                entities.append(entity)
+                evidence.append(proof)
+        if name == "search_company_graph":
+            for score, graph_name, identity, graph, matched in sorted(candidates, key=lambda row: (-row[0], row[1], row[2]))[:limit]:
+                entity, proof = _entity(data, port, graph_name, graph, identity, source_catalog)
+                entity["matched_search_terms"] = [term["term"] for term in terms if term["match"] in matched]
+                entity["matched_substrings"] = matched
+                entity["term_overlap_score"] = score
                 entities.append(entity)
                 evidence.append(proof)
         observation = {"entities": entities, "scope": "Captured public work and verified release records. Public contribution does not establish employment or ownership."}
+        if name == "search_company_graph":
+            observation.update(search_version=SEARCH_VERSION,
+                               search_strategy="bounded_native_term_overlap; OR substrings, four-character prefixes for long words; global matched-term ranking; no embeddings/index",
+                               search_terms=terms, candidate_limit_per_graph=20, query_terms_truncated=len(_search_terms(args["query"], max_terms=13)) > 12)
     return {"observation": observation, "evidence": evidence,
             "binding": {"fingerprint": evidence_binding(data, port, evidence)}}
 
