@@ -816,3 +816,42 @@ def test_request_estimate_reserves_larger_output_with_unchanged_total_cap(bounda
     messages=[{'role':'user','content':'Actual bounded investigation'}]
     assert A._estimate(messages,[SEARCH])==len(A._encode(A._decision_messages(messages,[SEARCH])))//3+1800
     assert A.MAX_TOKENS==7500
+
+
+@pytest.mark.parametrize('stale',[False,True])
+def test_unsealed_investigation_rechecks_actual_evidence_before_next_model(boundary,monkeypatch,stale):
+    monkeypatch.setattr(A,'MAX_CALLS',1)
+    monkeypatch.setattr(A,'completion',Mock(return_value=call('read_company_source',{'source_id':'source-A'},0)))
+    r=A.investigate(None,0,'Inspect the actual source before planning','unsealed-freshness')
+    assert r['proposal'] is None and r['evidence']
+    history=copy.deepcopy(r['events']);prior_evidence=copy.deepcopy(r['evidence'])
+    boundary.graph.version=int(stale)
+    def actual_next_selection(messages,tools,timeout):
+        context=json.loads(messages[1]['content'])
+        stored=boundary.graph.get_goal(None,0,r['id'])
+        assert stored['events'][:len(history)]==history
+        if stale:
+            assert context['evidence_ids']==[] and stored['evidence']==[] and context['replan_required'] is True
+            assert stored['events'][-1]['type']=='replan_required'
+        else:
+            assert stored['evidence']==prior_evidence and context['evidence_ids']==[e['id'] for e in prior_evidence]
+            assert not any(e['type']=='replan_required' for e in stored['events'])
+        return call('read_company_source',{'source_id':'source-A'},1)
+    model=Mock(side_effect=actual_next_selection);monkeypatch.setattr(A,'completion',model)
+    out=A.continue_goal(None,0,r['id'],'')
+    assert model.call_count==1 and out['status']=='needs_continuation'
+    assert out['events'][:len(history)]==history and out['evidence'][0]['id']=='ev'+str(int(stale))
+    assert bool([e for e in out['events'] if e['type']=='replan_required'])==stale
+
+
+def test_unsealed_freshness_non_value_integrity_failure_blocks_before_model(boundary,monkeypatch):
+    monkeypatch.setattr(A,'MAX_CALLS',1)
+    monkeypatch.setattr(A,'completion',Mock(return_value=call('read_company_source',{'source_id':'source-A'})))
+    r=A.investigate(None,0,'Inspect the actual captured source condition','unsealed-integrity')
+    evidence=copy.deepcopy(r['evidence']);history=copy.deepcopy(r['events'])
+    monkeypatch.setattr(boundary.graph,'evidence_binding',Mock(side_effect=RuntimeError('Actual graph transport unavailable')))
+    model=Mock();monkeypatch.setattr(A,'completion',model)
+    out=A.continue_goal(None,0,r['id'],'')
+    model.assert_not_called()
+    assert out['status']=='blocked' and out['evidence']==evidence and out['events'][:len(history)]==history
+    assert not any(e['type']=='replan_required' for e in out['events'])

@@ -135,7 +135,13 @@ def _entity_snapshot(graph, identity):
     found = _rows(graph, "MATCH (n {id:$id}) RETURN labels(n),properties(n)", {"id": identity})
     if len(found) != 1 or not set(found[0][0]).intersection(ALLOWED_LABELS):
         raise ValueError("Selected public graph entity is missing or ambiguous")
-    adjacency = _rows(graph, "MATCH (a {id:$id})-[r]-(b) WHERE b.id IS NOT NULL "
+    # New execution observations refer back to immutable source facts. Exclude
+    # only these incoming typed bookkeeping links from a source entity's seal;
+    # selected executions/measurements and every source decision edge stay bound.
+    adjacency = _rows(graph, "MATCH (a {id:$id})-[r]-(b) WHERE b.id IS NOT NULL AND NOT "
+                      "('ReleaseEvidence' IN labels(a) AND id(endNode(r))=id(a) AND "
+                      "((type(r)='VERIFIES' AND 'ReleaseExecution' IN labels(b)) OR "
+                      "(type(r) IN ['CHECKED','IN_ENVIRONMENT'] AND 'ReleaseMeasurement' IN labels(b)))) "
                       "RETURN a.id,type(r),b.id,properties(r),id(startNode(r))=id(a) "
                       "ORDER BY type(r),b.id LIMIT 100", {"id": identity})
     return {"labels": found[0][0], "properties": found[0][1], "adjacency": adjacency}

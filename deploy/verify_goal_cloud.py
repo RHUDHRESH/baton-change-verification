@@ -181,7 +181,11 @@ def audit_bindings(record, read, state, catalog, catalog_version):
             require(graph != state and (graph == RELEASE_GRAPH or re.fullmatch(r"baton_public_falkordb_[a-f0-9]{24}", graph)), "Evidence points outside public graph scope")
             node = read(graph, "MATCH (n {id:$id}) RETURN labels(n),properties(n) LIMIT 2", {"id": locator["id"]})
             require(len(node) == 1, "Selected public entity is missing")
-            edges = read(graph, "MATCH (a {id:$id})-[r]-(b) WHERE b.id IS NOT NULL RETURN a.id,type(r),b.id,properties(r),id(startNode(r))=id(a) ORDER BY type(r),b.id LIMIT 100", {"id": locator["id"]})
+            edges = read(graph, "MATCH (a {id:$id})-[r]-(b) WHERE b.id IS NOT NULL AND NOT "
+                         "('ReleaseEvidence' IN labels(a) AND id(endNode(r))=id(a) AND "
+                         "((type(r)='VERIFIES' AND 'ReleaseExecution' IN labels(b)) OR "
+                         "(type(r) IN ['CHECKED','IN_ENVIRONMENT'] AND 'ReleaseMeasurement' IN labels(b)))) "
+                         "RETURN a.id,type(r),b.id,properties(r),id(startNode(r))=id(a) ORDER BY type(r),b.id LIMIT 100", {"id": locator["id"]})
             payload = {"labels": node[0][0], "properties": node[0][1], "adjacency": edges}
         elif locator["type"] == "source":
             if source_cache is None:

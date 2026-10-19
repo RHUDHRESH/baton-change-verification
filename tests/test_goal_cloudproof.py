@@ -146,3 +146,25 @@ def test_json_native_episode_tampering_still_rejected_by_real_graph_audit(worksp
     graph.query("MATCH (e:GoalEpisode {id:$id}) SET e.json='{}'", {"id": record["id"] + ":event:" + str(event["seq"])})
     with pytest.raises(V.AuditError, match="episodes"):
         V.audit_record(record, read, graph.name)
+
+
+def test_independent_selected_source_snapshot_ignores_only_new_execution_backlinks(native, monkeypatch):
+    from test_release_graph import measured
+    from server import release_graph as R
+    workspace, record, read, graph = native
+    monkeypatch.setattr(V, "RELEASE_GRAPH", workspace.graph.name)  # Isolated test graph replaces the production constant.
+    observed = Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": R._id("change")})
+    record["evidence"].extend(observed["evidence"])
+    record["plan_evidence"] = copy.deepcopy(record["evidence"])
+    record["evidence_binding"] = Q.evidence_binding(workspace.data, workspace.port, record["evidence"])
+    proposal = copy.deepcopy(record["proposal"])
+    proposal.pop("hash")
+    record["proposal"] = C.validate_proposal(proposal, record["goal"], record["evidence"], Q.TOOLS + C.EFFECTS, record["evidence_binding"])
+    record["revision"] += 1
+    Q.save_goal(workspace.data, workspace.port, record)
+    assert V.audit_bindings(record, read, graph.name, Q.TOOLS + C.EFFECTS, C.CATALOG_VERSION)["selected_evidence_facts_reread"]
+    R.record_result(workspace.data, workspace.port, workspace.plan, measured(workspace.plan))
+    assert V.audit_bindings(record, read, graph.name, Q.TOOLS + C.EFFECTS, C.CATALOG_VERSION)["selected_evidence_facts_reread"]
+    workspace.graph.query("MATCH (n {id:$id}) SET n.changed=true", {"id": R._id("change")})
+    with pytest.raises(V.AuditError, match="Relevant selected"):
+        V.audit_bindings(record, read, graph.name, Q.TOOLS + C.EFFECTS, C.CATALOG_VERSION)

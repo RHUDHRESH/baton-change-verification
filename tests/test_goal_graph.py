@@ -358,3 +358,40 @@ def test_local_task_external_artifact_is_traversable_without_allowing_private_la
     workspace.graph.query("CREATE (:WorkspaceRecord {id:'test-private-label',json:'private-value'})")
     with pytest.raises(ValueError, match="public graph entity"):
         Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": "test-private-label"})
+
+
+def test_fresh_execution_does_not_stale_selected_source_facts_but_runtime_links_stay_bound(workspace):
+    identities = [R._id("change"), R._id(R.C.CHECK_IDS[0]), R._id("redis-8.0.0")]
+    observed = [Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": identity}) for identity in identities]
+    seals = [result["binding"]["fingerprint"] for result in observed]
+    run = measured(workspace.plan)
+    R.record_result(workspace.data, workspace.port, workspace.plan, run)
+    assert [Q.evidence_binding(workspace.data, workspace.port, result["evidence"]) for result in observed] == seals
+    execution = Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": run["id"]})
+    assert any(edge["relation"] == "VERIFIES" for edge in execution["observation"]["entities"][0]["directed_relationships"])
+    workspace.graph.query("MATCH (r:ReleaseExecution {id:$id})-[e:VERIFIES]->() DELETE e", {"id": run["id"]})
+    with pytest.raises(ValueError, match="Relevant"):
+        Q.evidence_binding(workspace.data, workspace.port, execution["evidence"])
+    measurement_id = workspace.graph.ro_query("MATCH (:ReleaseExecution {id:$id})-[:MEASURED]->(m) RETURN m.id LIMIT 1", {"id": run["id"]}).result_set[0][0]
+    measurement = Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": measurement_id})
+    workspace.graph.query("MATCH (m:ReleaseMeasurement {id:$id})-[e:CHECKED]->() DELETE e", {"id": measurement_id})
+    with pytest.raises(ValueError, match="Relevant"):
+        Q.evidence_binding(workspace.data, workspace.port, measurement["evidence"])
+
+
+@pytest.mark.parametrize("mutation", ["calls", "property", "arbitrary_relation", "wrong_neighbor_label", "wrong_direction"])
+def test_source_snapshot_filter_preserves_all_nonbookkeeping_changes(workspace, mutation):
+    identity = R._id("Graph._build_params_header")
+    result = Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": identity})
+    if mutation == "calls":
+        workspace.graph.query("MATCH (a {id:$id})-[r:CALLS]->() DELETE r", {"id": identity})
+    elif mutation == "property":
+        workspace.graph.query("MATCH (a {id:$id}) SET a.changed=true", {"id": identity})
+    elif mutation == "arbitrary_relation":
+        workspace.graph.query("MATCH (a {id:$id}) CREATE (b:ReleaseExecution {id:'arbitrary'})-[:OTHER]->(a)", {"id": identity})
+    elif mutation == "wrong_neighbor_label":
+        workspace.graph.query("MATCH (a {id:$id}) CREATE (b:WorkItem {id:'not-an-execution'})-[:VERIFIES]->(a)", {"id": identity})
+    else:
+        workspace.graph.query("MATCH (a {id:$id}) CREATE (a)-[:VERIFIES]->(b:ReleaseExecution {id:'wrong-direction'})", {"id": identity})
+    with pytest.raises(ValueError, match="Relevant"):
+        Q.evidence_binding(workspace.data, workspace.port, result["evidence"])

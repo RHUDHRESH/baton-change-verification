@@ -735,6 +735,13 @@ def continue_goal(data, port, id, expected_plan_hash, approved_actions=None, act
                     graph.evidence_binding(data, port, record["evidence"])
                 except ValueError:
                     replan = True
+            elif record.get("evidence") and not replan:
+                try:
+                    # Unsealed investigations still contain actual observations;
+                    # require their current source/graph snapshots before reuse.
+                    graph.evidence_binding(data, port, record["evidence"])
+                except ValueError:
+                    replan = True
             if replan:
                 _event(record, "replan_required", error="Relevant graph or source observations changed; prior effects blocked")
                 record.update(replan_required=True, evidence=[])
