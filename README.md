@@ -1,5 +1,26 @@
 # Baton
 
+## Give the agent a goal
+
+Baton turns a company goal into source-backed work: investigate the connected
+evidence, propose a plan, choose the next action, and retain the actual result.
+The current workspace uses public FalkorDB engineering records; the connected
+Jira and Slack destinations belong to the operator, not FalkorDB's internal team.
+
+Groq interprets the free-text goal, chooses graph tools, authors a variable plan
+and selects its next graph-ready step. FalkorDB stores the plan dependencies,
+evidence bindings, observations and revisions. The host validates permissions
+and readbacks. Missing AI cannot produce a substitute semantic plan; missing or
+stale graph evidence blocks action. The existing immutable verification runner
+is one available capability. No arbitrary repository execution, source repair,
+internal ownership inference or ten independently validated AI features is claimed.
+
+**Validation status:** local goal-agent and interface checks pass; fresh deployed
+goal diversity and action proofs are still pending. The earlier completed c93
+verification run is separate evidence of the bounded runner, not proof of the
+new planner. [Interface and proof requirements](docs/GOAL_AGENT_CONTRACT.md) ·
+[20 additional GitHub references and reuse decisions](docs/AI_NATIVE_REUSE.md).
+
 ## Graph-driven change verification
 
 The main experience investigates [FalkorDB-py PR #212](https://github.com/FalkorDB/falkordb-py/pull/212): why must a synchronous serializer change also be checked through the async client? Source-proven calls and inheritance in FalkorDB determine the required sync/async regressions. Groq inspects typed graph tools; deterministic policy seals the executable plan.

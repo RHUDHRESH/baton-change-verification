@@ -1,5 +1,5 @@
 """Baton HTTP API (thin wrapper over the `python -m baton` CLI contract). Every decision is made by the CLI in FalkorDB."""
-import json, os, subprocess, sys, threading, tempfile
+import json, os, subprocess, sys, threading, tempfile, time
 from typing import Annotated
 from typing import Literal
 from datetime import date
@@ -598,6 +598,87 @@ def publish_company_task(task_id: str,body: PublishTask,request: Request):
         raise HTTPException(422,str(error))
 
 
+class GoalStart(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    goal: str = Field(min_length=10, max_length=1600)
+    idempotency_key: str = Field(pattern=r"^[A-Za-z0-9_-]{8,100}$")
+
+
+class GoalAct(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_plan_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    approved_actions: list[Literal["publish_task", "verify_release"]] = Field(max_length=2)
+
+
+class GoalContinue(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_plan_hash: str = Field(pattern=r"^(?:[a-f0-9]{64})?$")
+
+
+@app.post("/api/public/goals", status_code=201)
+def start_goal(body: GoalStart, request: Request):
+    from . import goal_agent, goal_graph
+    security.session(request, auth_db(), DATA)
+    try:
+        with goal_graph.deadline_scope(time.monotonic() + 155):
+            return goal_agent.investigate(DATA, PORT, body.goal, body.idempotency_key)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from None
+    except Exception:
+        raise HTTPException(503, "Goal investigation was not confirmed; no substitute AI plan was produced") from None
+
+
+@app.get("/api/public/goals/latest")
+def latest_goal_run():
+    from . import goal_graph
+    try:
+        return goal_graph.latest_goal(DATA, PORT)
+    except Exception:
+        raise HTTPException(503, "Goal graph is unavailable; no cached plan was substituted") from None
+
+
+@app.get("/api/public/goals/{goal_id}")
+def read_goal_run(goal_id: str):
+    from . import goal_graph
+    import re
+    if not re.fullmatch(r"[a-f0-9]{32}", goal_id):
+        raise HTTPException(404, "Goal not found")
+    try:
+        record = goal_graph.get_goal(DATA, PORT, goal_id)
+    except Exception:
+        raise HTTPException(503, "Goal graph is unavailable") from None
+    if record is None:
+        raise HTTPException(404, "Goal not found")
+    return record
+
+
+@app.post("/api/public/goals/{goal_id}/act")
+def act_on_goal(goal_id: str, body: GoalAct, request: Request):
+    from . import goal_agent, goal_actions, goal_graph
+    security.session(request, auth_db(), DATA)
+    try:
+        with goal_graph.deadline_scope(time.monotonic() + 155):
+            return goal_agent.continue_goal(DATA, PORT, goal_id, body.expected_plan_hash,
+                                           approved_actions=body.approved_actions, action_executor=goal_actions.execute)
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from None
+    except Exception:
+        raise HTTPException(503, "Goal action was not confirmed; inspect stored evidence before retrying") from None
+
+
+@app.post("/api/public/goals/{goal_id}/continue")
+def continue_goal_run(goal_id: str, body: GoalContinue, request: Request):
+    from . import goal_agent, goal_graph
+    security.session(request, auth_db(), DATA)
+    try:
+        with goal_graph.deadline_scope(time.monotonic() + 155):
+            return goal_agent.continue_goal(DATA, PORT, goal_id, body.expected_plan_hash)
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from None
+    except Exception:
+        raise HTTPException(503, "Goal continuation was not confirmed; no result was substituted") from None
+
+
 class ReleasePlanStart(BaseModel):
     model_config = ConfigDict(extra="forbid")
     change_id: str = Field(min_length=1, max_length=200)
@@ -805,7 +886,7 @@ def graph_agent_result(run_id: str):
 @app.post("/api/mcp")
 def graph_mcp(body: dict,request: Request):
     from .graph_agent import TOOLS,Investigation
-    from . import release_graph
+    from . import release_graph, goal_graph
     security.session(request,auth_db(),DATA)
     identity=body.get("id")
     if body.get("jsonrpc")!="2.0":
@@ -817,10 +898,14 @@ def graph_mcp(body: dict,request: Request):
         if method=="initialize":
             result={"protocolVersion":"2025-03-26","capabilities":{"tools":{}},"serverInfo":{"name":"baton-graph","version":"0.3.0"}}
         elif method=="tools/list":
-            result={"tools":TOOLS + release_graph.TOOLS}
+            result={"tools":TOOLS + release_graph.TOOLS + goal_graph.TOOLS}
         elif method=="tools/call":
             params=body.get("params",{})
             name=params.get("name")
+            if name in {t["name"] for t in goal_graph.TOOLS}:
+                observed = goal_graph.call_tool(DATA, PORT, name, params.get("arguments", {}))
+                result = {"content": [{"type": "text", "text": json.dumps(observed, ensure_ascii=False)}], "isError": False}
+                return {"jsonrpc": "2.0", "id": identity, "result": result}
             if name in {t["name"] for t in release_graph.TOOLS}:
                 result=release_graph.call_tool(DATA,PORT,name,params.get("arguments",{}))
                 return {"jsonrpc":"2.0","id":identity,"result":result}
