@@ -20,7 +20,8 @@ GRAPH_NAME = "baton_goal_memory"
 SEARCH_VERSION = "native-terms-v1"
 MAX_RECORD_BYTES = 340_000
 ALLOWED_LABELS = ["WorkItem", "Repository", "Account", "File", "Source", "LocalTask",
-                  "ReleaseEvidence", "ReleaseExecution", "ReleaseMeasurement", "PublicationReceipt"]
+                  "ReleaseEvidence", "ReleaseExecution", "ReleaseMeasurement", "PublicationReceipt",
+                  "ReleasePublication", "ExternalArtifact"]
 _DEADLINE = ContextVar("goal_graph_deadline", default=None)
 
 
@@ -166,7 +167,16 @@ def _entity(data, port, graph_name, graph, identity, source_catalog=None):
     record_url = properties["record"].get("url") if isinstance(properties.get("record"), dict) else None
     urls = {value for value in (properties.get("url"), record_url)
                                if isinstance(value, str)}
-    source_ids = sorted(source["id"] for source in (source_catalog or {}).values() if source.get("url") in urls)
+    catalog = source_catalog or {}
+    declared_ids = set()
+    for owner in (properties, properties.get("record")):
+        if not isinstance(owner, dict):
+            continue
+        candidates = [owner.get("source_id")]
+        if isinstance(owner.get("source_ids"), list):
+            candidates.extend(owner["source_ids"])
+        declared_ids.update(value for value in candidates if isinstance(value, str) and value in catalog)
+    source_ids = sorted(declared_ids | {source["id"] for source in catalog.values() if source.get("url") in urls})
     encoded, truncated = bounded_excerpt(properties, limit=1600)
     relationships = [{"source": row[0] if row[4] else row[2], "relation": row[1],
                       "target": row[2] if row[4] else row[0]} for row in payload["adjacency"][:15]]

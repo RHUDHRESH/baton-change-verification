@@ -254,6 +254,8 @@ def test_token_budget_stops_before_spending_provider_quota(boundary, monkeypatch
 
 
 def test_insufficient_remaining_effect_deadline_causes_continuation_without_write(boundary, monkeypatch):
+    assert 110 < A.MAX_SECONDS < 155
+    assert (A.MAX_CALLS, A.MAX_TOKENS, A.MAX_OUTPUT_TOKENS) == (4, 7500, 1100)
     r, _ = plan_goal(monkeypatch, boundary, proposal("publish_task"))
     monkeypatch.setattr(A, "completion", Mock(return_value=call("select_plan_step", {"step_id": "step0"}, 2)))
     monkeypatch.setattr(A, "_remaining", lambda deadline: 109)
@@ -599,6 +601,37 @@ def test_entity_evidence_ids_cannot_masquerade_as_raw_sources_in_model_projectio
     assert A._observation_view({"result":raw},True)["evidence"][0]["source_id"]=="src-real-captured"
 
 
+@pytest.mark.parametrize("properties",[
+    {"accepted":["non-identifier parameter keys"],"rejected":["non-string keys"],"required_check_ids":["async-invalid-keys"]},
+    {"record":{"check_id":"async-invalid-keys","environment_id":"redis-8.1.0","nodeid":"tests/test_async_graph.py::test_param_invalid_keys_rejected",
+               "message":"TypeError: himport_registry","status":"failed"}},
+    {"symbol":"Graph._query","start_line":141,"end_line":180}
+])
+def test_explicit_entity_inspection_exposes_actual_semantics_beyond_search_index(properties):
+    entity={"id":"actual-entity","labels":["BehaviorContract"],"source_ids":["captured-source"],"properties":properties}
+    event={"tool_name":"inspect_graph_entity","result":{"observation":{"entities":[entity]},"evidence":[],"binding":{}}}
+    original=copy.deepcopy(event)
+    observation=A._observation_view(event,True)["observation"]
+    detail=observation["details"][0]
+    assert json.loads(detail["inspected_properties_excerpt"])==properties
+    assert detail["inspected_properties_truncated"] is False
+    assert detail["id"]=="actual-entity" and detail["captured_source_ids"]==["captured-source"]
+    assert observation["entities"][0]["labels"]==["BehaviorContract"] and event==original
+    event["tool_name"]="search_company_graph"
+    assert "inspected_properties_excerpt" not in A._observation_view(event,True)["observation"]["details"][0]
+
+
+def test_inspection_semantic_excerpt_is_bounded_without_losing_external_identity_or_source_distinction():
+    properties={"record":{"accepted":"start "+"x"*6000+" end","source_id":"entity-declared-reference"}}
+    event={"tool_name":"inspect_graph_entity","result":{"observation":{"entities":[{"id":"actual-entity","source_ids":["captured-source"],"properties":properties}]},"evidence":[],"binding":{}}}
+    detail=A._observation_view(event,True)["observation"]["details"][0]
+    assert len(detail["inspected_properties_excerpt"])<=1600 and detail["inspected_properties_truncated"] is True
+    assert "start " in detail["inspected_properties_excerpt"] and " end" in detail["inspected_properties_excerpt"]
+    assert '"declared_source_reference"' in detail["inspected_properties_excerpt"]
+    assert detail["id"]=="actual-entity" and detail["captured_source_ids"]==["captured-source"]
+    assert properties["record"]["source_id"]=="entity-declared-reference"
+
+
 @pytest.mark.parametrize("fault",["unknown_source","invalid_schema"])
 def test_predictable_invalid_read_selection_can_recover_without_fabricated_observation(boundary,monkeypatch,fault):
     original=boundary.graph.call_tool
@@ -642,3 +675,36 @@ def test_resume_context_preserves_redacted_prior_rejection_as_history_not_curren
     after=json.loads(A._messages(r,[],False)[1]["content"])["prior_block_feedback"]
     assert after["historical_only"] is True and after["actual_observations_since"]==1
     assert r["events"][:-1]==original
+
+
+def test_actual_failed_generation_is_redacted_diagnostic_only_and_never_executed(boundary,monkeypatch):
+    secret="configured-private-secret-value"
+    monkeypatch.setenv("PRIVATE_TEST_API_KEY",secret);monkeypatch.setenv("BATON_GOAL_MODEL","openai/gpt-oss-120b")
+    generation='<function=read_company_source>{source_id: "invented"} '+secret+' Bearer private-bearer-value '+('x'*1000)
+    payload={"error":{"type":"invalid_request_error","code":"tool_use_failed","message":"Failed to parse tool call arguments as JSON",
+                      "failed_generation":generation}}
+    raw=json.dumps(payload).encode()
+    error=urllib.error.HTTPError(A.ENDPOINT,400,"bad",{"x-request-id":"req_actual_goal_test"},io.BytesIO(raw))
+    opener=Mock();opener.open.side_effect=error;monkeypatch.setattr(A.urllib.request,"build_opener",Mock(return_value=opener))
+    result=A.investigate(None,0,"Investigate an actual captured source condition","actual-http-error")
+    assert result["status"]=="blocked" and result["provider_calls"]==1 and not result["proposal"]
+    assert not boundary.graph.calls and not result["actions"] and not any(e["type"] in {"tool_call","tool_result"} for e in result["events"])
+    receipt=result["provider_receipts"][0]
+    assert receipt["requested_model"]=="openai/gpt-oss-120b" and receipt["request_id"]=="req_actual_goal_test"
+    assert receipt["error"]["code"]=="tool_use_failed" and receipt["error"]["message"]==payload["error"]["message"]
+    assert receipt["response_sha256"]==C.sha(raw) and receipt["failed_generation_sha256"]==C.sha(generation)
+    assert len(receipt["failed_generation_excerpt"])<=300 and secret not in json.dumps(receipt) and "private-bearer-value" not in json.dumps(receipt)
+    assert receipt["failed_generation_excerpt_sha256"]==C.sha(receipt["failed_generation_excerpt"])
+    context=json.loads(A._messages(result,[],False)[1]["content"])
+    feedback=context["prior_provider_error"]
+    assert feedback["error"]["message"]=="Failed to parse tool call arguments as JSON" and feedback["historical_only"] is True
+    assert feedback["actual_successful_generations_since"]==0 and "never parsed" in feedback["failed_generation_use"]
+
+
+def test_prior_provider_failure_is_historical_after_real_subsequent_generation(boundary,monkeypatch):
+    r,_=plan_goal(monkeypatch,boundary)
+    r["provider_receipts"].insert(0,{"http_status":400,"error":{"code":"tool_use_failed","message":"Failed to parse tool call arguments as JSON"},
+                                      "request_id":"req_actual_old","response_sha256":"a"*64})
+    feedback=json.loads(A._messages(r,[],False)[1]["content"])["prior_provider_error"]
+    assert feedback["historical_only"] is True and feedback["actual_successful_generations_since"]==2
+    assert feedback["request_id"]=="req_actual_old"

@@ -142,12 +142,88 @@ def _verify_release(data, port, record, step):
             C.require(control.set(key, plan["id"]), "Goal verification intent could not be saved")
             control.set("release:latest-plan", plan["id"])
         run = release_gate.execute(data, port, plan["id"], plan["plan_hash"], ["jira", "slack"])
-    verified = run.get("evidence_status") == "verified" and run.get("graph_receipt", {}).get("verified") is True
+    return _verification_receipt(data, port, plan, run, step)
+
+
+def _verification_receipt(data, port, plan, run, step):
+    """Report execution evidence separately from actual delivery read-backs."""
+    from . import release_graph
+    C.require(run.get("plan_id") == plan["id"] and run.get("plan_hash") == plan["plan_hash"],
+              "The verification run does not match its durable plan")
+    evidence_verified = run.get("evidence_status") == "verified" and run.get("graph_receipt", {}).get("verified") is True
+    if evidence_verified:
+        try:
+            certificate = release_graph.verify_result(data, port, plan, run)
+            evidence_verified = certificate == run["graph_receipt"] and certificate.get("verified") is True
+        except Exception:
+            evidence_verified = False
+    publications = run.get("publication", {})
+    delivered = set(run.get("publish_targets", [])) == {"jira", "slack"} and all(
+        isinstance(publications.get(target), dict) and publications[target].get("status") == "verified" and
+        publications[target].get("graph_linked") is True and publications[target].get("target") == target and
+        publications[target].get("run_id") == run["id"] and publications[target].get("plan_id") == plan["id"]
+        for target in ("jira", "slack"))
+    publication_graph_verified = bool(delivered and _publication_graph_verified(port, plan, run, publications))
+    delivered = delivered and publication_graph_verified
+    verified = evidence_verified and delivered
     return {"id": "goal-verification-" + run["id"], "step_id": step["id"], "kind": "verify_release",
-            "status": "verified" if verified else "running", "read_back_verified": verified,
+            "status": "verified" if verified else "partial" if evidence_verified or run.get("status") in {"completed", "partial", "error"} else "running", "read_back_verified": verified,
             "url": "https://baton-workspace.vercel.app/api/public/release-runs/" + run["id"],
             "result": {"run_id": run["id"], "decision": run["decision"], "evidence_status": run["evidence_status"],
-                       "verification_status": run["verification_status"], "environments": run["environments"]}}
+                       "verification_status": run["verification_status"], "environments": copy.deepcopy(run["environments"]),
+                       "run_status": run.get("status"), "evidence_graph_verified": evidence_verified,
+                       "publication_state": "verified" if delivered else "unconfirmed", "publication_graph_verified": publication_graph_verified,
+                       "publications": copy.deepcopy(publications)}}
+
+
+def _publication_graph_verified(port, plan, run, publications):
+    """Read native run-to-publication bindings without creating or repairing them."""
+    from . import release_graph
+    try:
+        native = release_graph._connect(port).select_graph(plan["graph"])
+        for target in ("jira", "slack"):
+            receipt = publications[target]
+            if not all(isinstance(receipt.get(key), str) and receipt[key] for key in ("id", "url", "contract_sha256")):
+                return False
+            expected = [receipt["id"], target, receipt["url"], receipt["contract_sha256"], run["id"]]
+            rows = native.ro_query(
+                "MATCH (r:ReleaseExecution {id:$run})-[:PUBLISHED_AS]->(p:ReleasePublication {id:$id}) "
+                "WHERE p.target=$target AND p.url=$url AND p.contract_sha256=$hash AND p.run_id=$run "
+                "RETURN p.id,p.target,p.url,p.contract_sha256,p.run_id",
+                {"run": run["id"], "id": receipt["id"], "target": target,
+                 "url": receipt["url"], "hash": receipt["contract_sha256"]}).result_set
+            if rows != [expected]:
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def resume(data, port, record, step):
+    """Reconcile only a known, previously approved verification; never dispatch or post."""
+    from . import release_gate
+    C.require(step.get("tool_name") == "verify_release", "Continuation cannot start or publish an effect")
+    stored = _current(data, port, record, step)
+    pending = [action for action in stored.get("actions", []) if action.get("step_id") == step["id"] and
+               action.get("kind") == "verify_release" and action.get("plan_hash") == stored["proposal"]["hash"] and
+               action.get("status") in {"running", "partial", "pending", "verification_pending", "error"} and
+               action.get("read_back_verified") is not True]
+    run_ids = {action.get("result", {}).get("run_id") for action in pending}
+    C.require(len(run_ids) == 1, "No unique already-started verification action can be reconciled")
+    run_id = next(iter(run_ids))
+    C.require(isinstance(run_id, str) and re.fullmatch(r"[a-f0-9]{32}", run_id), "The pending verification has no known run identity")
+    key = "goal:verification:" + C.sha(C.encode([stored["id"], stored["proposal"]["hash"], step["id"]]))
+    identity = connect(port).get(key)
+    C.require(isinstance(identity, str) and re.fullmatch(r"[a-f0-9]{32}", identity), "No durable verification intent exists")
+    plan = release_gate.read_plan(port, identity)
+    origin = plan.get("investigation", {})
+    C.require(plan.get("id") == identity and plan.get("latest_run_id") == run_id and origin.get("origin") == "goal_agent" and
+              origin.get("goal_id") == stored["id"] and origin.get("goal_plan_hash") == stored["proposal"]["hash"],
+              "The pending verification does not match the goal's durable intent")
+    release_gate._current(data, port, plan)
+    run = release_gate.read_run(port, run_id)
+    C.require(run.get("id") == run_id, "The stored verification run identity changed")
+    return _verification_receipt(data, port, plan, run, step)
 
 
 def execute(data, port, record, step):

@@ -88,15 +88,20 @@ Graph search uses bounded parameterized Cypher term matching and global candidat
 ranking across the captured public graphs. Results expose the matched terms,
 score and `native-terms-v1` version. This is lexical retrieval, not a full-text
 index or semantic embedding search. Captured source IDs are resolved by exact
-source URL matches; an entity observation alone never counts as a raw source read.
-  Budget each request below Lambda180s; bounded loop, then needs_continuation.
-  No manufactured finish or fabricated token usage/tool trace.
+source URL matches or exact existing catalog-ID references; an entity observation
+alone never counts as a raw source read. Each request is bounded below Lambda's
+180 seconds, then reports needs_continuation. No manufactured finish or fabricated
+token usage/tool trace.
 
 `publish_task` arguments: `{title,description,source_ids:[string]}`; model authored,
 source-grounded proposed work. Provider executor saves durable intent before POST
 and uses independent provider reads; ambiguous writes never repeat automatically.
 `verify_release` arguments: `{change_id:"FalkorDB/falkordb-py#212"}`; current
 approved immutable verification profile and its existing remaining quota.
+Continuation can reconcile only a known, already-started run. It cannot dispatch
+new work or publish. The verification action becomes verified only after fresh
+native execution evidence and both run-bound Jira/Slack receipts and graph links
+are verified. A verified action may still contain a blocked code matrix.
 Graph read tools are also valid plan steps. No other effect capability is allowed.
 
 UI lane owns `web/goal-agent.js`, `web/goal-agent.css`, main `web/index.html`

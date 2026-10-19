@@ -289,3 +289,72 @@ def test_entity_source_mapping_uses_exact_urls_not_scoped_id_guessing(workspace)
     result = Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": identity})
     assert result["observation"]["entities"][0]["source_ids"] == []
     assert result["evidence"][0]["kind"] == "entity"
+
+
+def test_real_symbol_exposes_exact_declared_captured_source_id(workspace):
+    source = next(s for s in workspace.sources if s.get("path") == "falkordb/graph.py")
+    result = Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": R._id("Graph._build_params_header")})
+    entity = result["observation"]["entities"][0]
+    assert entity["properties"]["kind"] == "Symbol"
+    assert entity["properties"]["record"]["source_id"] == source["id"]
+    assert entity["source_ids"] == [source["id"]]
+    assert result["evidence"][0]["kind"] == "entity"
+    raw = Q.call_tool(workspace.data, workspace.port, "read_company_source", {"source_id": entity["source_ids"][0]})
+    assert raw["observation"]["source_id"] == source["id"]
+    assert raw["evidence"][0]["kind"] == "source"
+
+
+def test_declared_source_mapping_filters_nonmembers_and_unions_exact_urls(workspace):
+    first, second = workspace.sources[:2]
+    identity = "test-declared-source-membership"
+    workspace.graph.query("CREATE (:ReleaseEvidence {id:$id,source_id:$source,source_ids:$ids,json:$json})",
+                          {"id": identity, "source": first["id"], "ids": ["ENV-8.1.0", "arbitrary-source"],
+                           "json": json.dumps({"source_id": "scope:" + first["id"],
+                                               "source_ids": [first["id"], "ENV-8.1.0", 123, {}], "url": second["url"]})})
+    result = Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": identity})
+    assert result["observation"]["entities"][0]["source_ids"] == sorted({first["id"], second["id"]})
+    assert result["evidence"][0]["kind"] == "entity"
+
+
+@pytest.mark.parametrize("candidate", ["ENV-8.1.0", "arbitrary-source", "scoped-captured-id"])
+def test_unknown_declared_source_ids_never_become_raw_source_choices(workspace, candidate):
+    if candidate == "scoped-captured-id":
+        candidate = R._id(workspace.sources[0]["id"])
+    identity = "test-nonmember-source"
+    workspace.graph.query("CREATE (:ReleaseEvidence {id:$id,source_id:$source,json:$json})",
+                          {"id": identity, "source": candidate,
+                           "json": json.dumps({"source_id": candidate, "source_ids": [candidate]})})
+    result = Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": identity})
+    assert result["observation"]["entities"][0]["source_ids"] == []
+    assert result["evidence"][0]["kind"] == "entity"
+
+
+def test_recorded_release_publication_is_traversable_entity_not_raw_source(workspace):
+    from server import release_publication as publisher
+    run = measured(workspace.plan)
+    R.record_result(workspace.data, workspace.port, workspace.plan, run)
+    receipt = {"id": "test-release-publication", "target": "jira", "url": "https://example.atlassian.net/browse/TEST-1",
+               "contract_sha256": "a" * 64}
+    assert publisher._link(workspace.port, workspace.plan, run, receipt)
+    result = Q.call_tool(workspace.data, workspace.port, "traverse_company_graph", {"entity_id": run["id"], "limit": 20})
+    publication = next(e for e in result["observation"]["entities"] if e["id"] == receipt["id"])
+    assert publication["labels"] == ["ReleasePublication"]
+    assert publication["properties"]["url"] == receipt["url"]
+    assert publication["source_ids"] == []
+    assert {e["kind"] for e in result["evidence"]} == {"entity"}
+
+
+def test_local_task_external_artifact_is_traversable_without_allowing_private_labels(workspace):
+    from server import company_connections as publisher
+    workspace.graph.query("CREATE (:LocalTask {id:'test-public-task'}),(:WorkItem {id:'test-public-item'})")
+    publisher._link_graph(workspace.port, {"id": "test-public-task", "item_id": "test-public-item", "graph": workspace.graph.name},
+                          {"id": "test-external-artifact", "target": "slack", "url": "https://example.slack.com/archives/C1/p1",
+                           "verified_at": "2026-10-19T00:00:00Z", "source_sha256": "a" * 64, "contract_sha256": "b" * 64})
+    result = Q.call_tool(workspace.data, workspace.port, "traverse_company_graph", {"entity_id": "test-public-task"})
+    artifact = next(e for e in result["observation"]["entities"] if e["id"] == "test-external-artifact")
+    assert artifact["labels"] == ["ExternalArtifact"] and artifact["source_ids"] == []
+    assert artifact["properties"]["url"] == "https://example.slack.com/archives/C1/p1"
+    assert {e["kind"] for e in result["evidence"]} == {"entity"}
+    workspace.graph.query("CREATE (:WorkspaceRecord {id:'test-private-label',json:'private-value'})")
+    with pytest.raises(ValueError, match="public graph entity"):
+        Q.call_tool(workspace.data, workspace.port, "inspect_graph_entity", {"entity_id": "test-private-label"})

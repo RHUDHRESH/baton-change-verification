@@ -1,6 +1,7 @@
 """Goal-plan authority and external-write fault injection, not live proof."""
 import copy
 from contextlib import nullcontext
+from types import SimpleNamespace
 
 import pytest
 
@@ -117,7 +118,7 @@ def test_goal_verification_bridge_preserves_actual_ai_origin_and_replays_same_in
     monkeypatch.setattr(gate, "_save", lambda port, kind, plan: saved.append(copy.deepcopy(plan)))
     def execute(*args):
         dispatched.append(args)
-        return {"id": "9" * 32, "decision": "unconfirmed", "evidence_status": "unconfirmed", "verification_status": "running", "environments": []}
+        return {"id": "9" * 32, "plan_id": args[2], "plan_hash": args[3], "status": "queued", "decision": "unconfirmed", "evidence_status": "unconfirmed", "verification_status": "running", "environments": []}
     monkeypatch.setattr(gate, "execute", execute)
     step = {"id": "verify", "tool_name": "verify_release", "why": "The model selected the approved verification capability"}
     one = A._verify_release(None, 0, record, step)
@@ -142,3 +143,137 @@ def test_verification_bridge_requires_inspection_of_this_pinned_change(record, m
     with pytest.raises(ValueError, match="Inspect this pinned change"):
         A._verify_release(None, 0, record, {"id": "verify", "why": "Need verification"})
     assert calls == []
+
+
+@pytest.fixture
+def pending_verification(record, monkeypatch):
+    from server import release_gate as gate, release_graph as release
+    step = {"id": "verify", "title": "Verify the merged change", "tool_name": "verify_release",
+            "args": {"change_id": "FalkorDB/falkordb-py#212"}, "why": "Collect actual compatibility evidence",
+            "evidence_ids": ["ev-source"], "depends_on": [], "expected_result": "Recorded execution and publication receipts"}
+    raw = {"summary": "Verify the inspected change", "success_criteria": ["Read actual execution and publication receipts"], "steps": [step]}
+    record["proposal"] = C.validate_proposal(raw, record["goal"], record["evidence"], G.TOOLS + C.EFFECTS, record["evidence_binding"])
+    record["approved_actions"] = ["verify_release"]
+    run_id, plan_id = "9" * 32, "f" * 32
+    record["actions"] = [{"id": "goal-verification-" + run_id, "step_id": "verify", "kind": "verify_release",
+                          "plan_hash": record["proposal"]["hash"], "status": "running", "read_back_verified": False, "result": {"run_id": run_id}}]
+    plan = {"id": plan_id, "plan_hash": "e" * 64, "latest_run_id": run_id, "graph": "actual-release-graph-test",
+            "investigation": {"origin": "goal_agent", "goal_id": record["id"], "goal_plan_hash": record["proposal"]["hash"]}}
+    run = {"id": run_id, "plan_id": plan_id, "plan_hash": plan["plan_hash"], "status": "running",
+           "evidence_status": "unconfirmed", "decision": "unconfirmed", "verification_status": "running", "environments": [],
+           "publication": {}, "publish_targets": ["jira", "slack"]}
+    control, reads = Control(), []
+    key = "goal:verification:" + C.sha(C.encode([record["id"], record["proposal"]["hash"], step["id"]]))
+    control.values[key] = plan_id
+    monkeypatch.setattr(A, "connect", lambda *a: control)
+    monkeypatch.setattr(G, "get_goal", lambda *a: record)
+    monkeypatch.setattr(G, "evidence_binding", lambda *a: record["evidence_binding"])
+    monkeypatch.setattr(G, "ready_steps", lambda *a: ["verify"])
+    monkeypatch.setattr(gate, "read_plan", lambda port, identity: reads.append(("plan", identity)) or plan)
+    monkeypatch.setattr(gate, "read_run", lambda port, identity: reads.append(("run", identity)) or run)
+    monkeypatch.setattr(gate, "_current", lambda *a: reads.append(("fresh-plan", a[-1]["id"])))
+    monkeypatch.setattr(release, "verify_result", lambda *a: reads.append(("certificate", a[-1]["id"])) or run["graph_receipt"])
+    def forbidden(*args, **kwargs): raise AssertionError("Readonly continuation attempted an effect")
+    def native_read(query, params):
+        assert query.startswith("MATCH ") and not any(word in query for word in ("MERGE ", " SET ", "CREATE "))
+        reads.append(("native-publication", params["target"]))
+        return SimpleNamespace(result_set=[[params["id"], params["target"], params["url"], params["hash"], params["run"]]])
+    native = SimpleNamespace(ro_query=native_read, query=forbidden)
+    monkeypatch.setattr(release, "_connect", lambda *a: SimpleNamespace(select_graph=lambda name: native))
+    for module, name in [(gate, "execute"), (gate, "_save"), (gate, "github"), (release, "record_result"), (A.provider, "_request"), (A.provider, "_verify"), (control, "set")]:
+        monkeypatch.setattr(module, name, forbidden)
+    return record, step, plan, run, control, reads
+
+
+def test_resume_reads_only_known_durable_run_without_dispatch_or_provider_write(pending_verification):
+    record, step, plan, run, _, reads = pending_verification
+    receipt = A.resume(None, 0, record, step)
+    assert receipt["status"] == "running" and receipt["read_back_verified"] is False
+    assert receipt["result"]["run_id"] == run["id"]
+    assert reads == [("plan", plan["id"]), ("fresh-plan", plan["id"]), ("run", run["id"])]
+
+
+@pytest.mark.parametrize("fault", ["no_action", "different_hash", "different_step", "different_kind", "unknown_run", "no_intent", "intent_run_mismatch", "intent_goal_mismatch", "run_plan_mismatch", "not_approved", "not_ready", "stale_evidence"])
+def test_resume_cannot_start_new_effect_or_rebind_pending_run(pending_verification, monkeypatch, fault):
+    record, step, plan, run, control, _ = pending_verification
+    if fault == "no_action": record["actions"] = []
+    if fault == "different_hash": record["actions"][0]["plan_hash"] = "old"
+    if fault == "different_step": record["actions"][0]["step_id"] = "other"
+    if fault == "different_kind": record["actions"][0]["kind"] = "publish_task"
+    if fault == "unknown_run": record["actions"][0]["result"] = {}
+    if fault == "no_intent": control.values.clear()
+    if fault == "intent_run_mismatch": plan["latest_run_id"] = "8" * 32
+    if fault == "intent_goal_mismatch": plan["investigation"]["goal_id"] = "8" * 32
+    if fault == "run_plan_mismatch": run["plan_hash"] = "old"
+    if fault == "not_approved": record["approved_actions"] = []
+    if fault == "not_ready": monkeypatch.setattr(G, "ready_steps", lambda *a: [])
+    if fault == "stale_evidence": monkeypatch.setattr(G, "evidence_binding", lambda *a: "changed")
+    with pytest.raises(ValueError): A.resume(None, 0, record, step)
+
+
+def test_resume_never_publishes_a_new_task(pending_verification):
+    record, step, *_ = pending_verification
+    step["tool_name"] = "publish_task"
+    with pytest.raises(ValueError, match="cannot start or publish"): A.resume(None, 0, record, step)
+
+
+def verified_run(plan, run):
+    run.update(status="completed", evidence_status="verified", decision="blocked", verification_status="failed",
+               graph_receipt={"verified": True, "run_id": run["id"]},
+               publication={target: {"target": target, "status": "verified", "graph_linked": True,
+                                    "id": "publication-" + target, "contract_sha256": "c" * 64,
+                                    "run_id": run["id"], "plan_id": plan["id"], "url": "https://example.invalid/actual-receipt"} for target in ("jira", "slack")})
+
+
+@pytest.mark.parametrize("fault", ["missing", "pending", "not_linked", "other_run", "other_plan", "other_target"])
+def test_verified_matrix_without_both_actual_deliveries_never_marks_action_complete(pending_verification, fault):
+    record, step, plan, run, *_ = pending_verification
+    verified_run(plan, run)
+    if fault == "missing": del run["publication"]["slack"]
+    if fault == "pending": run["publication"]["slack"]["status"] = "pending"
+    if fault == "not_linked": run["publication"]["slack"]["graph_linked"] = False
+    if fault == "other_run": run["publication"]["slack"]["run_id"] = "8" * 32
+    if fault == "other_plan": run["publication"]["slack"]["plan_id"] = "8" * 32
+    if fault == "other_target": run["publication"]["slack"]["target"] = "jira"
+    result = A.resume(None, 0, record, step)
+    assert result["status"] == "partial" and result["read_back_verified"] is False
+    assert result["result"]["publications"] == run["publication"]
+    assert result["result"]["decision"] == "blocked" and result["result"]["evidence_graph_verified"] is True
+    assert result["result"]["publication_state"] == "unconfirmed"
+
+
+def test_verified_failing_matrix_with_both_deliveries_verifies_action_not_code(pending_verification):
+    record, step, plan, run, *_ = pending_verification
+    verified_run(plan, run)
+    result = A.resume(None, 0, record, step)
+    assert result["status"] == "verified" and result["read_back_verified"] is True
+    assert result["result"]["decision"] == "blocked" and result["result"]["verification_status"] == "failed"
+    assert result["result"]["publications"] == run["publication"]
+    assert result["result"]["publication_graph_verified"] is True
+
+
+def test_resume_rejects_stale_native_execution_certificate(pending_verification, monkeypatch):
+    from server import release_graph as release
+    record, step, plan, run, *_ = pending_verification
+    verified_run(plan, run)
+    monkeypatch.setattr(release, "verify_result", lambda *a: {"verified": True, "run_id": "other"})
+    result = A.resume(None, 0, record, step)
+    assert result["status"] == "partial" and result["read_back_verified"] is False
+    assert result["result"]["evidence_graph_verified"] is False
+
+
+@pytest.mark.parametrize("fault", ["missing", "wrong_target", "wrong_url", "wrong_hash", "wrong_run"])
+def test_cached_publication_json_cannot_replace_native_bindings(pending_verification, monkeypatch, fault):
+    from server import release_graph as release
+    record, step, plan, run, *_ = pending_verification
+    verified_run(plan, run)
+    def read(query, params):
+        row = [params["id"], params["target"], params["url"], params["hash"], params["run"]]
+        if fault == "missing": return SimpleNamespace(result_set=[])
+        row[{"wrong_target": 1, "wrong_url": 2, "wrong_hash": 3, "wrong_run": 4}[fault]] = "different-native-binding"
+        return SimpleNamespace(result_set=[row])
+    monkeypatch.setattr(release, "_connect", lambda *a: SimpleNamespace(select_graph=lambda name: SimpleNamespace(ro_query=read)))
+    result = A.resume(None, 0, record, step)
+    assert result["status"] == "partial" and result["read_back_verified"] is False
+    assert result["result"]["publication_graph_verified"] is False
+    assert result["result"]["publications"] == run["publication"]

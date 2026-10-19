@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 import pytest
 
-from server import goal_agent, goal_graph, security
+from server import goal_agent, goal_actions, goal_graph, security
 
 ID, HASH = "a" * 32, "b" * 64
 START = {"goal": "Investigate the public compatibility failure and propose useful follow-up", "idempotency_key": "goal-http-unique-key"}
@@ -59,7 +59,7 @@ def test_client_cannot_supply_plan_tools_or_completion(http, extra):
 def test_continuation_before_a_proposal_accepts_empty_hash_but_no_new_permissions(http):
     r = operator(http).post(f"/api/public/goals/{ID}/continue", json={"expected_plan_hash": ""})
     assert r.status_code == 200 and http.resume.call_args.args[2:] == (ID, "")
-    assert http.resume.call_args.kwargs == {}
+    assert http.resume.call_args.kwargs == {"action_executor": goal_actions.resume}
     assert operator(http).post(f"/api/public/goals/{ID}/continue", json={"expected_plan_hash": "", "approved_actions": ["publish_task"]}).status_code == 422
 
 

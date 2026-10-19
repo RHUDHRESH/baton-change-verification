@@ -1,0 +1,133 @@
+{
+  "source_commit": "789c44694ee55c276a6a41db4628b39126de1606",
+  "plan_origin": "TEST-authored goal()/DAG helper, not an AI-generated or live-provider plan",
+  "sources": "Pinned public capture fixture used only as isolated test input; no production fixture fallback",
+  "provider_calls": 0,
+  "production_graph_mutations": 0,
+  "temporary_graph_deleted_by_fixture": true,
+  "queries": {
+    "dependency_read": "MATCH (:PlanRevision {id:$plan})-[:HAS_STEP]->(s:GoalStep) OPTIONAL MATCH (s)-[:DEPENDS_ON]->(d:GoalStep) RETURN s.step_id,collect(d.step_id) ORDER BY s.step_id",
+    "citation_read": "MATCH (:PlanRevision {id:$plan})-[:HAS_STEP]->(s:GoalStep) OPTIONAL MATCH (s)-[:CITES]->(e:GoalEvidence) RETURN s.step_id,collect(e.id) ORDER BY s.step_id"
+  },
+  "before": {
+    "dependencies": [
+      [
+        "inspect",
+        []
+      ],
+      [
+        "publish",
+        [
+          "inspect"
+        ]
+      ]
+    ],
+    "citations": [
+      [
+        "inspect",
+        [
+          "gev-d94eb7a3b17e9a3e0036bb54"
+        ]
+      ],
+      [
+        "publish",
+        [
+          "gev-d94eb7a3b17e9a3e0036bb54"
+        ]
+      ]
+    ],
+    "ready": [
+      "inspect"
+    ]
+  },
+  "dependency_ablation": {
+    "after": [
+      [
+        "inspect",
+        []
+      ],
+      [
+        "publish",
+        []
+      ]
+    ],
+    "readiness": "rejected",
+    "reason": "Native plan dependency or step binding changed"
+  },
+  "citation_ablation": {
+    "after": [
+      [
+        "inspect",
+        []
+      ],
+      [
+        "publish",
+        []
+      ]
+    ],
+    "readiness": "rejected",
+    "reason": "Native plan citation binding changed"
+  },
+  "unrelated_change": {
+    "query": "CREATE (:Unrelated {id:'isolated-unrelated-fact',value:'irrelevant'})",
+    "binding_unchanged": true,
+    "ready": [
+      "inspect"
+    ]
+  },
+  "selected_source_mutation": {
+    "mutation": "Appended a test-only comment to the selected cached source content",
+    "readiness": "rejected",
+    "reason": "Relevant inspected evidence changed"
+  },
+  "restored": {
+    "dependencies": [
+      [
+        "inspect",
+        []
+      ],
+      [
+        "publish",
+        [
+          "inspect"
+        ]
+      ]
+    ],
+    "citations": [
+      [
+        "inspect",
+        [
+          "gev-d94eb7a3b17e9a3e0036bb54"
+        ]
+      ],
+      [
+        "publish",
+        [
+          "gev-d94eb7a3b17e9a3e0036bb54"
+        ]
+      ]
+    ],
+    "ready": [
+      "inspect"
+    ]
+  },
+  "engine": {
+    "redis_server_version": "8.10.2",
+    "modules": [
+      {
+        "name": "graph",
+        "version": 42201
+      },
+      {
+        "name": "vectorset",
+        "version": 1
+      }
+    ],
+    "python_version": "3.13.5",
+    "engine_origin": "Official Redis/FalkorDB binary started on a random localhost port by the release_engine test fixture"
+  },
+  "limits": [
+    "Tests establish native graph readiness and selected-fact freshness enforcement, not semantic goal interpretation or useful AI planning.",
+    "Source fixtures and the test-authored plan do not constitute live Groq or provider evidence."
+  ]
+}

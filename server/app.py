@@ -668,11 +668,11 @@ def act_on_goal(goal_id: str, body: GoalAct, request: Request):
 
 @app.post("/api/public/goals/{goal_id}/continue")
 def continue_goal_run(goal_id: str, body: GoalContinue, request: Request):
-    from . import goal_agent, goal_graph
+    from . import goal_agent, goal_actions, goal_graph
     security.session(request, auth_db(), DATA)
     try:
         with goal_graph.deadline_scope(time.monotonic() + 155):
-            return goal_agent.continue_goal(DATA, PORT, goal_id, body.expected_plan_hash)
+            return goal_agent.continue_goal(DATA, PORT, goal_id, body.expected_plan_hash, action_executor=goal_actions.resume)
     except ValueError as error:
         raise HTTPException(409, str(error)) from None
     except Exception:
