@@ -269,17 +269,30 @@ def test_provider_absence_is_explicit_failure_with_no_fake_ai(live, monkeypatch)
     assert len(live.plan["required_checks"]) == 4
 
 
-def test_actual_tool_loop_uses_adaptive_provider_selections(live, monkeypatch):
+@pytest.mark.parametrize("order", [("impact", "source", "change"), ("change", "source", "impact")])
+def test_actual_tool_loop_uses_adaptive_provider_selections(live, monkeypatch, order):
     from contextlib import nullcontext
     from server import graph_agent, control
     source_id = next(s["id"] for s in live.sources if s.get("path") == "falkordb/helpers.py")
-    selections = [("release_follow_impact", {"change_id": C.CHANGE_ID}),
-                  ("release_read_source", {"source_id": source_id}),
-                  ("release_read_change", {"change_id": C.CHANGE_ID}),
-                  ("release_explain", {"summary": "Both public surfaces invoke the inherited header and recursive map serializer; empty and backtick keys are rejected.", "source_ids": [source_id]})]
+    inspections = {"impact": ("release_follow_impact", {"change_id": C.CHANGE_ID}),
+                   "source": ("release_read_source", {"source_id": source_id}),
+                   "change": ("release_read_change", {"change_id": C.CHANGE_ID})}
+    selections = [inspections[name] for name in order] + [
+        ("release_explain", {"summary": "Both public surfaces invoke the inherited header and recursive map serializer; empty and backtick keys are rejected.", "source_ids": [source_id]})]
     calls = []
     def provider(messages, tools, timeout, tool_choice):
         assert tool_choice == "required"
+        assert "release_explain" not in messages[0]["content"]
+        assert "rejects literal backticks" not in messages[0]["content"]
+        runtime = messages[1]["content"]
+        state = json.loads(runtime.split(": ", 1)[1].split(". Return exactly", 1)[0])
+        expected_seen = set(order[:len(calls)])
+        assert state["observed"] == {"change": "change" in expected_seen, "impact": "impact" in expected_seen,
+                                     "production-source": "source" in expected_seen}
+        assert state["missing"] == [name for name, seen in state["observed"].items() if not seen]
+        assert state["offered_tools"] == [tool["function"]["name"] for tool in tools]
+        assert ("release_explain" in runtime) == (len(calls) == 3)
+        assert "no ordinary prose" in runtime
         name, args = selections[len(calls)]
         calls.append((name, tools))
         return {"content": None, "tool_calls": [{"id": str(len(calls)), "function": {"name": name, "arguments": json.dumps(args)}}]}, {
@@ -306,12 +319,24 @@ def test_provider_projection_preserves_all_obligations_and_archives_full_graph(l
     assert len(C.encode(projection)) < len(C.encode(result)) / 2
 
 
-def test_ai_cannot_drop_checks_or_finish_before_graph_inspection(live, monkeypatch):
+@pytest.mark.parametrize("prefix", [(), ("change", "impact"), ("change", "source"), ("impact", "source")])
+def test_ai_cannot_drop_checks_or_finish_before_graph_inspection(live, monkeypatch, prefix):
     from contextlib import nullcontext
     from server import graph_agent, control
     monkeypatch.setenv("GROQ_API_KEY", "provider-test-only")
     monkeypatch.setattr(control, "connect", lambda port: SimpleNamespace(set=lambda *a, **k: True, lock=lambda *a, **k: nullcontext()))
-    monkeypatch.setattr(graph_agent, "completion", lambda *a, **k: ({"tool_calls": [{"id": "1", "function": {"name": "release_explain", "arguments": "{}"}}]}, {"id": "provider-test", "model": "test", "usage": {"total_tokens": 100}}))
+    source_id = next(s["id"] for s in live.sources if s.get("path") == "falkordb/helpers.py")
+    inspections = {"change": ("release_read_change", {"change_id": C.CHANGE_ID}),
+                   "impact": ("release_follow_impact", {"change_id": C.CHANGE_ID}),
+                   "source": ("release_read_source", {"source_id": source_id})}
+    selections = [inspections[name] for name in prefix] + [("release_explain", {})]
+    calls = []
+    def provider(messages, tools, **kwargs):
+        assert "release_explain" not in {tool["function"]["name"] for tool in tools}
+        name, args = selections[len(calls)]
+        calls.append(name)
+        return {"tool_calls": [{"id": str(len(calls)), "function": {"name": name, "arguments": C.encode(args)}}]}, {"id": "provider-test", "model": "test", "usage": {"total_tokens": 100}}
+    monkeypatch.setattr(graph_agent, "completion", provider)
     result = R._investigate(live.data, live.port, live.plan)
     assert result["status"] == "failed" and "premature" in result["error"]
     assert C.selected_ids(live.plan) == list(C.CHECK_IDS)
@@ -427,17 +452,24 @@ def test_provider_timeout_uses_remaining_budget_and_late_tool_is_rejected(live, 
         tool.assert_not_called()
 
 
-def test_http_provider_failure_retains_diagnostics_without_retry_or_extra_tool(live, monkeypatch):
+def test_actual_second_turn_no_tool_diagnostic_stays_failed_with_updated_runtime_state(live, monkeypatch):
     from contextlib import nullcontext
     from server import graph_agent, control
     monkeypatch.setenv("GROQ_API_KEY", "provider-test-only")
     monkeypatch.setattr(control, "connect", lambda port: SimpleNamespace(set=lambda *a, **k: True, lock=lambda *a, **k: nullcontext()))
-    diagnostics = {"provider": "Groq", "http_status": 400, "error": {"type": "invalid_request_error", "code": "tool_use_failed", "param": "tool_choice", "message": "Tool generation was rejected"},
-                   "response_sha256": "b" * 64, "failed_generation_tool_names": ["release_explain"]}
+    # Observed production shape: no evidence of an undeclared terminal call.
+    diagnostics = {"provider": "Groq", "http_status": 400, "error": {"type": "invalid_request_error", "code": "tool_use_failed", "param": "tool_choice", "message": "Tool choice is required, but model did not call a tool"},
+                   "response_sha256": "b" * 64, "failed_generation_tool_names": []}
     calls = []
     def provider(messages, tools, timeout, tool_choice):
         calls.append(tool_choice)
         if len(calls) == 2:
+            runtime = messages[1]["content"]
+            state = json.loads(runtime.split(": ", 1)[1].split(". Return exactly", 1)[0])
+            assert state["observed"] == {"change": True, "impact": False, "production-source": False}
+            assert state["missing"] == ["impact", "production-source"]
+            assert "release_explain" not in runtime
+            assert "ONE offered tool call" in runtime and "no ordinary prose" in runtime
             raise graph_agent.ProviderHTTPError("Groq tool selection returned HTTP 400; diagnostics recorded", diagnostics)
         return {"tool_calls": [{"id": "1", "function": {"name": "release_read_change", "arguments": C.encode({"change_id": C.CHANGE_ID})}}]}, {
             "id": "provider-test", "model": "test", "finish_reason": "tool_calls", "usage": {"total_tokens": 564}}
@@ -448,3 +480,16 @@ def test_http_provider_failure_retains_diagnostics_without_retry_or_extra_tool(l
     assert len(result["trace"]) == 1 and result["trace"][0]["request"]["params"]["name"] == "release_read_change"
     assert result["receipts"][-1] == diagnostics and result["used_tokens"] == 564
     assert result["model"] == "test"  # HTTP errors do not invent a generation model/usage.
+
+
+def test_runtime_state_is_included_in_provider_input_budget(live, monkeypatch):
+    from contextlib import nullcontext
+    from server import graph_agent, control
+    monkeypatch.setenv("GROQ_API_KEY", "provider-test-only")
+    monkeypatch.setattr(control, "connect", lambda port: SimpleNamespace(set=lambda *a, **k: True, lock=lambda *a, **k: nullcontext()))
+    monkeypatch.setattr(R, "_investigation_state", lambda *a: "trusted state " * 5000)
+    with patch.object(graph_agent, "completion") as provider:
+        result = R._investigate(live.data, live.port, live.plan)
+        provider.assert_not_called()
+    assert result["status"] == "failed" and "token budget" in result["error"]
+    assert result["provider_calls"] == 0 and not result["receipts"]
